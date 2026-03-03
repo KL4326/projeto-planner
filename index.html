@@ -3,9 +3,8 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>CaradoTI - Dashboard</title>
+    <title>TaskFlow - Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
-    
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link rel="stylesheet" href="style.css">
     <script id="tailwind-config">
@@ -18,12 +17,12 @@
             <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-6 py-3 lg:px-20 sticky top-0 z-50 gap-4">
                 <div class="flex items-center gap-2 text-primary shrink-0">
                     <span class="material-symbols-outlined text-3xl font-bold">layers</span>
-                    <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block">Planner - Cara do TI</h2>
+                    <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block">TaskFlow</h2>
                 </div>
 
                 <div class="flex-1 max-w-md mx-4">
                     <div class="relative group">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                         <input id="search-input" type="text" placeholder="Procurar tarefa pelo título..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white">
                     </div>
                 </div>
@@ -37,7 +36,6 @@
                         <div id="profile-menu" class="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl hidden overflow-hidden z-50">
                             <a class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" href="perfil.html"><span class="material-symbols-outlined text-lg">person</span> Editar perfil</a>
                             <a class="theme-toggle flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"><span class="material-symbols-outlined text-lg">dark_mode</span> Alternar Tema</a>
-                            <a class="change-password-btn flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"><span class="material-symbols-outlined text-lg">lock</span> Editar senha</a>
                             <hr class="border-slate-200 dark:border-slate-700"/>
                             <a id="admin-menu-link" class="hidden items-center gap-3 px-4 py-3 text-sm text-primary font-bold hover:bg-slate-50 dark:hover:bg-slate-700" href="admin.html"><span class="material-symbols-outlined text-lg">admin_panel_settings</span> Painel Admin</a>
                             <a class="flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-slate-50 dark:hover:bg-slate-700" href="login.html"><span class="material-symbols-outlined text-lg">logout</span> Sair</a>
@@ -61,7 +59,7 @@
                                     <button data-filter="Em aberto" class="filter-btn flex h-9 items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-xs font-bold transition-all cursor-pointer">Em aberto</button>
                                     <button data-filter="Em andamento" class="filter-btn flex h-9 items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-xs font-bold transition-all cursor-pointer">Em andamento</button>
                                     <button data-filter="Concluída" class="filter-btn flex h-9 items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-xs font-bold transition-all cursor-pointer">Concluídas</button>
-                                    <button data-filter="Cancelada" class="filter-btn flex h-9 items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-xs font-bold transition-all cursor-pointer text-red-500">Canceladas</button>
+                                    <button data-filter="Cancelada" class="filter-btn flex h-9 items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-xs font-bold transition-all cursor-pointer">Canceladas</button>
                                 </div>
                                 <div class="flex flex-wrap gap-2">
                                     <select id="filter-sector" class="h-9 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[11px] font-bold uppercase text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary">
@@ -73,14 +71,14 @@
                                     </select>
                                 </div>
                             </div>
-                            <div id="tasks-container" class="grid grid-cols-1 gap-3"><div class="text-center py-10 text-slate-400 italic">Carregando tarefas...</div></div>
+                            <div id="tasks-container" class="grid grid-cols-1 gap-3"><div class="text-center py-10 text-slate-400 italic">Carregando...</div></div>
                         </div>
                     </div>
                     <div class="w-full lg:w-80 flex flex-col gap-6">
                         <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 text-primary">
+                            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b dark:border-slate-800 flex items-center gap-2 text-primary">
                                 <span class="material-symbols-outlined font-bold">workspace_premium</span>
-                                <h2 class="font-black text-sm uppercase">Ranking de Produtividade</h2>
+                                <h2 class="font-black text-sm uppercase">Ranking Produtividade</h2>
                             </div>
                             <div id="ranking-container" class="p-4 flex flex-col gap-2"></div>
                         </div>
