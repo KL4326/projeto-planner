@@ -11,13 +11,11 @@ const firebaseConfig = {
   appId: "1:116304178516:web:1f3a6fe922f03b98ea2cc1"
 };
 
-// --- INICIALIZAÇÃO ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
-// --- DETEÇÃO DE PÁGINA (VERSÃO VERCEL) ---
 const path = window.location.pathname;
+
 const isLoginPage = path.includes("login");
 const isRegisterPage = path.includes("cadastro");
 const isIndexPage = path === "/" || path.includes("index") || path.endsWith("/");
@@ -26,23 +24,21 @@ const isNewTaskPage = path.includes("nova-tarefa");
 const isProfilePage = path.includes("perfil");
 const isAdminPage = path.includes("admin");
 
-// --- CONFIGURAÇÕES VISUAIS ---
-const CONFIG = {
-    prioridades: { high: { label: 'Alta', bg: 'bg-red-500' }, medium: { label: 'Média', bg: 'bg-orange-500' }, low: { label: 'Baixa', bg: 'bg-yellow-500' } },
-    statusIcons: { 'Concluída': 'check_circle', 'Em andamento': 'directions_run', 'Cancelada': 'close', 'Em aberto': 'schedule' }
-};
-
-// --- FUNÇÕES AUXILIARES ---
 const initTheme = () => {
     const t = localStorage.getItem('theme') || 'dark';
     document.documentElement.classList.toggle('dark', t === 'dark');
 };
 initTheme();
 
+const CONFIG = {
+    prioridades: { high: { label: 'Alta', bg: 'bg-red-500' }, medium: { label: 'Média', bg: 'bg-orange-500' }, low: { label: 'Baixa', bg: 'bg-yellow-500' } },
+    statusIcons: { 'Concluída': 'check_circle', 'Em andamento': 'directions_run', 'Cancelada': 'close', 'Em aberto': 'schedule' }
+};
+
 const darFeedback = (btn, original, sucesso) => {
     const corOriginal = btn.classList.contains('bg-primary') ? 'bg-primary' : 'bg-slate-200';
-    btn.innerText = sucesso; btn.classList.replace(corOriginal, 'bg-green-500'); btn.disabled = true;
-    setTimeout(() => { btn.innerText = original; btn.classList.replace('bg-green-500', corOriginal); btn.disabled = false; }, 2000);
+    btn.innerText = sucesso; btn.classList.remove(corOriginal); btn.classList.add('bg-green-500'); btn.disabled = true;
+    setTimeout(() => { btn.innerText = original; btn.classList.remove('bg-green-500'); btn.classList.add(corOriginal); btn.disabled = false; }, 2000);
 };
 
 const carregarUsers = (id) => {
@@ -54,48 +50,24 @@ const carregarUsers = (id) => {
     });
 };
 
-// --- AUTH GLOBAL & LOGIN ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         if (isLoginPage) window.location.href = "index.html";
-        
-        // Ativar Botão Admin (AJUSTE SEU EMAIL AQUI)
         const al = document.getElementById('admin-menu-link');
         const adminEmail = "admin@planner.com"; 
         if (al && user.email === adminEmail) { al.classList.remove('hidden'); al.classList.add('flex'); }
-        
         const pb = document.getElementById('profile-btn');
         if (pb) {
             const init = (user.displayName || user.email).substring(0,2).toUpperCase();
             pb.innerHTML = user.photoURL ? `<div class="size-10 rounded-full bg-cover bg-center border-2 border-primary/20" style="background-image:url('${user.photoURL}')"></div>` : `<div class="size-10 rounded-full bg-primary text-white flex items-center justify-center font-bold border-2 border-primary/20">${init}</div>`;
             pb.innerHTML += `<span class="material-symbols-outlined text-slate-400">expand_more</span>`;
         }
-
-        if (isProfilePage) {
-            const nInp = document.getElementById('profile-name');
-            if (nInp) {
-                nInp.value = user.displayName || ""; document.getElementById('profile-photo').value = user.photoURL || ""; document.getElementById('profile-display-name').innerText = user.displayName || "Usuário";
-                const d = await getDoc(doc(db, "usuarios", user.uid));
-                if (d.exists()) document.getElementById('profile-bio').value = d.data().bio || "";
-            }
-        }
     } else {
         if (!isLoginPage && !isRegisterPage) window.location.href = "login.html";
     }
 });
 
-// Lógica de Login
-const loginForm = document.getElementById('login-form');
-if (loginForm) {
-    loginForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email-input').value;
-        const pass = document.getElementById('password-input').value;
-        try { await signInWithEmailAndPassword(auth, email, pass); } catch (e) { alert("Erro ao entrar: Verifique e-mail/senha."); }
-    };
-}
-
-// --- DASHBOARD (BUSCA + FILTROS + COROAS) ---
+// --- DASHBOARD (CORREÇÃO DE CORES DOS FILTROS) ---
 if (isIndexPage) {
     const tasksContainer = document.getElementById('tasks-container');
     const searchInput = document.getElementById('search-input');
@@ -119,7 +91,7 @@ if (isIndexPage) {
                     tasksContainer.innerHTML += `<div onclick="if(!event.target.closest('.complete-task-btn')) window.location.href='detalhes-tarefa.html?id=${snap.id}'" class="flex items-center justify-between p-4 bg-white dark:bg-slate-800/60 rounded-xl border dark:border-slate-800 mb-2 cursor-pointer group shadow-sm transition-all hover:border-primary/40"><div class="flex items-center gap-4 flex-1"><button data-id="${snap.id}" class="complete-task-btn p-2 rounded-lg ${t.status==='Concluída'?'text-green-500 bg-green-500/10':'text-slate-400 bg-slate-100 dark:bg-slate-700'}"><span class="material-symbols-outlined">${icon}</span></button><div class="flex flex-col"><span class="font-bold text-slate-900 dark:text-slate-100">${t.title}</span><div class="flex items-center gap-2 mt-1 text-[10px] font-bold uppercase"><span class="text-primary font-black">${t.sector || '---'}</span><span class="text-slate-400">| ${t.assignees?.join(', ') || '---'}</span><span class="text-slate-400">| ${dateVal}</span></div></div></div><span class="px-3 py-1 ${p.bg} text-white text-[10px] font-black rounded-full uppercase">${p.label}</span></div>`;
                 }
             });
-            if (count === 0) tasksContainer.innerHTML = '<p class="text-center py-10 text-slate-400 italic">Nenhuma tarefa corresponde à pesquisa.</p>';
+            if (count === 0) tasksContainer.innerHTML = '<p class="text-center py-10 text-slate-400 italic">Nenhuma tarefa encontrada.</p>';
         };
 
         const renderRanking = (allDocs) => {
@@ -140,10 +112,18 @@ if (isIndexPage) {
         onSnapshot(query(collection(db, "tarefas"), orderBy("createdAt", "desc")), (snap) => { data = snap.docs; render(); renderRanking(data); });
 
         if(searchInput) searchInput.oninput = (e) => { fSearch = e.target.value; render(); };
+        
+        // LÓGICA DE FILTRO CORRIGIDA (ESTADO ATIVO AZUL)
         document.querySelectorAll('.filter-btn').forEach(btn => btn.onclick = () => {
-            document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('bg-primary','text-white'); b.classList.add('bg-slate-100','dark:bg-slate-800','text-slate-600','dark:text-slate-300'); });
-            btn.classList.add('bg-primary','text-white'); fStat = btn.dataset.filter; render();
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-primary', 'text-white');
+                b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+            });
+            btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+            btn.classList.add('bg-primary', 'text-white');
+            fStat = btn.dataset.filter; render();
         });
+        
         carregarUsers('filter-assignee');
         document.getElementById('filter-sector').onchange = (e) => { fSect = e.target.value; render(); };
         document.getElementById('filter-assignee').onchange = (e) => { fAssign = e.target.value; render(); };
@@ -151,17 +131,7 @@ if (isIndexPage) {
     }
 }
 
-// --- NOVA TAREFA ---
-if (isNewTaskPage) {
-    carregarUsers('task-assignees');
-    document.getElementById('save-task-btn')?.addEventListener('click', async () => {
-        const t = document.getElementById('task-title').value; const sel = Array.from(document.getElementById('task-assignees').selectedOptions).map(o => o.value); if (!t) return;
-        await addDoc(collection(db, "tarefas"), { title: t, description: document.getElementById('task-desc').value, sector: document.getElementById('task-sector').value, priority: document.querySelector('input[name="priority"]:checked').value, assignees: sel, status: "Em aberto", createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('task-date').value });
-        window.location.href = "index.html";
-    });
-}
-
-// --- DETALHES ---
+// --- DETALHES & EXCLUSÃO SUBTAREFA ---
 if (isDetailsPage) {
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('id');
@@ -182,9 +152,13 @@ if (isDetailsPage) {
         document.getElementById('detail-tags').innerHTML = `<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ${p.bg}">${p.label}</span>`;
     });
 
-    const ci = document.getElementById('chat-input'), csb = document.getElementById('send-chat-btn');
-    const fChat = async () => { if(!ci.value.trim()) return; await addDoc(collection(db, "tarefas", taskId, "comentarios"), { text: ci.value, authorName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); ci.value = ''; };
-    if(csb) csb.onclick = fChat; if(ci) ci.onkeydown = (e) => { if(e.key === 'Enter') fChat(); };
+    const fChat = async () => { 
+        const ci = document.getElementById('chat-input');
+        if(!ci.value.trim()) return; 
+        await addDoc(collection(db, "tarefas", taskId, "comentarios"), { text: ci.value, authorName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); ci.value = ''; 
+    };
+    document.getElementById('send-chat-btn').onclick = fChat;
+    document.getElementById('chat-input').onkeydown = (e) => { if(e.key === 'Enter') fChat(); };
 
     onSnapshot(query(collection(db, "tarefas", taskId, "comentarios"), orderBy("createdAt", "asc")), (snap) => {
         const ct = document.getElementById('chat-container'); if(!ct) return; ct.innerHTML = '';
@@ -208,17 +182,29 @@ if (isDetailsPage) {
         });
     };
 
+    // BOTÃO EXCLUIR SUBTAREFA (LÓGICA)
+    document.getElementById('delete-sub-btn').onclick = async () => {
+        if(confirm("Deseja realmente excluir esta subtarefa?")) {
+            await deleteDoc(doc(db, "tarefas", taskId, "subtarefas", activeSid));
+            document.getElementById('view-subtask-modal').classList.add('hidden');
+        }
+    };
+
     document.getElementById('edit-sub-trigger-btn').onclick = async () => {
         editandoSubId = activeSid; const d = (await getDoc(doc(db, "tarefas", taskId, "subtarefas", activeSid))).data();
-        document.getElementById('subtask-modal-title').innerText = "Editar Subtarefa"; document.getElementById('save-subtask-btn').innerText = "Guardar";
+        document.getElementById('subtask-modal-title').innerText = "Editar Subtarefa"; document.getElementById('save-subtask-btn').innerText = "Salvar";
         document.getElementById('sub-title').value = d.title; document.getElementById('sub-desc').value = d.description || "";
         document.getElementById('sub-priority').value = d.priority || "low"; document.getElementById('sub-date').value = d.dueDate || "";
         document.getElementById('view-subtask-modal').classList.replace('flex', 'hidden'); document.getElementById('subtask-modal').classList.replace('hidden', 'flex');
     };
 
-    const sci = document.getElementById('sub-chat-input'), scb = document.getElementById('send-sub-chat-btn');
-    const fSubChat = async () => { if(!sci.value.trim() || !activeSid) return; await addDoc(collection(db, "tarefas", taskId, "subtarefas", activeSid, "comentarios"), { text: sci.value, authorName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); sci.value = ''; };
-    if(scb) scb.onclick = fSubChat; if(sci) sci.onkeydown = (e) => { if(e.key === 'Enter') fSubChat(); };
+    const fSubChat = async () => { 
+        const sci = document.getElementById('sub-chat-input');
+        if(!sci.value.trim() || !activeSid) return; 
+        await addDoc(collection(db, "tarefas", taskId, "subtarefas", activeSid, "comentarios"), { text: sci.value, authorName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); sci.value = ''; 
+    };
+    document.getElementById('send-sub-chat-btn').onclick = fSubChat;
+    document.getElementById('sub-chat-input').onkeydown = (e) => { if(e.key === 'Enter') fSubChat(); };
 
     onSnapshot(query(collection(db, "tarefas", taskId, "subtarefas"), orderBy("createdAt", "asc")), (snap) => {
         const sl = document.getElementById('subtasks-list'); if(!sl) return; sl.innerHTML = '';
@@ -245,13 +231,26 @@ if (isDetailsPage) {
     };
     
     document.getElementById('quick-status-save').onclick = async () => { await updateDoc(docRef, { status: document.getElementById('quick-status-select').value }); darFeedback(document.getElementById('quick-status-save'), "Salvar Status", "Ok!"); };
-    document.getElementById('delete-task-btn').onclick = async () => { if(confirm("Apagar?")) { await deleteDoc(docRef); window.location.href="index.html"; } };
+    document.getElementById('delete-task-btn').onclick = async () => { if(confirm("Apagar tarefa principal?")) { await deleteDoc(docRef); window.location.href="index.html"; } };
     document.querySelectorAll('#close-edit-modal, #cancel-edit-btn, #close-subtask-modal, #cancel-subtask-btn, #close-view-subtask, #open-subtask-modal').forEach(b => {
         b.onclick = () => {
             if(b.id === 'open-subtask-modal') { editandoSubId = null; document.getElementById('subtask-modal-title').innerText = "Nova Subtarefa"; document.getElementById('subtask-modal').classList.replace('hidden', 'flex'); }
             else { document.getElementById('edit-modal').classList.add('hidden'); document.getElementById('subtask-modal').classList.add('hidden'); document.getElementById('view-subtask-modal').classList.add('hidden'); }
         };
     });
+}
+
+// --- LOGIN (LÓGICA DIRETA) ---
+if (isLoginPage) {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email-input').value;
+            const pass = document.getElementById('password-input').value;
+            try { await signInWithEmailAndPassword(auth, email, pass); } catch (e) { alert("Credenciais incorretas."); }
+        };
+    }
 }
 
 // --- PERFIL ---
@@ -261,21 +260,11 @@ if (isProfilePage) {
         const n = document.getElementById('profile-name').value, f = document.getElementById('profile-photo').value;
         await updateProfile(auth.currentUser, { displayName: n, photoURL: f });
         await setDoc(doc(db, "usuarios", auth.currentUser.uid), { nome: n, foto: f, bio: document.getElementById('profile-bio').value }, { merge: true });
-        darFeedback(spBtn, "Guardar Alterações", "Perfil Guardado!"); setTimeout(() => window.location.href = "index.html", 1500);
+        darFeedback(spBtn, "Guardar Alterações", "Guardado!"); setTimeout(() => window.location.href = "index.html", 1500);
     };
 }
 
-// --- ADMIN ---
-if (isAdminPage) {
-    onSnapshot(collection(db, "tarefas"), (snap) => {
-        let total = snap.size, done = 0, users = {};
-        snap.forEach(d => { const t = d.data(); if(t.status === "Concluída") done++; (t.assignees || ["Equipa"]).forEach(p => { if(!users[p]) users[p] = { c:0, d:0 }; users[p].c++; if(t.status === "Concluída") users[p].d++; }); });
-        document.getElementById('stat-total-tasks').innerText = total; document.getElementById('stat-completed-tasks').innerText = done; document.getElementById('stat-active-users').innerText = Object.keys(users).length;
-        const ut = document.getElementById('admin-users-table'); if(ut) { ut.innerHTML = ''; Object.entries(users).forEach(([n, s]) => { ut.innerHTML += `<tr class="border-b dark:border-slate-800"><td class="p-4 font-bold text-slate-900 dark:text-slate-100">${n}</td><td class="p-4 text-center">${s.c}</td><td class="p-4 text-center text-green-500">${s.d}</td><td class="p-4 text-center font-black">${Math.round((s.d/s.c)*100)}%</td></tr>`; }); }
-    });
-}
-
-// --- UI COMUM ---
+// --- UI GERAL ---
 document.querySelectorAll('.theme-toggle').forEach(b => b.onclick = () => { const isD = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isD ? 'dark' : 'light'); });
 const pBtn = document.getElementById('profile-btn'), pMenu = document.getElementById('profile-menu');
 if (pBtn) pBtn.onclick = (e) => { e.stopPropagation(); pMenu.classList.toggle('hidden'); };
