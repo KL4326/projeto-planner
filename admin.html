@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Gestão Admin - TaskFlow</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="style.css">
+    <script id="tailwind-config">
+        tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#2463eb", "background-light": "#f6f6f8", "background-dark": "#111621" }, fontFamily: { "display": ["Manrope", "sans-serif"] } } } }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+    <header class="flex items-center justify-between border-b dark:border-slate-800 bg-white dark:bg-background-dark px-6 py-4 lg:px-20 sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='index.html'" class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 cursor-pointer hover:bg-slate-200"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2 class="text-xl font-black">Painel de Gestão</h2>
+        </div>
+    </header>
+    <main class="px-6 lg:px-20 py-10">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800"><p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Tarefas</p><span id="stat-total-tasks" class="text-4xl font-black">...</span></div>
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800"><p class="text-xs font-bold text-slate-400 uppercase tracking-widest text-green-500">Concluídas</p><span id="stat-completed-tasks" class="text-4xl font-black text-green-500">...</span></div>
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800"><p class="text-xs font-bold text-slate-400 uppercase tracking-widest text-primary">Utilizadores</p><span id="stat-active-users" class="text-4xl font-black text-primary">...</span></div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 overflow-hidden shadow-xl">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-black uppercase text-slate-400 tracking-tighter">
+                    <tr><th class="p-5">Membro da Equipa</th><th class="p-5 text-center">Abertas</th><th class="p-5 text-center">Concluídas</th><th class="p-5 text-center">Desempenho</th></tr>
+                </thead>
+                <tbody id="admin-users-table" class="divide-y dark:divide-slate-800"></tbody>
+            </table>
+        </div>
+    </main>
+    <script type="module" src="script.js"></script>
+</body>
+</html>

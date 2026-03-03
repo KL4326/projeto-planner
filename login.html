@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Login - Portal Corporativo</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2463eb",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+        <div class="layout-container flex h-full grow flex-col">
+            
+            <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4 md:px-20 lg:px-40">
+                <div class="flex items-center gap-3">
+                    <div class="size-8 text-primary">
+                        <svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd" d="M24 4H42V17.3333V30.6667H24V44H6V30.6667V17.3333H24V4Z" fill-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">Portal Corporativo</h2>
+                </div>
+            </header>
+
+            <main class="flex flex-1 items-center justify-center px-4 py-12">
+                <div class="layout-content-container flex flex-col w-full max-w-[480px] gap-8 bg-white dark:bg-slate-900/50 p-8 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
+                    <div class="flex flex-col gap-2">
+                        <h1 class="text-slate-900 dark:text-white text-3xl font-black leading-tight tracking-tight">Bem-vindo de volta</h1>
+                        <p class="text-slate-500 dark:text-slate-400 text-base font-normal">Acesse sua conta corporativa para gerenciar suas atividades.</p>
+                    </div>
+                    
+                    <form id="login-form" class="flex flex-col gap-6">
+    <div class="flex flex-col gap-4">
+        <label class="flex flex-col gap-2">
+            <span class="text-slate-700 dark:text-slate-200 text-sm font-semibold">E-mail ou Usuário</span>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">person</span>
+                <input id="email-input" class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 h-14 pl-12 pr-4 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-base font-normal transition-all" placeholder="Seu e-mail corporativo" type="email" required/>
+            </div>
+        </label>
+        
+        <label class="flex flex-col gap-2">
+            <span class="text-slate-700 dark:text-slate-200 text-sm font-semibold">Senha</span>
+            <div class="relative flex items-center">
+                <span class="material-symbols-outlined absolute left-4 text-slate-400">lock</span>
+                <input id="password-input" class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 h-14 pl-12 pr-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-base font-normal transition-all" placeholder="••••••••" type="password" required/>
+            </div>
+        </label>
+    </div>
+    
+    <p id="login-error" class="text-red-500 text-sm font-semibold hidden text-center">E-mail ou senha incorretos.</p>
+    
+    <div class="flex flex-col gap-4">
+        <button id="login-btn" class="flex w-full cursor-pointer items-center justify-center rounded-lg h-14 px-5 bg-primary hover:bg-primary/90 text-white text-base font-bold transition-all shadow-lg shadow-primary/20" type="submit">
+            <span>Entrar</span>
+        </button>
+    </div>
+</form>
+
+                    <div class="pt-6 border-t border-slate-200 dark:border-slate-800">
+                        <div class="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                            <span class="material-symbols-outlined text-slate-400 text-lg">info</span>
+                            <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                                Acesso restrito. Novas contas são criadas apenas pelo Administrador do sistema. Entre em contato com o suporte para assistência.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="py-8 px-6 text-center">
+                <p class="text-slate-400 dark:text-slate-600 text-sm">
+                    © 2024 Portal Corporativo. Todos os direitos reservados.
+                </p>
+            </footer>
+        </div>
+    </div>
+    
+    <script type="module" src="script.js"></script>
+</body>
+</html>
