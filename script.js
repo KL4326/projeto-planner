@@ -14,15 +14,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const path = window.location.pathname;
 
+// --- DETECÇÃO DE PÁGINA MELHORADA ---
+const path = window.location.pathname.toLowerCase();
 const isLoginPage = path.includes("login");
 const isRegisterPage = path.includes("cadastro");
-const isIndexPage = path === "/" || path.includes("index") || path.endsWith("/");
-const isDetailsPage = path.includes("detalhes-tarefa");
-const isNewTaskPage = path.includes("nova-tarefa");
 const isProfilePage = path.includes("perfil");
+const isNewTaskPage = path.includes("nova-tarefa");
+const isDetailsPage = path.includes("detalhes-tarefa");
 const isAdminPage = path.includes("admin");
+const isIndexPage = !isLoginPage && !isRegisterPage && !isProfilePage && !isNewTaskPage && !isDetailsPage && !isAdminPage;
+
+// --- CONFIGURAÇÕES ---
+const CONFIG = {
+    prioridades: { high: { label: 'Alta', bg: 'bg-red-500' }, medium: { label: 'Média', bg: 'bg-orange-500' }, low: { label: 'Baixa', bg: 'bg-yellow-500' } },
+    statusIcons: { 'Concluída': 'check_circle', 'Em andamento': 'directions_run', 'Cancelada': 'close', 'Em aberto': 'schedule' }
+};
 
 const initTheme = () => {
     const t = localStorage.getItem('theme') || 'dark';
@@ -30,14 +37,19 @@ const initTheme = () => {
 };
 initTheme();
 
-const CONFIG = {
-    prioridades: { high: { label: 'Alta', bg: 'bg-red-500' }, medium: { label: 'Média', bg: 'bg-orange-500' }, low: { label: 'Baixa', bg: 'bg-yellow-500' } },
-    statusIcons: { 'Concluída': 'check_circle', 'Em andamento': 'directions_run', 'Cancelada': 'close', 'Em aberto': 'schedule' }
-};
-
 const darFeedback = (btn, original, sucesso) => {
-    btn.innerText = sucesso; btn.classList.replace('bg-primary', 'bg-green-500'); btn.disabled = true;
-    setTimeout(() => { btn.innerText = original; btn.classList.replace('bg-green-500', 'bg-primary'); btn.disabled = false; }, 2000);
+    if (!btn) return;
+    const corOriginal = btn.classList.contains('bg-primary') ? 'bg-primary' : 'bg-slate-200';
+    btn.innerText = sucesso; 
+    btn.classList.remove(corOriginal); 
+    btn.classList.add('bg-green-500'); 
+    btn.disabled = true;
+    setTimeout(() => { 
+        btn.innerText = original; 
+        btn.classList.remove('bg-green-500'); 
+        btn.classList.add(corOriginal); 
+        btn.disabled = false; 
+    }, 2000);
 };
 
 const carregarUsers = (id) => {
@@ -49,21 +61,28 @@ const carregarUsers = (id) => {
     });
 };
 
+// --- AUTH GLOBAL & REDIRECIONAMENTO ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         if (isLoginPage) window.location.href = "index.html";
+        
+        // ADMIN CHECK (Troque pelo seu e-mail)
         const al = document.getElementById('admin-menu-link');
-        if (al && user.email === "SEU_EMAIL_REAL@gmail.com") { al.classList.remove('hidden'); al.classList.add('flex'); }
+        if (al && user.email === "SEU_EMAIL_AQUI@gmail.com") { al.classList.remove('hidden'); al.classList.add('flex'); }
+        
         const pb = document.getElementById('profile-btn');
         if (pb) {
             const init = (user.displayName || user.email).substring(0,2).toUpperCase();
             pb.innerHTML = user.photoURL ? `<div class="size-10 rounded-full bg-cover bg-center border-2 border-primary/20" style="background-image:url('${user.photoURL}')"></div>` : `<div class="size-10 rounded-full bg-primary text-white flex items-center justify-center font-bold border-2 border-primary/20">${init}</div>`;
             pb.innerHTML += `<span class="material-symbols-outlined text-slate-400">expand_more</span>`;
         }
+
+        // Carregar Perfil se estiver na página
         if (isProfilePage) {
             const nInp = document.getElementById('profile-name'), pInp = document.getElementById('profile-photo'), bInp = document.getElementById('profile-bio');
             if (nInp) {
-                nInp.value = user.displayName || ""; pInp.value = user.photoURL || ""; document.getElementById('profile-display-name').innerText = user.displayName || "Usuário";
+                nInp.value = user.displayName || ""; pInp.value = user.photoURL || ""; 
+                document.getElementById('profile-display-name').innerText = user.displayName || "Usuário";
                 document.getElementById('profile-display-email').innerText = user.email;
                 const d = await getDoc(doc(db, "usuarios", user.uid));
                 if (d.exists()) bInp.value = d.data().bio || "";
@@ -77,7 +96,26 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- DASHBOARD (FILTROS AZUIS FIX) ---
+// --- LÓGICA DE LOGIN ---
+const loginForm = document.getElementById('login-form');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email-input').value;
+        const pass = document.getElementById('password-input').value;
+        const btn = loginForm.querySelector('button');
+        btn.innerText = "Entrando...";
+        try { 
+            await signInWithEmailAndPassword(auth, email, pass);
+            window.location.href = "index.html"; // Forçar saída do login
+        } catch (err) { 
+            alert("Erro: E-mail ou senha incorretos."); 
+            btn.innerText = "Entrar";
+        }
+    });
+}
+
+// --- DASHBOARD (FILTROS AZUIS + COROAS) ---
 if (isIndexPage) {
     const tasksContainer = document.getElementById('tasks-container');
     const searchInput = document.getElementById('search-input');
@@ -87,7 +125,7 @@ if (isIndexPage) {
             tasksContainer.innerHTML = ''; let count = 0;
             data.forEach(snap => {
                 const t = snap.data();
-                const mSearch = t.title.toLowerCase().includes(fSearch.toLowerCase());
+                const mSearch = (t.title || "").toLowerCase().includes(fSearch.toLowerCase());
                 const mStat = fStat === "Todas" || t.status === fStat;
                 const mSect = fSect === "Todos" || t.sector === fSect;
                 const mAssign = fAssign === "Todos" || (t.assignees && t.assignees.includes(fAssign));
@@ -112,15 +150,10 @@ if (isIndexPage) {
                 });
             }
         });
-        if(searchInput) searchInput.oninput = (e) => { fSearch = e.target.value; render(); };
+        if(searchInput) searchInput.addEventListener('input', (e) => { fSearch = e.target.value; render(); });
         document.querySelectorAll('.filter-btn').forEach(btn => btn.onclick = () => {
-            document.querySelectorAll('.filter-btn').forEach(b => { 
-                b.classList.remove('bg-primary','text-white'); 
-                b.classList.add('bg-slate-100','dark:bg-slate-800','text-slate-600','dark:text-slate-300'); 
-            });
-            btn.classList.remove('bg-slate-100','dark:bg-slate-800','text-slate-600','dark:text-slate-300'); 
-            btn.classList.add('bg-primary','text-white'); 
-            fStat = btn.dataset.filter; render();
+            document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('bg-primary','text-white'); b.classList.add('bg-slate-100','dark:bg-slate-800','text-slate-600','dark:text-slate-300'); });
+            btn.classList.remove('bg-slate-100','dark:bg-slate-800','text-slate-600','dark:text-slate-300'); btn.classList.add('bg-primary','text-white'); fStat = btn.dataset.filter; render();
         });
         carregarUsers('filter-assignee');
         document.getElementById('filter-sector').onchange = (e) => { fSect = e.target.value; render(); };
@@ -129,25 +162,60 @@ if (isIndexPage) {
     }
 }
 
-// --- NOVA TAREFA (FIXAÇÃO) ---
+// --- NOVA TAREFA (FIX BOTÃO) ---
 if (isNewTaskPage) {
     carregarUsers('task-assignees');
     const saveBtn = document.getElementById('save-task-btn');
-    if(saveBtn) saveBtn.onclick = async () => {
-        const t = document.getElementById('task-title').value;
-        const sel = Array.from(document.getElementById('task-assignees').selectedOptions).map(o => o.value);
-        if (!t) return alert("Título obrigatório!");
-        saveBtn.innerText = "Criando..."; saveBtn.disabled = true;
-        await addDoc(collection(db, "tarefas"), { title: t, description: document.getElementById('task-desc').value, sector: document.getElementById('task-sector').value, priority: document.querySelector('input[name="priority"]:checked').value, assignees: sel, status: "Em aberto", createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('task-date').value });
-        window.location.href = "index.html";
-    };
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            const title = document.getElementById('task-title').value;
+            const assignees = Array.from(document.getElementById('task-assignees').selectedOptions).map(o => o.value);
+            if (!title) return alert("Título obrigatório!");
+            saveBtn.innerText = "Criando..."; saveBtn.disabled = true;
+            try {
+                await addDoc(collection(db, "tarefas"), { 
+                    title: title, 
+                    description: document.getElementById('task-desc').value, 
+                    sector: document.getElementById('task-sector').value, 
+                    priority: document.querySelector('input[name="priority"]:checked').value, 
+                    assignees: assignees, 
+                    status: "Em aberto", 
+                    createdAt: serverTimestamp(), 
+                    createdBy: auth.currentUser.uid, 
+                    dueDate: document.getElementById('task-date').value 
+                });
+                window.location.href = "index.html";
+            } catch (err) { alert("Erro ao criar tarefa."); saveBtn.innerText = "Criar Tarefa"; saveBtn.disabled = false; }
+        });
+    }
 }
 
-// --- DETALHES & CHAT SUBTAREFA ---
+// --- PERFIL (FIX BOTÃO) ---
+if (isProfilePage) {
+    const spBtn = document.getElementById('save-profile-btn');
+    if (spBtn) {
+        spBtn.addEventListener('click', async () => {
+            const user = auth.currentUser; if (!user) return;
+            const n = document.getElementById('profile-name').value;
+            const f = document.getElementById('profile-photo').value;
+            const b = document.getElementById('profile-bio').value;
+            try {
+                await updateProfile(user, { displayName: n, photoURL: f });
+                await setDoc(doc(db, "usuarios", user.uid), { nome: n, foto: f, bio: b }, { merge: true });
+                darFeedback(spBtn, "Guardar Alterações", "Guardado!");
+                setTimeout(() => window.location.href = "index.html", 1200);
+            } catch (e) { alert("Erro ao salvar."); }
+        });
+    }
+    document.getElementById('change-password-page-btn')?.addEventListener('click', async () => {
+        if(auth.currentUser) { await sendPasswordResetEmail(auth, auth.currentUser.email); alert("Link de redefinição enviado!"); }
+    });
+}
+
+// --- DETALHES ---
 if (isDetailsPage) {
     const urlParams = new URLSearchParams(window.location.search), taskId = urlParams.get('id'), docRef = doc(db, "tarefas", taskId);
     let curTask = {}, activeSid = null, unSubChat = null, editSubId = null;
-
     carregarUsers('sub-assignees'); carregarUsers('edit-assignees');
 
     onSnapshot(docRef, (d) => {
@@ -161,7 +229,9 @@ if (isDetailsPage) {
         document.getElementById('detail-tags').innerHTML = `<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ${p.bg}">${p.label}</span>`;
     });
 
-    // Chat Principal Tarefa
+    const qsBtn = document.getElementById('quick-status-save');
+    if(qsBtn) qsBtn.onclick = async () => { await updateDoc(docRef, { status: document.getElementById('quick-status-select').value }); darFeedback(qsBtn, "Salvar Status", "Atualizado!"); };
+
     const fChat = async () => { 
         const ci = document.getElementById('chat-input'); if(!ci.value.trim()) return;
         await addDoc(collection(db, "tarefas", taskId, "comentarios"), { text: ci.value, authorName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); ci.value = '';
@@ -175,7 +245,6 @@ if (isDetailsPage) {
         ct.scrollTop = ct.scrollHeight;
     });
 
-    // --- LÓGICA SUBTAREFA ---
     const openSub = async (id) => {
         activeSid = id; const d = (await getDoc(doc(db, "tarefas", taskId, "subtarefas", id))).data();
         document.getElementById('view-sub-title').innerText = d.title; document.getElementById('view-sub-desc').innerText = d.description || "";
@@ -184,8 +253,6 @@ if (isDetailsPage) {
         const pTrad = d.priority === 'high' ? 'Alta' : d.priority === 'medium' ? 'Média' : 'Baixa';
         document.getElementById('view-sub-meta').innerText = `Prioridade: ${pTrad}`;
         document.getElementById('view-subtask-modal').classList.replace('hidden', 'flex');
-
-        // Reiniciar Chat Subtarefa
         if (unSubChat) unSubChat();
         unSubChat = onSnapshot(query(collection(db, "tarefas", taskId, "subtarefas", id, "comentarios"), orderBy("createdAt", "asc")), (snap) => {
             const sct = document.getElementById('sub-chat-container'); sct.innerHTML = '';
@@ -194,24 +261,12 @@ if (isDetailsPage) {
         });
     };
 
-    // Envio do Chat Subtarefa
     const fSubChat = async () => { 
-        const sci = document.getElementById('sub-chat-input');
-        if(!sci.value.trim() || !activeSid) return; 
+        const sci = document.getElementById('sub-chat-input'); if(!sci.value.trim() || !activeSid) return; 
         await addDoc(collection(db, "tarefas", taskId, "subtarefas", activeSid, "comentarios"), { text: sci.value, authorName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0], createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); sci.value = ''; 
     };
-    document.getElementById('send-sub-chat-btn').onclick = fSubChat;
-    document.getElementById('sub-chat-input').onkeydown = (e) => { if(e.key === 'Enter') fSubChat(); };
-
-    // Botões Ações Subtarefa
-    document.getElementById('delete-sub-btn').onclick = async () => { if(confirm("Excluir subtarefa?")) { await deleteDoc(doc(db, "tarefas", taskId, "subtarefas", activeSid)); document.getElementById('view-subtask-modal').classList.add('hidden'); } };
-    document.getElementById('edit-sub-trigger-btn').onclick = async () => {
-        editSubId = activeSid; const d = (await getDoc(doc(db, "tarefas", taskId, "subtarefas", activeSid))).data();
-        document.getElementById('subtask-modal-title').innerText = "Editar Subtarefa"; document.getElementById('save-subtask-btn').innerText = "Salvar";
-        document.getElementById('sub-title').value = d.title; document.getElementById('sub-desc').value = d.description || "";
-        document.getElementById('sub-priority').value = d.priority || "low"; document.getElementById('sub-date').value = d.dueDate || "";
-        document.getElementById('view-subtask-modal').classList.replace('flex', 'hidden'); document.getElementById('subtask-modal').classList.replace('hidden', 'flex');
-    };
+    document.getElementById('send-sub-chat-btn')?.addEventListener('click', fSubChat);
+    document.getElementById('sub-chat-input')?.addEventListener('keydown', (e) => { if(e.key === 'Enter') fSubChat(); });
 
     onSnapshot(query(collection(db, "tarefas", taskId, "subtarefas"), orderBy("createdAt", "asc")), (snap) => {
         const sl = document.getElementById('subtasks-list'); if(!sl) return; sl.innerHTML = '';
@@ -221,26 +276,33 @@ if (isDetailsPage) {
         document.getElementById('subtasks-progress').innerText = `${snap.docs.filter(d=>d.data().completed).length}/${snap.size}`;
     });
 
-    document.getElementById('save-subtask-btn').onclick = async () => {
+    document.getElementById('delete-sub-btn')?.addEventListener('click', async () => { if(confirm("Excluir subtarefa?")) { await deleteDoc(doc(db, "tarefas", taskId, "subtarefas", activeSid)); document.getElementById('view-subtask-modal').classList.add('hidden'); } });
+    document.getElementById('edit-sub-trigger-btn')?.addEventListener('click', async () => {
+        editSubId = activeSid; const d = (await getDoc(doc(db, "tarefas", taskId, "subtarefas", activeSid))).data();
+        document.getElementById('subtask-modal-title').innerText = "Editar Subtarefa"; document.getElementById('save-subtask-btn').innerText = "Salvar";
+        document.getElementById('sub-title').value = d.title; document.getElementById('sub-desc').value = d.description || "";
+        document.getElementById('sub-priority').value = d.priority || "low"; document.getElementById('sub-date').value = d.dueDate || "";
+        document.getElementById('view-subtask-modal').classList.replace('flex', 'hidden'); document.getElementById('subtask-modal').classList.replace('hidden', 'flex');
+    });
+
+    document.getElementById('save-subtask-btn')?.addEventListener('click', async () => {
         const t = document.getElementById('sub-title').value; if(!t) return;
         const sel = Array.from(document.getElementById('sub-assignees').selectedOptions).map(o => o.value);
         const dds = { title: t, description: document.getElementById('sub-desc').value, assignees: sel, priority: document.getElementById('sub-priority').value, dueDate: document.getElementById('sub-date').value };
         if(editSubId) await updateDoc(doc(db, "tarefas", taskId, "subtarefas", editSubId), dds);
         else await addDoc(collection(db, "tarefas", taskId, "subtarefas"), { ...dds, completed: false, createdAt: serverTimestamp() });
         document.getElementById('subtask-modal').classList.replace('flex', 'hidden');
-    };
+    });
 
-    // Ações Tarefa Principal
-    document.getElementById('edit-task-btn').onclick = () => { document.getElementById('edit-title').value = curTask.title; document.getElementById('edit-desc').value = curTask.description || ""; document.getElementById('edit-modal').classList.replace('hidden', 'flex'); };
-    document.getElementById('save-edit-btn').onclick = async () => {
+    document.getElementById('edit-task-btn')?.addEventListener('click', () => { document.getElementById('edit-title').value = curTask.title; document.getElementById('edit-desc').value = curTask.description || ""; document.getElementById('edit-modal').classList.replace('hidden', 'flex'); });
+    document.getElementById('save-edit-btn')?.addEventListener('click', async () => {
         const sel = Array.from(document.getElementById('edit-assignees').selectedOptions).map(o => o.value);
+        const eb = document.getElementById('save-edit-btn');
         await updateDoc(docRef, { title: document.getElementById('edit-title').value, description: document.getElementById('edit-desc').value, priority: document.getElementById('edit-priority').value, assignees: sel.length ? sel : curTask.assignees, sector: document.getElementById('edit-sector').value, dueDate: document.getElementById('edit-date').value });
-        darFeedback(document.getElementById('save-edit-btn'), "Salvar", "Guardado!"); setTimeout(() => document.getElementById('edit-modal').classList.replace('flex', 'hidden'), 1500);
-    };
-    document.getElementById('quick-status-save').onclick = async () => { await updateDoc(docRef, { status: document.getElementById('quick-status-select').value }); darFeedback(document.getElementById('quick-status-save'), "Salvar Status", "Ok!"); };
-    document.getElementById('delete-task-btn').onclick = async () => { if(confirm("Apagar?")) { await deleteDoc(docRef); window.location.href="index.html"; } };
+        darFeedback(eb, "Salvar Alterações", "Guardado!"); setTimeout(() => document.getElementById('edit-modal').classList.add('hidden'), 1500);
+    });
+    document.getElementById('delete-task-btn')?.addEventListener('click', async () => { if(confirm("Apagar?")) { await deleteDoc(docRef); window.location.href="index.html"; } });
     
-    // Global Modal Closes
     document.querySelectorAll('#close-edit-modal, #cancel-edit-btn, #close-subtask-modal, #cancel-subtask-btn, #close-view-subtask, #open-subtask-modal').forEach(b => {
         b.onclick = () => {
             if(b.id === 'open-subtask-modal') { editSubId = null; document.getElementById('subtask-modal-title').innerText = "Nova Subtarefa"; document.getElementById('subtask-modal').classList.replace('hidden', 'flex'); }
@@ -249,16 +311,14 @@ if (isDetailsPage) {
     });
 }
 
-// --- PERFIL FIXADO ---
-if (isProfilePage) {
-    const spBtn = document.getElementById('save-profile-btn');
-    if(spBtn) spBtn.onclick = async () => {
-        const n = document.getElementById('profile-name').value, f = document.getElementById('profile-photo').value, b = document.getElementById('profile-bio').value;
-        await updateProfile(auth.currentUser, { displayName: n, photoURL: f });
-        await setDoc(doc(db, "usuarios", auth.currentUser.uid), { nome: n, foto: f, bio: b }, { merge: true });
-        darFeedback(spBtn, "Guardar Alterações", "Guardado!"); setTimeout(() => window.location.href = "index.html", 1500);
-    };
-    document.getElementById('change-password-page-btn')?.addEventListener('click', async () => { if(auth.currentUser) { await sendPasswordResetEmail(auth, auth.currentUser.email); alert("E-mail enviado!"); } });
+// --- ADMIN ---
+if (isAdminPage) {
+    onSnapshot(collection(db, "tarefas"), (snap) => {
+        let total = snap.size, done = 0, users = {};
+        snap.forEach(d => { const t = d.data(); if(t.status === "Concluída") done++; (t.assignees || ["Equipa"]).forEach(p => { if(!users[p]) users[p] = { c:0, d:0 }; users[p].c++; if(t.status === "Concluída") users[p].d++; }); });
+        document.getElementById('stat-total-tasks').innerText = total; document.getElementById('stat-completed-tasks').innerText = done; document.getElementById('stat-active-users').innerText = Object.keys(users).length;
+        const ut = document.getElementById('admin-users-table'); if(ut) { ut.innerHTML = ''; Object.entries(users).forEach(([n, s]) => { ut.innerHTML += `<tr class="border-b dark:border-slate-800"><td class="p-4 font-bold text-slate-900 dark:text-slate-100">${n}</td><td class="p-4 text-center">${s.c}</td><td class="p-4 text-center text-green-500">${s.d}</td><td class="p-4 text-center font-black">${Math.round((s.d/s.c)*100)}%</td></tr>`; }); }
+    });
 }
 
 // --- UI GERAL ---
