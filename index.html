@@ -30,6 +30,8 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
         .dark select, .dark input, .dark textarea { background-color: #1e293b !important; color: white !important; border-color: #334155 !important; }
+        select option { background-color: white; color: black; }
+        .dark select option { background-color: #1e293b; color: white; }
     </style>
 </head>
 <body class="bg-[#f7f7f8] dark:bg-[#0f1115] font-display text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200">
@@ -41,7 +43,7 @@
             <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">TaskFlow</h1>
         </div>
         
-        <div class="flex-1 flex items-center gap-4">
+        <div class="flex-1 flex items-center gap-4 text-left">
             <div class="relative flex-1 max-w-md">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
                 <input id="search-input" class="w-full bg-gray-100 dark:bg-white/10 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white placeholder-gray-500" placeholder="Pesquisar tarefas..." type="text"/>
@@ -53,7 +55,7 @@
                     <span id="notif-badge" class="hidden absolute -top-1 -right-1 size-5 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-[#1a1c22]">0</span>
                 </button>
                 <div id="notif-menu" class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-[#1a1c22] border dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
-                    <div class="p-4 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-primary">Atividade da Equipa</div>
+                    <div class="p-4 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-primary tracking-widest">Logs Recentes</div>
                     <div id="notif-list" class="max-h-96 overflow-y-auto custom-scrollbar divide-y dark:divide-white/5"></div>
                 </div>
             </div>
@@ -78,7 +80,7 @@
     <section id="page-login" class="page-section active">
         <div class="w-full max-w-md bg-white dark:bg-[#1a1c22] p-10 rounded-3xl shadow-2xl border dark:border-white/10 text-center">
             <span class="material-symbols-outlined text-6xl text-primary font-bold mb-4">layers</span>
-            <h2 class="text-2xl font-black mb-8 dark:text-white uppercase tracking-tighter text-left">Entrar</h2>
+            <h2 class="text-2xl font-black mb-8 dark:text-white uppercase tracking-tighter">Acessar o Planner</h2>
             <form id="login-form" class="flex flex-col gap-4 text-left">
                 <input id="login-email" type="email" placeholder="E-mail corporativo" class="rounded-xl border-gray-300 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary" required>
                 <input id="login-password" type="password" placeholder="Senha" class="rounded-xl border-gray-300 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary" required>
@@ -90,31 +92,29 @@
     <section id="page-dashboard" class="page-section">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8" id="statsContainer"></div>
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div class="lg:col-span-8 flex flex-col gap-4">
+            <div class="lg:col-span-8 flex flex-col gap-4 text-left">
                 <div class="flex items-center justify-between mb-2">
-                    <h2 class="text-xl font-bold dark:text-white">Minhas Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
-                    <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
+                    <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Tarefas Ativas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
+                    <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
                 </div>
                 <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50/50 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-[11px] uppercase tracking-widest font-bold">
                                 <th class="px-6 py-4 w-12"></th>
-                                <th class="px-6 py-4 min-w-[300px]">Tarefa</th>
+                                <th class="px-6 py-4 min-w-[300px]">Título / Prazo</th>
                                 <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">Prioridade</th>
                                 <th class="px-6 py-4">Equipa</th>
-                                <th class="px-6 py-4 text-right">Prazo</th>
                             </tr>
                         </thead>
-                        <tbody id="taskTableBody" class="divide-y divide-gray-100 dark:divide-white/5 text-left"></tbody>
+                        <tbody id="taskTableBody" class="divide-y divide-gray-100 dark:divide-white/5"></tbody>
                     </table>
                 </div>
             </div>
             <aside class="lg:col-span-4 flex flex-col gap-4 text-left">
-                <h2 class="text-xl font-bold dark:text-white mb-2">Ranking Produtividade</h2>
-                <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm p-6 space-y-6">
-                    <div id="rankingContainer" class="space-y-6"></div>
-                </div>
+                <h2 class="text-xl font-bold dark:text-white mb-2 uppercase tracking-tight">Ranking</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm p-6 space-y-6" id="rankingContainer"></div>
             </aside>
         </div>
     </section>
@@ -142,22 +142,14 @@
         </div>
     </section>
 
-    <section id="page-detalhes" class="page-section"><div id="details-view-content" class="max-w-6xl mx-auto flex flex-col gap-6 text-left"></div></section>
+    <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8 text-left"><div id="details-view-content" class="max-w-6xl mx-auto flex flex-col gap-6"></div></section>
 
-    <section id="page-perfil" class="page-section">
-        <div class="max-w-2xl mx-auto bg-white dark:bg-[#1a1c22] p-10 rounded-3xl border dark:border-white/10 shadow-xl text-center">
-            <div class="relative w-32 h-32 mx-auto mb-8">
-                <div id="profile-page-avatar" class="w-full h-full rounded-full bg-primary text-white flex items-center justify-center text-4xl font-black bg-cover bg-center border-4 border-white dark:border-[#1a1c22] shadow-xl cursor-pointer" onclick="document.getElementById('photo-options').classList.toggle('hidden')"></div>
-                <div id="photo-options" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-10 overflow-hidden text-left border dark:border-white/10">
-                    <button onclick="document.getElementById('profile-upload').click(); document.getElementById('photo-options').classList.add('hidden')" class="w-full px-4 py-2 text-xs font-bold hover:bg-gray-50 dark:hover:bg-white/5 border-b dark:border-white/5">Alterar</button>
-                    <button onclick="app.removeProfilePhoto()" class="w-full px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50">Remover</button>
-                </div>
-                <input type="file" id="profile-upload" class="hidden" accept="image/*">
-            </div>
-            <div class="flex flex-col gap-5 text-left">
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Nome</label><input id="profile-name-input" type="text" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white"></div>
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Biografia</label><textarea id="profile-bio-input" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white h-24"></textarea></div>
-                <button onclick="app.handleSaveProfile()" class="bg-primary text-white py-4 rounded-xl font-black shadow-lg uppercase text-xs">Salvar</button>
+    <section id="page-perfil" class="page-section px-6 lg:px-40 py-8 text-center">
+        <div class="max-w-2xl mx-auto bg-white dark:bg-[#1a1c22] p-10 rounded-3xl border dark:border-white/10 shadow-xl text-left">
+            <div class="flex flex-col gap-5">
+                <input id="profile-name-input" type="text" placeholder="Nome Completo" class="rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white">
+                <textarea id="profile-bio-input" placeholder="Biografia" class="rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white h-24"></textarea>
+                <button onclick="app.handleSaveProfile()" class="bg-primary text-white py-4 rounded-xl font-black shadow-lg uppercase text-xs">Salvar Alterações</button>
             </div>
         </div>
     </section>
@@ -175,20 +167,20 @@
                 </select>
                 <input id="sub-date-inp" type="date" class="rounded-xl border dark:bg-white/5 p-4 dark:text-white">
             </div>
-            <div id="sub-assignees-checkboxes" class="rounded-xl border dark:bg-white/5 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar"></div>
+            <div id="sub-assignees-checkboxes" class="rounded-xl border dark:border-white/10 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar"></div>
             <div class="flex justify-end gap-3 mt-6"><button onclick="app.closeModal()" class="px-6 py-2 font-black text-gray-400 uppercase text-[10px]">Cancelar</button><button id="submit-subtask-form" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px]">Gravar</button></div>
         </div>
     </div>
-    <div id="modal-subtask-view" class="modal-box hidden bg-white dark:bg-[#1a1c22] w-full max-w-5xl rounded-3xl h-[85vh] overflow-hidden flex flex-col border dark:border-white/10">
+    <div id="modal-subtask-view" class="modal-box hidden bg-white dark:bg-[#1a1c22] w-full max-w-6xl rounded-3xl h-[85vh] overflow-hidden flex flex-col text-left border dark:border-white/10">
         <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden"></div>
     </div>
     <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-[#1a1c22] w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto border dark:border-white/10 text-left">
         <h3 class="text-xl font-black mb-8 uppercase text-primary">Editar Tarefa</h3>
         <div class="flex flex-col gap-4">
-            <input id="edit-task-title" type="text" class="rounded-xl border dark:bg-white/5 p-4 dark:text-white font-bold outline-none">
-            <textarea id="edit-task-desc" class="rounded-xl border dark:bg-white/5 p-4 dark:text-white min-h-[180px] outline-none"></textarea>
-            <div id="edit-assignees-checkboxes" class="rounded-xl border dark:bg-white/5 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto"></div>
-            <div class="grid grid-cols-2 gap-4"><select id="edit-task-priority" class="rounded-xl border dark:bg-white/5 p-4 dark:text-white"><option value="Alta">Alta</option><option value="Média">Média</option><option value="Baixa">Baixa</option></select><input id="edit-task-date" type="date" class="rounded-xl border dark:bg-white/5 p-4 dark:text-white"></div>
+            <input id="edit-task-title" type="text" class="rounded-xl border dark:border-white/10 p-4 dark:text-white font-bold outline-none">
+            <textarea id="edit-task-desc" class="rounded-xl border dark:border-white/10 p-4 dark:text-white min-h-[180px] outline-none"></textarea>
+            <div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-white/10 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto"></div>
+            <div class="grid grid-cols-2 gap-4"><select id="edit-task-priority" class="rounded-xl border dark:border-white/10 p-4 dark:text-white"><option value="Alta">Alta</option><option value="Média">Média</option><option value="Baixa">Baixa</option></select><input id="edit-task-date" type="date" class="rounded-xl border dark:border-white/10 p-4 dark:text-white"></div>
             <div class="flex justify-end gap-3 mt-8 border-t dark:border-white/10 pt-6"><button onclick="app.closeModal()" class="font-black text-gray-400 uppercase text-[10px] px-4">Voltar</button><button id="submit-edit-task" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px]">Salvar</button></div>
         </div>
     </div>
