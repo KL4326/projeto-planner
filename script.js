@@ -65,10 +65,10 @@ const app = {
         }); 
     },
 
-    // --- LOGS (ISOLADOS DE ÍNDICES E BLINDADOS) ---
     async addLog(msg) {
         try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) { console.error(e); }
     },
+
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
             try {
@@ -82,9 +82,10 @@ const app = {
                     const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
                     list.innerHTML += `<div class="p-4 border-b dark:border-white/5 text-left"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">${dt.text || 'Ação registrada'}</p><div class="flex justify-between mt-1 text-[8px] font-black uppercase text-gray-400"><span>${dt.author || 'Sistema'}</span><span>${time}</span></div></div>`;
                 });
-            } catch (e) { console.error("Erro renderizando sino:", e); }
+            } catch (e) {}
         });
     },
+
     markNotifsRead() { 
         const badge = document.getElementById('notif-badge');
         if(badge && !badge.classList.contains('hidden')) {
@@ -95,7 +96,6 @@ const app = {
         }
     },
 
-    // --- TAREFAS (BLINDADAS) ---
     listenToTasks() { 
         onSnapshot(collection(db, "tarefas"), snap => { 
             this.allTasks = snap.docs.map(d => ({id: d.id, ...d.data()})); 
@@ -134,7 +134,7 @@ const app = {
                 
                 c.innerHTML += `<tr class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer" onclick="app.navigate('detalhes', '${t.id}')"><td class="px-6 py-5 relative"><div class="status-strip bg-${s_slug}"></div></td><td class="px-6 py-5"><div><p class="font-bold text-sm text-gray-900 dark:text-white ${t.status==='Concluída'?'line-through opacity-40':''}">${title}</p><p class="text-[11px] font-bold text-primary uppercase">Prazo: ${prazo}</p></div></td><td class="px-6 py-5"><span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-${s_slug}/10 text-${s_slug}">${t.status || 'Em aberto'}</span></td><td class="px-6 py-5"><span class="${p.bg} text-white px-2.5 py-0.5 rounded text-[10px] font-black uppercase">${p.label}</span></td><td class="px-6 py-5 text-right font-bold text-xs text-gray-400">${t.assignees?.join(', ') || '---'}</td></tr>`;
             });
-        } catch (e) { console.error("Erro desenhando lista:", e); }
+        } catch (e) {}
     },
 
     renderStats(s, total) {
@@ -237,9 +237,15 @@ const app = {
     async sendSubComment() { 
         const i = document.getElementById('sub-chat-input'); 
         if(!i || !i.value.trim()) return; 
-        await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
+        await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { 
+            text: i.value, 
+            authorName: auth.currentUser.displayName, 
+            createdBy: auth.currentUser.uid, 
+            ts: Date.now() 
+        }); 
         i.value = ''; 
     },
+
     listenToSubChat(sid) { 
         this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
             const c = document.getElementById('sub-chat-messages'); if(!c) return; 
@@ -274,18 +280,28 @@ const app = {
     cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
     updateAvatar(u) { const av = document.getElementById('header-avatar'); if(u.photoURL) { av.innerText = ''; av.style.backgroundImage = `url('${u.photoURL}')`; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.getElementById('modal-backdrop').classList.remove('flex'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
-    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Concluiu uma etapa" : "⭕ Marcou como pendente"); },
+    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Concluiu uma etapa" : "⭕ Marcou etapa pendente"); },
     deleteSub(sid) { if(confirm("Remover?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.addLog("🗑️ Removeu subtarefa"); this.closeModal(); } },
     loadUsers() { onSnapshot(collection(db, "usuarios"), (snap) => { const opts = snap.docs.map(d => d.data().nome); ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { const el = document.getElementById(cid); if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold">${n}</span></label>`).join(''); }); }); },
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
-    renderRanking() { const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; this.allTasks.forEach(t => { if((t.data().status||'') === "Concluída") (t.data().assignees || ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); rc.innerHTML = sorted.length ? sorted.map((r, i) => `<div class="flex items-center gap-4 text-left"><div class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-sm font-black text-primary">${i+1}</div><div class="flex-1"><p class="font-bold text-sm dark:text-white">${r[0]}</p><div class="mt-2 w-full bg-gray-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="text-right text-xs font-black dark:text-white">${r[1]}</div></div>`).join('') : '<p class="text-gray-500 text-xs text-center py-4 italic">Sem atividade.</p>'; },
+    renderRanking() { 
+        const rc = document.getElementById('rankingContainer'); if(!rc) return; 
+        const pts = {}; 
+        this.allTasks.forEach(t => { 
+            if(t.status === "Concluída") {
+                (t.assignees && t.assignees.length ? t.assignees : ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
+            }
+        }); 
+        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
+        rc.innerHTML = sorted.length ? sorted.map((r, i) => `<div class="flex items-center gap-4 text-left"><div class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-sm font-black text-primary">${i+1}</div><div class="flex-1"><p class="font-bold text-sm dark:text-white">${r[0]}</p><div class="mt-2 w-full bg-gray-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="text-right text-xs font-black dark:text-white">${r[1]}</div></div>`).join('') : '<p class="text-gray-500 text-xs text-center py-4 italic">Nenhuma tarefa concluída.</p>'; 
+    },
     signOut() { signOut(auth); },
     async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",this.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); this.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); this.showToast("Anexo enviado!"); }; r.readAsDataURL(f); }; inp.click(); },
     async handleDeleteTask(id) { if(confirm("Excluir tarefa?")) { const d = await getDoc(doc(db,"tarefas",id)); const title = d.data().title || 'Tarefa'; await deleteDoc(doc(db,"tarefas",id)); await this.addLog(`🗑️ Excluiu: "${title}"`); this.navigate('dashboard'); } },
     async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(u.photoURL) { av.style.backgroundImage = `url('${u.photoURL}')`; av.innerText = ''; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value, photoURL: this.tempPhotoBase64 || auth.currentUser.photoURL }); await setDoc(doc(db,"usuarios",auth.currentUser.uid), { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value, foto: this.tempPhotoBase64 || auth.currentUser.photoURL }, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; this.showToast("Perfil salvo!"); this.navigate('dashboard'); } catch(e) { this.showToast("Erro ao salvar", "error"); } },
     async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); document.getElementById('photo-options').classList.add('hidden'); this.tempPhotoBase64 = ""; } },
-    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return this.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.showToast("Senha alterada!"); this.navigate('perfil'); } catch(e) { this.showToast("Senha atual incorreta.", "error"); } },
+    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return this.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.showToast("Senha alterada!"); this.navigate('perfil'); document.getElementById('current-password-input').value = ''; document.getElementById('new-password-input').value = ''; document.getElementById('confirm-password-input').value = ''; } catch(e) { this.showToast("Senha atual incorreta.", "error"); } },
     compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
     listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-gray-400 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-gray-100 dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[85%] font-medium">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; }
