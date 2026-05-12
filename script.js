@@ -55,18 +55,26 @@ const app = {
             if(u){ 
                 h.classList.replace('hidden', 'flex'); 
                 this.updateAvatar(u); 
-                const ud = await getDoc(doc(db, "usuarios", u.uid));
-                if(ud.exists()) {
-                    document.getElementById('user-display-name').innerText = ud.data().nome || u.displayName || u.email;
-                    document.getElementById('user-display-role').innerText = ud.data().cargo || "Colaborador";
-                }
+                
+                try {
+                    const ud = await getDoc(doc(db, "usuarios", u.uid));
+                    const nameEl = document.getElementById('user-display-name');
+                    const roleEl = document.getElementById('user-display-role');
+                    if(ud.exists()) {
+                        if(nameEl) nameEl.innerText = ud.data().nome || u.displayName || u.email;
+                        if(roleEl) roleEl.innerText = ud.data().cargo || "Colaborador";
+                    } else {
+                        if(nameEl) nameEl.innerText = u.displayName || u.email;
+                    }
+                } catch(e) { console.error("Erro no perfil do cabeçalho", e); }
+                
                 this.listenToTasks(); this.loadUsers(); this.navigate('dashboard'); 
             } else { h.classList.add('hidden'); this.navigate('login'); } 
         }); 
     },
 
     async addLog(msg) {
-        try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) { console.error(e); }
+        try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) {}
     },
 
     listenToNotifications() {
@@ -182,7 +190,7 @@ const app = {
                         <h2 class="font-black uppercase text-xs text-slate-400 p-2">Discussão</h2>
                         <div class="bg-white dark:bg-gray-800 rounded-3xl border dark:border-white/10 flex flex-col h-[400px] shadow-xl overflow-hidden">
                             <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                            <div class="p-4 border-t dark:border-white/5 flex gap-2 bg-gray-50 dark:bg-black/20"><input id="chat-input" onkeydown="if(event.key === 'Enter') app.sendChatMessage()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Escreva..."><button onclick="app.sendChatMessage()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-all"><span class="material-symbols-outlined">send</span></button></div>
+                            <div class="p-4 border-t dark:border-white/5 flex gap-2 bg-gray-50 dark:bg-black/20"><input id="chat-input" onkeydown="if(event.key === 'Enter') app.sendChatMessage()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendChatMessage()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-all"><span class="material-symbols-outlined">send</span></button></div>
                         </div>
                     </div>
                 </div>
@@ -284,8 +292,6 @@ const app = {
     deleteSub(sid) { if(confirm("Remover?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.addLog("🗑️ Removeu subtarefa"); this.closeModal(); } },
     loadUsers() { onSnapshot(collection(db, "usuarios"), (snap) => { const opts = snap.docs.map(d => d.data().nome); ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { const el = document.getElementById(cid); if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold">${n}</span></label>`).join(''); }); }); },
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
-    
-    // --- RANKING ---
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
         const pts = {}; 
@@ -305,6 +311,7 @@ const app = {
         if(passInput) passInput.value = '';
         signOut(auth); 
     },
+    
     async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",this.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); this.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); this.showToast("Anexo enviado!"); }; r.readAsDataURL(f); }; inp.click(); },
     async handleDeleteTask(id) { if(confirm("Excluir tarefa?")) { const d = await getDoc(doc(db,"tarefas",id)); const title = d.data().title || 'Tarefa'; await deleteDoc(doc(db,"tarefas",id)); await this.addLog(`🗑️ Excluiu: "${title}"`); this.navigate('dashboard'); } },
     async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(u.photoURL) { av.style.backgroundImage = `url('${u.photoURL}')`; av.innerText = ''; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
