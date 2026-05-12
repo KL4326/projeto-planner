@@ -16,8 +16,7 @@ const db = getFirestore(fb);
 const auth = getAuth(fb);
 
 const CONFIG = {
-    prioridades: { urgent: { label: 'Urgente', bg: 'bg-rose-700' }, high: { label: 'Alta', bg: 'bg-red-500' }, medium: { label: 'Média', bg: 'bg-orange-500' }, low: { label: 'Baixa', bg: 'bg-yellow-500' } },
-    statusIcons: { 'Concluída': 'check_circle', 'Em andamento': 'directions_run', 'Cancelada': 'close', 'Em aberto': 'schedule' }
+    prioridades: { urgent: { label: 'Urgente', bg: 'bg-rose-700' }, high: { label: 'Alta', bg: 'bg-red-500' }, medium: { label: 'Média', bg: 'bg-orange-500' }, low: { label: 'Baixa', bg: 'bg-yellow-500' } }
 };
 
 const app = {
@@ -92,7 +91,6 @@ const app = {
         this.navigate('dashboard');
     },
 
-    // --- DETALHES TAREFA PRINCIPAL ---
     renderDetails(id) {
         this.currentTaskId = id;
         const container = document.getElementById('details-view-content');
@@ -104,54 +102,53 @@ const app = {
                 <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>
                 <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl"><h1 class="text-4xl font-black mb-4">${t.title}</h1><p class="text-slate-500 whitespace-pre-line leading-relaxed mb-8 text-sm">${t.description || 'Sem descrição.'}</p>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 border-t dark:border-slate-800 pt-6">
-                        <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Equipa</span><span class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</span></div>
+                        <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Responsáveis</span><span class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</span></div>
                         <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Setor</span><span class="text-xs font-bold">${t.sector || '---'}</span></div>
                         <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Prazo</span><span class="text-xs font-bold">${dateStr}</span></div>
-                        <div class="flex flex-col gap-1 border-l dark:border-slate-800 pl-4 items-start">
-                            <span class="text-[9px] font-black uppercase text-slate-400 mb-2">Anexos</span>
-                            <div class="flex flex-wrap gap-2" id="task-att-list"></div>
-                            <button onclick="app.handleFileUpload('task', '${id}')" class="mt-1 text-[10px] font-black uppercase text-primary hover:opacity-70 flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button>
-                        </div>
+                        <div class="flex flex-col gap-1 border-l dark:border-slate-800 pl-4 items-start"><span class="text-[9px] font-black uppercase text-slate-400 mb-2">Anexos</span><div class="flex flex-wrap gap-2" id="task-att-list"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-1 text-[10px] font-black uppercase text-primary hover:opacity-70 flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="flex flex-col gap-4"><div class="flex items-center justify-between p-2"><h2 class="font-black uppercase text-xs text-slate-400">Etapas</h2><button onclick="app.openSubtaskForm()" class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg">+ ETAPA</button></div><div id="subtasks-list" class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 divide-y dark:divide-slate-800 overflow-hidden shadow-sm"></div></div>
-                    <div class="flex flex-col gap-4"><h2 class="font-black uppercase text-xs text-slate-400 p-2">Discussão</h2><div class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 flex flex-col h-[400px] shadow-xl overflow-hidden"><div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div><div class="p-4 border-t dark:border-slate-800 flex gap-2"><input id="chat-input" type="text" class="flex-1 bg-white dark:bg-slate-800 border-none rounded-xl px-4 text-sm outline-none dark:text-white" placeholder="Mensagem..."><button onclick="app.sendChatMessage()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg"><span class="material-symbols-outlined">send</span></button></div></div></div>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex items-center justify-between p-2"><h2 class="font-black uppercase text-xs text-slate-400">Subtarefas</h2><button onclick="app.openSubtaskForm()" class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg">Adicionar subtarefa</button></div>
+                        <div id="subtasks-list" class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 divide-y dark:divide-slate-800 overflow-hidden shadow-sm"></div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <h2 class="font-black uppercase text-xs text-slate-400 p-2">Discussão</h2>
+                        <div class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 flex flex-col h-[400px] shadow-xl overflow-hidden">
+                            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
+                            <div class="p-4 border-t dark:border-slate-800 flex gap-2 bg-slate-50 dark:bg-slate-800/20"><input id="chat-input" type="text" class="flex-1 bg-white dark:bg-slate-800 border-none rounded-xl px-4 text-sm outline-none dark:text-white" placeholder="Escreva algo..."><button onclick="app.sendChatMessage()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg"><span class="material-symbols-outlined">send</span></button></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex gap-4 mt-6"><button onclick='app.openEditModal(${JSON.stringify(t)})' id="edit-task-btn" class="flex-1 bg-yellow-500 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs tracking-widest">Editar Projeto</button><button id="delete-task-btn" class="bg-red-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg uppercase text-xs tracking-widest">Excluir</button></div>
+                <div class="flex gap-4 mt-6"><button id="edit-btn-trigger" class="flex-1 bg-yellow-500 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs tracking-widest">Editar Tarefa</button><button id="delete-task-btn" class="bg-red-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg uppercase text-xs tracking-widest">Excluir</button></div>
             `;
             const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border text-[9px] font-bold truncate max-w-[140px]">${a.nome}</a>`; });
+            document.getElementById('edit-btn-trigger').onclick = () => app.openEditModal(t);
             document.getElementById('delete-task-btn').onclick = () => app.handleDeleteTask(id);
             document.getElementById('chat-input').onkeydown = (e) => { if(e.key === 'Enter') this.sendChatMessage(); };
             this.listenToSubtasks(id); this.listenToChat(id);
         }));
     },
 
-    // --- SUBTAREFA ---
     async openSubtaskView(sid) {
         this.activeSid = sid; const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
         const p = CONFIG.prioridades[d.priority] || CONFIG.prioridades.low;
         const dateStr = d.dueDate ? new Date(d.dueDate).toLocaleDateString('pt-PT') : '---';
         const cont = document.getElementById('subtask-view-content');
         cont.innerHTML = `
-            <div class="w-full md:w-1/2 p-8 border-r dark:border-slate-800 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-slate-900">
+            <div class="w-full md:w-1/2 p-8 border-r dark:border-slate-800 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                 <div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded text-[9px] font-black uppercase text-white ${p.bg}">${p.label}</span><button onclick="app.closeModal()"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
-                <div><h3 class="text-3xl font-black text-primary mb-2">${d.title}</h3><p class="text-sm text-slate-500 italic whitespace-pre-line">${d.description || 'Sem descrição.'}</p></div>
+                <div><h3 class="text-3xl font-black text-primary mb-2">${d.title}</h3><p class="text-sm text-slate-500 italic whitespace-pre-line leading-relaxed">${d.description || 'Sem descrição.'}</p></div>
                 <div class="grid grid-cols-2 gap-4 border-t dark:border-slate-800 pt-6">
                     <div><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Responsáveis</span><p class="text-xs font-bold">${d.assignees?.join(', ') || '---'}</p></div>
                     <div><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Prazo</span><p class="text-xs font-bold">${dateStr}</p></div>
                 </div>
-                <div class="flex flex-col gap-1 border-t dark:border-slate-800 pt-4">
-                    <span class="text-[9px] font-black uppercase text-slate-400 mb-2">Anexos</span>
-                    <div id="sub-att-list" class="flex flex-wrap gap-2"></div>
-                    <button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary hover:opacity-70 flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button>
-                </div>
-                <div class="flex gap-2 mt-auto pt-6">
-                    <button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase">Editar Etapa</button>
-                    <button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button>
-                </div>
+                <div class="flex flex-col gap-1 border-t dark:border-slate-800 pt-4"><span class="text-[9px] font-black uppercase text-slate-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2 mt-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary hover:opacity-70 flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
+                <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Editar subtarefa</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
             <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900/40">
+                <div class="p-4 border-b dark:border-slate-800 font-black text-[9px] uppercase text-slate-400">Discussão Interna</div>
                 <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
                 <div class="p-4 border-t dark:border-slate-800 flex gap-2"><input id="sub-chat-input" type="text" class="flex-1 bg-white dark:bg-slate-800 border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-sm" placeholder="Chat..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg"><span class="material-symbols-outlined">send</span></button></div>
             </div>
@@ -162,19 +159,12 @@ const app = {
         this.listenToSubChat(sid);
     },
 
-    // --- FORMULÁRIOS (EDIÇÃO E CRIAÇÃO) ---
     openEditModal(t) {
-        this.currentTaskId = this.currentTaskId; // ID já está setado
         document.getElementById('edit-task-title').value = t.title;
         document.getElementById('edit-task-desc').value = t.description || "";
         document.getElementById('edit-task-priority').value = t.priority || "medium";
         document.getElementById('edit-task-date').value = t.dueDate || "";
-        
-        // Marcar checkboxes dos responsáveis
-        document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => {
-            cb.checked = t.assignees?.includes(cb.value);
-        });
-
+        document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value));
         document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
         document.getElementById('modal-edit-task').classList.remove('hidden');
     },
@@ -182,35 +172,20 @@ const app = {
     async handleUpdateTask() {
         const title = document.getElementById('edit-task-title').value; if(!title) return;
         const assignees = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value);
-        await updateDoc(doc(db, "tarefas", this.currentTaskId), {
-            title, description: document.getElementById('edit-task-desc').value,
-            priority: document.getElementById('edit-task-priority').value,
-            dueDate: document.getElementById('edit-task-date').value,
-            assignees
-        });
+        await updateDoc(doc(db, "tarefas", this.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees });
         this.closeModal();
     },
 
     openSubtaskForm(sid = null) {
-        this.editSubId = sid;
-        this.closeModal(); // Fecha visualização se aberta
-        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
-        document.getElementById('modal-subtask-form').classList.remove('hidden');
-        
+        this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden');
         if (sid) {
             getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid)).then(d => {
-                const s = d.data();
-                document.getElementById('sub-title-inp').value = s.title;
-                document.getElementById('sub-desc-inp').value = s.description || "";
-                document.getElementById('sub-priority-inp').value = s.priority || "medium";
-                document.getElementById('sub-date-inp').value = s.dueDate || "";
+                const s = d.data(); document.getElementById('sub-title-inp').value = s.title; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "medium"; document.getElementById('sub-date-inp').value = s.dueDate || "";
                 document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value));
-                document.getElementById('subtask-form-title').innerText = "Editar Etapa";
+                document.getElementById('subtask-form-title').innerText = "Editar subtarefa";
             });
         } else {
-            document.getElementById('subtask-form-title').innerText = "Nova Etapa";
-            document.getElementById('sub-title-inp').value = "";
-            document.getElementById('sub-desc-inp').value = "";
+            document.getElementById('subtask-form-title').innerText = "Adicionar subtarefa"; document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = "";
             document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
     },
@@ -219,34 +194,30 @@ const app = {
         const t = document.getElementById('sub-title-inp').value; if(!t) return;
         const assignees = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value);
         const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees, updatedAt: serverTimestamp() };
-        
-        if (this.editSubId) {
-            await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data);
-        } else {
-            await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() });
-        }
+        if (this.editSubId) await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data);
+        else await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() });
         this.closeModal();
     },
 
-    // --- AUXILIARES GLOBAIS ---
+    // --- REUTILIZÁVEIS ---
+    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const file = e.target.files[0]; if(!file || file.size > 800000) return alert("Arquivo < 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db, "tarefas", id) : doc(db, "tarefas", this.currentTaskId, "subtarefas", id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ nome: file.name, data: ev.target.result }); await updateDoc(path, { anexos }); }; r.readAsDataURL(file); }; inp.click(); },
     cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
     updateAvatar(u) { const av = document.getElementById('header-avatar'); if(u.photoURL) { av.innerText = ''; av.style.backgroundImage = `url('${u.photoURL}')`; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     darVerde(btn, orig, suc) { if(!btn) return; btn.innerText = suc; btn.classList.add('bg-green-600'); setTimeout(() => { btn.innerText = orig; btn.classList.remove('bg-green-600'); }, 2000); },
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
     toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); },
-    deleteSub(sid) { if(confirm("Eliminar etapa?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.closeModal(); } },
+    deleteSub(sid) { if(confirm("Excluir?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.closeModal(); } },
     async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); i.value = ''; },
-    listenToChat(tid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",tid,"comentarios"), orderBy("createdAt","asc")), s => { const c = document.getElementById('chat-messages'); if(c) { c.innerHTML = ''; s.forEach(doc => { const d = doc.data(); const isMe = d.createdBy === auth.currentUser.uid; c.innerHTML += `<div class="flex flex-col ${isMe?'items-end':'items-start'}"><span class="text-[8px] font-black text-slate-400 mb-1">${d.authorName}</span><div class="${isMe?'bg-primary text-white rounded-br-none':'bg-slate-100 dark:bg-slate-800 rounded-bl-none'} p-3 rounded-2xl text-xs max-w-[85%] shadow-sm">${d.text}</div></div>`; }); c.scrollTop = c.scrollHeight; } })); },
-    listenToSubtasks(tid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",tid,"subtarefas"), orderBy("createdAt","asc")), s => { const l = document.getElementById('subtasks-list'); if(l) { l.innerHTML = ''; s.forEach(sd => { const st = sd.data(); const p = CONFIG.prioridades[st.priority] || CONFIG.prioridades.low; l.innerHTML += `<div class="flex items-center gap-3 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${sd.id}')"><span class="material-symbols-outlined drag-handle text-slate-300 dark:text-slate-600">drag_indicator</span><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${sd.id}', this.checked)" class="rounded text-primary w-5 h-5"><span class="flex-1 text-sm font-bold ${st.completed?'line-through opacity-40 italic':''}">${st.title}</span><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>`; }); new Sortable(l, { animation: 150, handle: '.drag-handle' }); } })); },
+    listenToChat(tid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",tid,"comentarios"), orderBy("createdAt","asc")), s => { const c = document.getElementById('chat-messages'); if(c) { c.innerHTML = ''; s.forEach(doc => { const d = doc.data(); const isMe = d.createdBy === auth.currentUser.uid; c.innerHTML += `<div class="flex flex-col ${isMe?'items-end':'items-start'}"><span class="text-[8px] font-black text-slate-400 mb-1">${d.authorName}</span><div class="${isMe?'bg-primary text-white rounded-br-none':'bg-slate-100 dark:bg-slate-800 rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[85%]">${d.text}</div></div>`; }); c.scrollTop = c.scrollHeight; } })); },
+    listenToSubtasks(tid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",tid,"subtarefas"), orderBy("createdAt","asc")), s => { const l = document.getElementById('subtasks-list'); if(l) { l.innerHTML = ''; s.forEach(sd => { const st = sd.data(); const p = CONFIG.prioridades[st.priority] || CONFIG.prioridades.low; l.innerHTML += `<div class="flex items-center gap-3 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${sd.id}')"><span class="material-symbols-outlined drag-handle text-slate-300 dark:text-slate-600">drag_indicator</span><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${sd.id}', this.checked)" class="rounded text-primary w-5 h-5"><span class="flex-1 text-sm font-bold ${st.completed?'subtask-done':''}">${st.title}</span><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>`; }); new Sortable(l, { animation: 150, handle: '.drag-handle' }); } })); },
     listenToSubChat(sid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), orderBy("createdAt","asc")), s => { const c = document.getElementById('sub-chat-messages'); if(c) { c.innerHTML = ''; s.forEach(doc => { const d = doc.data(); const isMe = d.createdBy === auth.currentUser.uid; c.innerHTML += `<div class="flex flex-col ${isMe?'items-end':'items-start'}"><div class="${isMe?'bg-primary text-white rounded-br-none':'bg-white dark:bg-slate-800 rounded-bl-none'} p-3 rounded-2xl text-xs max-w-[90%] shadow-sm font-medium">${d.text}</div></div>`; }); c.scrollTop = c.scrollHeight; } })); },
     async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); i.value = ''; },
     async handleDeleteTask(id) { if(confirm("Apagar permanentemente?")) { await deleteDoc(doc(db,"tarefas",id)); this.navigate('dashboard'); } },
-    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const file = e.target.files[0]; if(!file || file.size > 800000) return alert("Arquivo deve ser < 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db, "tarefas", id) : doc(db, "tarefas", this.currentTaskId, "subtarefas", id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ nome: file.name, data: ev.target.result }); await updateDoc(path, { anexos }); }; r.readAsDataURL(file); }; inp.click(); },
-    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1!==n2) return alert("Senhas não coincidem."); const b = document.getElementById('submit-change-password'); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.darVerde(b, "Confirmar", "Senha Alterada!"); setTimeout(()=>this.navigate('dashboard'),1500); } catch(e) { alert("Senha atual incorreta."); } },
     async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-cargo-input').value = dt.cargo || ""; document.getElementById('profile-sector-input').value = dt.setor || "Logística"; document.getElementById('profile-bio-input').value = dt.bio || ""; document.getElementById('profile-page-name').innerText = u.displayName || "Usuário"; document.getElementById('profile-page-email').innerText = u.email; const av = document.getElementById('profile-page-avatar'); if(u.photoURL) av.style.backgroundImage = `url('${u.photoURL}')`; else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     async handleSaveProfile() { const b = document.getElementById('save-profile-btn'); const u = auth.currentUser; const f = this.tempPhotoBase64 || u.photoURL; try { await updateProfile(u, { displayName: document.getElementById('profile-name-input').value, photoURL: f }); await setDoc(doc(db,"usuarios",u.uid), { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-cargo-input').value, setor: document.getElementById('profile-sector-input').value, bio: document.getElementById('profile-bio-input').value, foto: f, email: u.email }, {merge:true}); this.darVerde(b, "Salvar", "Atualizado!"); setTimeout(()=>this.navigate('dashboard'),1000); } catch(e) { alert("Erro ao salvar."); } },
+    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1!==n2) return alert("Senhas não coincidem."); const b = document.getElementById('submit-change-password'); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.darVerde(b, "Confirmar", "Senha Alterada!"); setTimeout(()=>this.navigate('dashboard'),1500); } catch(e) { alert("Senha atual incorreta."); } },
     renderRanking() { const rc = document.getElementById('ranking-container'); if(!rc) return; const pts = {}; this.allTasks.forEach(d => { if(d.data().status === "Concluída") (d.data().assignees || ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); const srt = Object.entries(pts).sort((a,b)=>b[1]-a[1]); rc.innerHTML = ''; srt.forEach(([n, p], i) => { const pos = i + 1; let crown = ""; if(pos <= 3) { const cols = ["text-yellow-500", "text-slate-400", "text-amber-600"]; crown = `<svg class="w-4 h-4 ${cols[i]} ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5ZM19 19C19 19.5523 18.5523 20 18 20H6C5.44772 20 5 19.5523 5 19V18H19V19Z"/></svg>`; } rc.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl mb-1 shadow-sm"><div class="flex items-center gap-3"><span class="font-black text-slate-400 text-[10px] w-4">${pos}º</span><span class="text-[13px] font-bold flex items-center">${n}${crown}</span></div><span class="font-black text-green-600 text-[10px]">${p} pts</span></div>`; }); },
-    renderAdmin() { /* Estatísticas do admin mantidas aqui... */ }
+    renderAdmin() { onSnapshot(collection(db,"tarefas"), (snap) => { let total = snap.size, done = 0, users = {}; snap.forEach(d => { const t = d.data(); if(t.status === "Concluída") done++; (t.assignees || ["Equipa"]).forEach(p => { if(!users[p]) users[p] = { c:0, d:0 }; users[p].c++; if(t.status === "Concluída") users[p].d++; }); }); document.getElementById('admin-stats').innerHTML = `<div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm"><p class="text-[10px] font-black uppercase text-slate-400">Total Projetos</p><span class="text-3xl font-black">${total}</span></div><div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm"><p class="text-[10px] font-black uppercase text-green-500">Concluídos</p><span class="text-3xl font-black text-green-500">${done}</span></div><div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm"><p class="text-[10px] font-black uppercase text-primary">Utilizadores</p><span class="text-3xl font-black text-primary">${Object.keys(users).length}</span></div>`; const ut = document.getElementById('admin-users-table'); if(ut) { ut.innerHTML = ''; Object.entries(users).forEach(([n, s]) => { ut.innerHTML += `<tr><td class="p-6 font-bold text-sm">${n}</td><td class="p-6 text-center text-sm">${s.c}</td><td class="p-6 text-center text-sm text-green-600 font-bold">${s.d}</td><td class="p-6 text-center text-sm font-black">${Math.round((s.d/s.c)*100)}%</td></tr>`; }); } }); }
 };
 
 window.app = app;
