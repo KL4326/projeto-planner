@@ -1,23 +1,47 @@
-/* Importação das Fontes */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+/* Efeitos de Vidro (Glassmorphism) */
 
-/* Reset Básico e Fonte Global */
-body {
-    font-family: 'Manrope', sans-serif;
-    -webkit-font-smoothing: antialiased;
-}
+.glass-panel { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); }
 
-/* Configuração dos Ícones do Material Design */
-.material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
+.dark .glass-panel { background: #1a1c22; border: 1px solid rgba(255, 255, 255, 0.1); }
 
-/* Esconde a barra de rolagem mas mantém o scroll funcionando (usado nos filtros do Dashboard) */
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-.no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-}
+.status-strip { width: 4px; height: 100%; position: absolute; left: 0; top: 0; }
+
+
+
+/* Cores de Status forçadas (!important) */
+
+.text-Atrasado { color: #FF3D6F !important; } .bg-Atrasado { background-color: #FF3D6F !important; }
+
+.text-Aberto { color: #00aaff !important; } .bg-Aberto { background-color: #00aaff !important; }
+
+.text-Em-Progresso { color: #FFDD00 !important; } .bg-Em-Progresso { background-color: #FFDD00 !important; }
+
+.text-Concluído { color: #00E676 !important; } .bg-Concluído { background-color: #00E676 !important; }
+
+
+
+/* Barra de Rolagem Customizada */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+
+
+/* Estilo das Notificações (Toasts) */
+
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+
+.toast { min-width: 250px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; animation: slideIn 0.3s ease-out forwards; }
+
+.toast.success { background: #00E676; color: #000; }
+
+.toast.error { background: #FF3D6F; }
+
+.toast.info { background: #00aaff; }
+
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+@keyframes fadeOut { to { opacity: 0; } }
