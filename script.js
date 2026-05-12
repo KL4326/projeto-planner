@@ -22,146 +22,167 @@ const CONFIG = {
 
 const app = {
     currentTaskId: null,
-    filters: { status: "Todas", sector: "Todos", assignee: "Todos", search: "" },
+    tempPhotoBase64: null,
     allTasks: [],
+    filters: { status: "Todas", sector: "Todos", assignee: "Todos", search: "" },
 
     init() {
         this.bindEvents();
         this.checkAuth();
+        const t = localStorage.getItem('theme') || 'dark';
+        document.documentElement.classList.toggle('dark', t === 'dark');
     },
 
     navigate(pageId, params = null) {
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
-
         if(pageId === 'detalhes' && params) this.renderDetails(params);
         if(pageId === 'perfil') this.loadProfileData();
-        
         this.closeModal();
         window.scrollTo(0,0);
     },
 
     bindEvents() {
+        // Login
         document.getElementById('login-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
-            btn.innerText = "Entrando...";
-            try {
-                await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
-            } catch(err) { alert("Erro no login."); btn.innerText = "Entrar"; }
+            const btn = e.target.querySelector('button'); btn.innerText = "A entrar...";
+            try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } 
+            catch(err) { alert("Erro no login."); btn.innerText = "Entrar"; }
         });
 
+        // Logout e Pesquisa
         document.getElementById('logout-btn').onclick = () => signOut(auth);
         document.getElementById('search-input').oninput = (e) => { this.filters.search = e.target.value; this.renderDashboard(); };
 
+        // Filtros
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.filters.status = btn.dataset.filter;
-                this.renderDashboard();
+                this.filters.status = btn.dataset.filter; this.renderDashboard();
             };
+        });
+
+        // Upload de Foto (Base64)
+        document.getElementById('profile-upload')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.tempPhotoBase64 = event.target.result;
+                    document.getElementById('profile-page-avatar').style.backgroundImage = `url('${this.tempPhotoBase64}')`;
+                    document.getElementById('profile-page-avatar').innerText = '';
+                };
+                reader.readAsDataURL(file);
+            }
         });
 
         document.getElementById('save-task-btn').onclick = () => this.handleCreateTask();
         document.getElementById('save-profile-btn').onclick = () => this.handleSaveProfile();
-        
-        document.getElementById('profile-btn').onclick = (e) => { 
-            e.stopPropagation(); 
-            document.getElementById('profile-menu').classList.toggle('hidden'); 
-        };
+
+        // UI
+        document.getElementById('profile-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); };
         document.addEventListener('click', () => document.getElementById('profile-menu').classList.add('hidden'));
+        document.querySelectorAll('.theme-toggle').forEach(b => b.onclick = () => {
+            const isD = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isD ? 'dark' : 'light');
+        });
     },
 
     checkAuth() {
         onAuthStateChanged(auth, (user) => {
+            const header = document.getElementById('main-header');
             if (user) {
-                document.getElementById('main-header').classList.replace('hidden', 'flex');
+                header.classList.replace('hidden', 'flex');
                 this.updateAvatar(user);
                 this.listenToTasks();
-                this.loadUsers();
                 this.navigate('dashboard');
+                // Admin Access (Ajuste seu email aqui)
                 if(user.email === "olimakl@gmail.com") document.getElementById('admin-menu-link').classList.replace('hidden', 'flex');
             } else {
-                document.getElementById('main-header').classList.add('hidden');
+                header.classList.add('hidden');
                 this.navigate('login');
             }
         });
     },
 
+    async loadProfileData() {
+        const u = auth.currentUser;
+        if(!u) return;
+        const d = await getDoc(doc(db, "usuarios", u.uid));
+        const data = d.data() || {};
+
+        document.getElementById('profile-name-input').value = u.displayName || "";
+        document.getElementById('profile-cargo-input').value = data.cargo || "";
+        document.getElementById('profile-sector-input').value = data.setor || "Logística";
+        document.getElementById('profile-bio-input').value = data.bio || "";
+        document.getElementById('profile-page-name').innerText = u.displayName || "Usuário";
+        document.getElementById('profile-page-email').innerText = u.email;
+        
+        const av = document.getElementById('profile-page-avatar');
+        const photo = u.photoURL;
+        if(photo) { av.style.backgroundImage = `url('${photo}')`; av.innerText = ''; }
+        else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; }
+    },
+
+    async handleSaveProfile() {
+        const btn = document.getElementById('save-profile-btn');
+        const user = auth.currentUser;
+        const nome = document.getElementById('profile-name-input').value;
+        const cargo = document.getElementById('profile-cargo-input').value;
+        const setor = document.getElementById('profile-sector-input').value;
+        const bio = document.getElementById('profile-bio-input').value;
+        const foto = this.tempPhotoBase64 || user.photoURL;
+
+        btn.innerText = "A guardar...";
+        try {
+            await updateProfile(user, { displayName: nome, photoURL: foto });
+            await setDoc(doc(db, "usuarios", user.uid), { 
+                nome, cargo, setor, bio, foto, email: user.email 
+            }, { merge: true });
+            
+            this.darVerde(btn, "Guardar Alterações", "Atualizado!");
+            setTimeout(() => { this.updateAvatar(user); this.navigate('dashboard'); }, 1000);
+        } catch(e) { alert("Erro ao salvar perfil."); btn.innerText = "Guardar Alterações"; }
+    },
+
+    // --- REUTILIZÁVEIS ---
     listenToTasks() {
         onSnapshot(query(collection(db, "tarefas"), orderBy("createdAt", "desc")), (snap) => {
             this.allTasks = snap.docs;
             this.renderDashboard();
+            this.loadFilterUsers();
         });
     },
 
     renderDashboard() {
         const container = document.getElementById('tasks-container');
-        if(!container) return;
-        container.innerHTML = '';
+        if(!container) return; container.innerHTML = '';
         this.allTasks.forEach(docSnap => {
             const t = docSnap.data();
             const mSearch = (t.title || "").toLowerCase().includes(this.filters.search.toLowerCase());
             const mStat = this.filters.status === "Todas" || t.status === this.filters.status;
             if(mSearch && mStat) {
                 const div = document.createElement('div');
-                div.className = "p-4 bg-white dark:bg-slate-800 rounded-xl border dark:border-slate-800 mb-1 cursor-pointer flex justify-between items-center";
+                div.className = "p-4 bg-white dark:bg-slate-800 rounded-xl border dark:border-slate-800 mb-1 cursor-pointer flex justify-between items-center transition-all hover:border-primary/50";
                 div.onclick = () => this.navigate('detalhes', docSnap.id);
-                div.innerHTML = `<div><span class="font-bold">${t.title}</span><p class="text-xs text-slate-500">${t.sector || 'Geral'}</p></div><span class="text-[10px] font-black uppercase px-2 py-1 rounded bg-primary text-white">${t.status}</span>`;
+                div.innerHTML = `<div><span class="font-bold">${t.title}</span><p class="text-[10px] text-slate-500 uppercase font-black">${t.sector || 'Geral'}</p></div><span class="text-[10px] font-black uppercase px-2 py-1 rounded bg-primary text-white">${t.status}</span>`;
                 container.appendChild(div);
             }
         });
-        this.renderRanking();
     },
 
-    async handleCreateTask() {
-        const title = document.getElementById('task-title').value;
-        if(!title) return;
-        await addDoc(collection(db, "tarefas"), {
-            title,
-            description: document.getElementById('task-desc').value,
-            sector: document.getElementById('task-sector').value,
-            priority: document.querySelector('input[name="priority"]:checked').value,
-            status: "Em aberto",
-            createdAt: serverTimestamp(),
-            createdBy: auth.currentUser.uid
-        });
-        this.navigate('dashboard');
+    updateAvatar(user) {
+        const av = document.getElementById('header-avatar');
+        if(user.photoURL) { av.innerText = ''; av.style.backgroundImage = `url('${user.photoURL}')`; }
+        else av.innerText = (user.displayName || user.email).substring(0,2).toUpperCase();
     },
 
-    async handleSaveProfile() {
-        const user = auth.currentUser;
-        const n = document.getElementById('profile-name-input').value;
-        const f = document.getElementById('profile-photo-input').value;
-        await updateProfile(user, { displayName: n, photoURL: f });
-        await setDoc(doc(db, "usuarios", user.uid), { nome: n, foto: f }, { merge: true });
-        this.navigate('dashboard');
-    },
-
-    renderDetails(id) {
-        this.currentTaskId = id;
-        const cont = document.getElementById('details-view-content');
-        getDoc(doc(db, "tarefas", id)).then(d => {
-            const t = d.data();
-            cont.innerHTML = `<div class="p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl">
-                <h1 class="text-3xl font-black mb-4">${t.title}</h1>
-                <p class="mb-8">${t.description || 'Sem descrição'}</p>
-                <button onclick="app.navigate('dashboard')" class="bg-primary text-white px-6 py-2 rounded-xl">Voltar</button>
-            </div>`;
-        });
-    },
-
-    renderRanking() {
-        const rc = document.getElementById('ranking-container'); if(!rc) return;
-        rc.innerHTML = '<p class="text-center text-xs text-slate-500 italic">Ranking em tempo real</p>';
-    },
-
+    darVerde(btn, original, sucesso) { if(!btn) return; btn.innerText = sucesso; btn.classList.add('bg-green-600'); setTimeout(() => { btn.innerText = original; btn.classList.remove('bg-green-600'); }, 2000); },
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); },
-    updateAvatar(user) { const av = document.getElementById('header-avatar'); if(user.photoURL) { av.innerText = ''; av.style.backgroundImage = `url('${user.photoURL}')`; } else av.innerText = (user.displayName || user.email).substring(0,2).toUpperCase(); },
-    loadUsers() { /* Carregar lista de usuários para selects */ },
-    loadProfileData() { /* Carregar dados do perfil */ }
+    loadFilterUsers() { /* Carregar responsáveis dinâmicos... */ }
 };
 
 window.app = app;
