@@ -22,7 +22,7 @@ const CONFIG = {
 const app = {
     currentTaskId: null, activeSid: null, editSubId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
-    filters: { status: "Todas", search: "" },
+    filters: { status: "Todas", search: "", assignees: [] },
 
     init() { this.bindEvents(); this.checkAuth(); this.initTheme(); this.listenToNotifications(); },
     initTheme() { if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); },
@@ -33,6 +33,16 @@ const app = {
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
+        
+        // Blindagem contra cache do formulário
+        if(pageId === 'nova-tarefa') {
+            const tInp = document.getElementById('nova-titulo'); if(tInp) tInp.value = '';
+            const dInp = document.getElementById('nova-desc'); if(dInp) dInp.value = '';
+            const fInp = document.getElementById('nova-fim'); if(fInp) fInp.value = '';
+            const pInp = document.getElementById('nova-prio'); if(pInp) pInp.value = 'Média';
+            document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
+        }
+
         if(pageId === 'detalhes' && params) this.renderDetails(params);
         if(pageId === 'perfil') this.loadProfileData();
         this.closeModal(); window.scrollTo(0,0);
@@ -43,7 +53,13 @@ const app = {
         document.getElementById('search-input').oninput = (e) => { this.filters.search = e.target.value; this.renderDashboard(); };
         document.getElementById('notif-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); };
         document.getElementById('profile-trigger').onclick = (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); };
-        document.addEventListener('click', () => { document.getElementById('notif-menu')?.classList.add('hidden'); document.getElementById('profile-menu')?.classList.add('hidden'); });
+        
+        document.addEventListener('click', () => { 
+            document.getElementById('notif-menu')?.classList.add('hidden'); 
+            document.getElementById('profile-menu')?.classList.add('hidden'); 
+            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
+        });
+        
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
         document.getElementById('submit-subtask-form').onclick = () => this.handleSaveSubtask();
         document.getElementById('profile-upload')?.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
@@ -55,7 +71,6 @@ const app = {
             if(u){ 
                 h.classList.replace('hidden', 'flex'); 
                 this.updateAvatar(u); 
-                
                 try {
                     const ud = await getDoc(doc(db, "usuarios", u.uid));
                     const nameEl = document.getElementById('user-display-name');
@@ -66,8 +81,7 @@ const app = {
                     } else {
                         if(nameEl) nameEl.innerText = u.displayName || u.email;
                     }
-                } catch(e) { console.error("Erro no perfil do cabeçalho", e); }
-                
+                } catch(e) { console.error(e); }
                 this.listenToTasks(); this.loadUsers(); this.navigate('dashboard'); 
             } else { h.classList.add('hidden'); this.navigate('login'); } 
         }); 
@@ -112,6 +126,17 @@ const app = {
         }); 
     },
 
+    toggleAssigneeFilter(name, isChecked) {
+        if(isChecked) {
+            if(!this.filters.assignees.includes(name)) this.filters.assignees.push(name);
+        } else {
+            this.filters.assignees = this.filters.assignees.filter(n => n !== name);
+        }
+        const count = this.filters.assignees.length;
+        document.getElementById('assignee-filter-count').innerText = count > 0 ? `Equipa (${count})` : 'Equipa';
+        this.renderDashboard();
+    },
+
     renderDashboard() {
         try {
             const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
@@ -129,13 +154,16 @@ const app = {
             let filtered = sorted.filter(t => { 
                 const statusStr = t.status || 'Em aberto';
                 const titleStr = t.title || '';
-                return titleStr.toLowerCase().includes(this.filters.search.toLowerCase()) && (this.filters.status === "Todas" || statusStr === this.filters.status); 
+                const matchStatus = (this.filters.status === "Todas" || statusStr === this.filters.status);
+                const matchSearch = titleStr.toLowerCase().includes(this.filters.search.toLowerCase());
+                const matchAssignee = this.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => this.filters.assignees.includes(a)));
+                return matchStatus && matchSearch && matchAssignee; 
             });
             
             document.getElementById('taskCount').innerText = `(${filtered.length})`;
             
             filtered.forEach(t => {
-                const prazo = t.dueDate ? new Date(t.dueDate).toLocaleDateString('pt-PT') : '---';
+                const prazo = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
                 const p = CONFIG.prioridades[t.priority || 'Média'] || CONFIG.prioridades['Média'];
                 const s_slug = (t.status || 'Em aberto').replace(/\s+/g, '-');
                 const title = t.title || 'Sem título';
@@ -166,6 +194,7 @@ const app = {
             const t = d.data(); this.activeTaskData = t;
             const p = CONFIG.prioridades[t.priority] || CONFIG.prioridades['Média'];
             const statusSafe = t.status || 'Em aberto';
+            const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
             let actionBtn = ''; let concluirBtn = ''; let reabrirBtn = '';
 
@@ -182,7 +211,7 @@ const app = {
             container.innerHTML = `
                 <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm border dark:border-white/10 hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><div class="flex items-center gap-3">${actionBtn}${concluirBtn}${reabrirBtn}<span class="${p.bg} text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-lg">${p.label}</span></div></div>
                 <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-200 dark:border-white/10 shadow-xl"><h1 class="text-4xl font-black mb-4 dark:text-white">${t.title || 'Sem título'}</h1><p class="text-gray-500 dark:text-gray-400 whitespace-pre-line leading-relaxed mb-8 text-sm">${t.description || '...'}</p>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${t.dueDate ? new Date(t.dueDate).toLocaleDateString('pt-PT') : '---'}</p></div><div class="flex flex-col items-start"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="task-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div></div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${prazoSafe}</p></div><div class="flex flex-col items-start"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="task-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div></div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="flex flex-col gap-4 text-left"><div class="flex items-center justify-between p-2 font-black text-xs text-slate-400 uppercase">Subtarefas<button onclick="app.openSubtaskForm()" class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] shadow-lg hover:scale-105 transition-all">Adicionar</button></div><div id="subtasks-list" class="bg-white dark:bg-gray-800 rounded-3xl border dark:border-white/10 divide-y dark:divide-white/5 shadow-sm"></div></div>
@@ -222,12 +251,14 @@ const app = {
         this.activeSid = sid; 
         const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
         const p = CONFIG.prioridades[d.priority || 'Média'] || CONFIG.prioridades['Média'];
+        const prazoSafe = d.dueDate ? d.dueDate.split('-').reverse().join('/') : '---';
+        
         const cont = document.getElementById('subtask-view-content');
         cont.innerHTML = `
             <div class="w-full md:w-1/2 p-8 border-r dark:border-white/10 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#1a1c22] text-left">
                 <div class="flex items-center justify-between font-black text-[10px] uppercase text-gray-400 tracking-widest">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-gray-400">close</span></button></div>
                 <div><div class="flex items-center gap-3 mb-2"><h3 class="text-3xl font-black text-primary">${d.title || 'Sem título'}</h3><span class="${p.bg} text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">${p.label}</span></div><div class="p-4 bg-gray-50 dark:bg-black/20 rounded-xl border dark:border-white/5 text-sm text-gray-500 dark:text-gray-300 italic leading-relaxed">${d.description || 'Sem descrição detalhada.'}</div></div>
-                <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo Final</span><p class="text-xs font-bold dark:text-white">${d.dueDate ? new Date(d.dueDate).toLocaleDateString('pt-PT') : '---'}</p></div></div>
+                <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${prazoSafe}</p></div></div>
                 <div class="flex flex-col border-t dark:border-white/5 pt-4 text-left"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                 <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
@@ -290,7 +321,23 @@ const app = {
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.getElementById('modal-backdrop').classList.remove('flex'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
     toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Concluiu uma etapa" : "⭕ Marcou como pendente"); },
     deleteSub(sid) { if(confirm("Remover?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.addLog("🗑️ Removeu subtarefa"); this.closeModal(); } },
-    loadUsers() { onSnapshot(collection(db, "usuarios"), (snap) => { const opts = snap.docs.map(d => d.data().nome); ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { const el = document.getElementById(cid); if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold">${n}</span></label>`).join(''); }); }); },
+    
+    loadUsers() { 
+        onSnapshot(collection(db, "usuarios"), (snap) => { 
+            const opts = snap.docs.map(d => d.data().nome); 
+            ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
+                const el = document.getElementById(cid); 
+                if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold">${n}</span></label>`).join(''); 
+            }); 
+            
+            // Popula o Filtro de Equipa no Dashboard
+            const filterEl = document.getElementById('assignee-filter-list');
+            if(filterEl) {
+                filterEl.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" onchange="app.toggleAssigneeFilter(this.value, this.checked)" class="rounded text-primary w-4 h-4" ${this.filters.assignees.includes(n) ? 'checked' : ''}><span class="text-xs font-bold dark:text-white">${n}</span></label>`).join('');
+            }
+        }); 
+    },
+    
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
