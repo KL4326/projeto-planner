@@ -52,7 +52,6 @@
     </header>
 
     <main id="main-content">
-        <!-- LOGIN -->
         <section id="page-login" class="page-section bg-slate-50 dark:bg-background-dark">
             <div class="w-full max-w-md bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border dark:border-slate-800 text-center">
                 <span class="material-symbols-outlined text-6xl text-primary font-bold mb-4">layers</span>
@@ -65,7 +64,6 @@
             </div>
         </section>
 
-        <!-- DASHBOARD -->
         <section id="page-dashboard" class="page-section px-6 lg:px-20 py-8">
             <div class="flex flex-col lg:flex-row gap-8">
                 <div class="flex-1 flex flex-col gap-6">
@@ -91,19 +89,15 @@
                 </div>
                 <div class="w-80 hidden lg:block">
                     <div class="bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 overflow-hidden shadow-sm">
-                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b dark:border-slate-800 font-black text-xs uppercase text-primary">Ranking</div>
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b dark:border-slate-800 font-black text-xs uppercase text-primary font-black">Ranking</div>
                         <div id="ranking-container" class="p-4 flex flex-col gap-2"></div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- NOVA TAREFA -->
         <section id="page-nova-tarefa" class="page-section px-6 lg:px-40 py-8">
-            <div class="flex items-center justify-between mb-8">
-                <h2 class="text-3xl font-black">Nova Tarefa</h2>
-                <button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl"><span class="material-symbols-outlined">close</span></button>
-            </div>
+            <div class="flex items-center justify-between mb-8"><h2 class="text-3xl font-black">Nova Tarefa</h2><button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-red-500 hover:text-white"><span class="material-symbols-outlined">close</span></button></div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 flex flex-col gap-5">
                     <input id="task-title" type="text" class="w-full rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white font-bold" placeholder="Título da Tarefa *">
@@ -128,10 +122,11 @@
             </div>
         </section>
 
-        <!-- DETALHES -->
-        <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8"><div id="details-view-content"></div></section>
+        <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8">
+            <div id="details-view-content" class="max-w-5xl mx-auto flex flex-col gap-6">
+                </div>
+        </section>
 
-        <!-- PERFIL -->
         <section id="page-perfil" class="page-section px-6 lg:px-40 py-8">
             <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl">
                 <div class="flex flex-col items-center gap-6 mb-10 text-center">
@@ -143,46 +138,32 @@
                     <div class="flex flex-col"><h3 id="profile-page-name" class="text-2xl font-black">...</h3><p id="profile-page-email" class="text-slate-500 text-sm font-medium">...</p></div>
                 </div>
                 <div class="grid grid-cols-1 gap-5">
-                    <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Nome Completo</label><input id="profile-name-input" type="text" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary"></div>
+                    <input id="profile-name-input" type="text" placeholder="Nome Completo" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Cargo</label><input id="profile-cargo-input" type="text" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary"></div>
-                        <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Setor</label><select id="profile-sector-input" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary"><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select></div>
+                        <input id="profile-cargo-input" type="text" placeholder="Cargo" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                        <select id="profile-sector-input" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none"><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
                     </div>
-                    <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Biografia</label><textarea id="profile-bio-input" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white min-h-[100px] outline-none focus:ring-2 focus:ring-primary"></textarea></div>
+                    <textarea id="profile-bio-input" placeholder="Biografia" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white min-h-[100px] outline-none"></textarea>
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                         <button onclick="app.navigate('reset-password')" class="text-sm font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-lg">lock_reset</span> Alterar Senha</button>
-                        <button id="save-profile-btn" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all">Guardar Alterações</button>
+                        <button id="save-profile-btn" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-lg">Guardar Alterações</button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- PÁGINA: ALTERAR SENHA (NOVA) -->
         <section id="page-reset-password" class="page-section px-6 lg:px-40 py-8">
-            <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl">
-                <h2 class="text-2xl font-black text-center mb-8">Segurança da Conta</h2>
-                <div class="flex flex-col gap-5">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Senha Atual</label>
-                        <input id="current-password-input" type="password" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Nova Senha</label>
-                        <input id="new-password-input" type="password" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Confirmar Nova Senha</label>
-                        <input id="confirm-password-input" type="password" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div class="flex justify-between items-center gap-4 mt-6">
-                        <button onclick="app.navigate('perfil')" class="text-sm font-bold text-slate-500 hover:text-primary transition-colors">Cancelar</button>
-                        <button id="submit-change-password" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-lg">Confirmar Alteração</button>
-                    </div>
+            <div class="max-w-md mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl text-center">
+                <h2 class="text-2xl font-black mb-8">Segurança</h2>
+                <div class="flex flex-col gap-4 text-left">
+                    <input id="current-password-input" type="password" placeholder="Senha Atual" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                    <input id="new-password-input" type="password" placeholder="Nova Senha" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                    <input id="confirm-password-input" type="password" placeholder="Confirmar Nova Senha" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                    <button id="submit-change-password" class="bg-primary text-white py-4 rounded-xl font-black mt-4">Confirmar Alteração</button>
                 </div>
             </div>
         </section>
 
-        <!-- ADMIN -->
         <section id="page-admin" class="page-section px-6 lg:px-20 py-8">
             <h2 class="text-3xl font-black mb-8">Painel Admin</h2>
             <div id="admin-stats" class="grid grid-cols-3 gap-6 mb-10"></div>
@@ -192,7 +173,37 @@
         </section>
     </main>
 
-    <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4"></div>
+    <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        
+        <div id="modal-subtask-form" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl shadow-2xl p-6">
+            <h3 id="subtask-form-title" class="text-xl font-black mb-6">Subtarefa</h3>
+            <div class="flex flex-col gap-4">
+                <input id="sub-title-inp" type="text" placeholder="Título *" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white">
+                <textarea id="sub-desc-inp" placeholder="Instruções..." class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[100px]"></textarea>
+                <button id="submit-subtask-form" class="bg-primary text-white py-3 rounded-xl font-bold">Salvar</button>
+                <button onclick="app.closeModal()" class="text-slate-500 font-bold">Voltar</button>
+            </div>
+        </div>
+
+        <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h3 class="text-xl font-black mb-6">Editar Tarefa</h3>
+            <div class="flex flex-col gap-4">
+                <input id="edit-task-title" type="text" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white font-bold">
+                <textarea id="edit-task-desc" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[120px]"></textarea>
+                <label class="text-[10px] font-black uppercase text-slate-400">Responsáveis</label>
+                <div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="edit-task-priority" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white">
+                        <option value="low">🟢 Baixa</option><option value="medium">🟡 Média</option><option value="high">🟠 Alta</option><option value="urgent">🔴 Urgente</option>
+                    </select>
+                    <input id="edit-task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white">
+                </div>
+                <button id="submit-edit-task" class="bg-primary text-white py-3 rounded-xl font-bold">Salvar Alterações</button>
+                <button onclick="app.closeModal()" class="text-slate-500 font-bold">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
