@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Logística - Tarefas</title>
+    <title>TaskFlow</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link rel="stylesheet" href="style.css">
@@ -13,20 +13,7 @@
     <style>
         .page-section { display: none; }
         .page-section.active { display: block; animation: fadeIn 0.3s ease-out; }
-        
-        #page-login.active { 
-            display: flex !important; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 50;
-            background-color: #111621; /* Garante fundo escuro no login se estiver em dark mode */
-        }
-
+        #page-login.active { display: flex !important; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; background-color: #111621; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .filter-btn.active { background-color: #2463eb !important; color: white !important; }
     </style>
@@ -36,7 +23,7 @@
     <header id="main-header" class="hidden flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-6 py-3 lg:px-20 sticky top-0 z-50 gap-4">
         <div class="flex items-center gap-2 text-primary shrink-0 cursor-pointer" onclick="app.navigate('dashboard')">
             <span class="material-symbols-outlined text-3xl font-bold">layers</span>
-            <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block">Planner</h2>
+            <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block">TaskFlow</h2>
         </div>
         <div class="flex-1 max-w-md mx-4">
             <div class="relative group">
@@ -67,11 +54,10 @@
             <div class="w-full max-w-md bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border dark:border-slate-800 text-center">
                 <span class="material-symbols-outlined text-6xl text-primary font-bold mb-4">layers</span>
                 <h2 class="text-2xl font-black mb-2 dark:text-white">TaskFlow</h2>
-                <p class="text-slate-500 text-sm mb-8 font-medium">Aceda à sua área de trabalho</p>
                 <form id="login-form" class="flex flex-col gap-4 text-left">
                     <input id="login-email" type="email" placeholder="E-mail" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-3 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
                     <input id="login-password" type="password" placeholder="Senha" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-3 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
-                    <button type="submit" id="login-btn-text" class="bg-primary text-white font-bold py-4 rounded-2xl hover:bg-primary/90 transition-all shadow-lg mt-2">Entrar</button>
+                    <button type="submit" class="bg-primary text-white font-bold py-4 rounded-2xl hover:bg-primary/90 transition-all mt-2">Entrar</button>
                 </form>
             </div>
         </section>
@@ -109,7 +95,7 @@
         </section>
 
         <section id="page-nova-tarefa" class="page-section px-6 lg:px-40 py-8">
-            <div class="flex items-center justify-between mb-8"><h2 class="text-3xl font-black">Nova Tarefa</h2><button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">Voltar</button></div>
+            <div class="flex items-center justify-between mb-8"><h2 class="text-3xl font-black">Nova Tarefa</h2><button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl"><span class="material-symbols-outlined">close</span></button></div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 flex flex-col gap-5">
                     <input id="task-title" type="text" class="w-full rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Título *">
@@ -127,28 +113,68 @@
             </div>
         </section>
 
-        <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8">
-            <div id="details-view-content"></div>
-        </section>
+        <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8"><div id="details-view-content"></div></section>
 
         <section id="page-perfil" class="page-section px-6 lg:px-40 py-8">
             <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl">
-                <div id="profile-page-avatar" class="size-24 rounded-full bg-primary mx-auto mb-4 bg-cover bg-center border-4 border-white dark:border-slate-800"></div>
-                <h3 id="profile-page-name" class="text-2xl font-black text-center mb-10">...</h3>
-                <div class="flex flex-col gap-4">
-                    <input id="profile-name-input" type="text" placeholder="Nome" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white">
-                    <input id="profile-photo-input" type="url" placeholder="URL da Foto" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white">
-                    <textarea id="profile-bio-input" placeholder="Bio" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white"></textarea>
-                    <button id="save-profile-btn" class="bg-primary text-white py-4 rounded-xl font-bold">Guardar Alterações</button>
+                <div class="flex flex-col items-center gap-6 mb-10 text-center">
+                    <div class="relative group">
+                        <div id="profile-page-avatar" class="size-32 rounded-full bg-primary text-white flex items-center justify-center text-4xl font-black bg-cover bg-center border-4 border-white dark:border-slate-800 shadow-md"></div>
+                        <button onclick="document.getElementById('profile-upload').click()" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full border-2 border-white dark:border-slate-800 hover:scale-110 transition-all">
+                            <span class="material-symbols-outlined text-sm">photo_camera</span>
+                        </button>
+                        <input type="file" id="profile-upload" class="hidden" accept="image/*">
+                    </div>
+                    <div class="flex flex-col">
+                        <h3 id="profile-page-name" class="text-2xl font-black">...</h3>
+                        <p id="profile-page-email" class="text-slate-500 text-sm font-medium">...</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-5">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Nome Completo</label>
+                        <input id="profile-name-input" type="text" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Cargo</label>
+                            <input id="profile-cargo-input" type="text" placeholder="Ex: Desenvolvedor Senior" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Setor</label>
+                            <select id="profile-sector-input" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                                <option value="Logística">Logística</option>
+                                <option value="Infraestrutura">Infraestrutura</option>
+                                <option value="SI">SI</option>
+                                <option value="Service Desk">Service Desk</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Biografia</label>
+                        <textarea id="profile-bio-input" placeholder="Fale um pouco sobre você..." class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white min-h-[100px] outline-none focus:ring-2 focus:ring-primary"></textarea>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                        <button id="profile-reset-password-btn" class="text-sm font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg">lock_reset</span> Redefinir Senha
+                        </button>
+                        <button id="save-profile-btn" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all">Guardar Alterações</button>
+                    </div>
                 </div>
             </div>
         </section>
 
         <section id="page-admin" class="page-section px-6 lg:px-20 py-8">
-            <h2 class="text-3xl font-black mb-8">Admin</h2>
+            <h2 class="text-3xl font-black mb-8">Painel Admin</h2>
             <div id="admin-stats" class="grid grid-cols-3 gap-6 mb-10"></div>
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 overflow-hidden">
-                <table class="w-full text-left"><tbody id="admin-users-table"></tbody></table>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 overflow-hidden shadow-xl">
+                <table class="w-full text-left">
+                    <tbody id="admin-users-table" class="divide-y dark:divide-slate-800"></tbody>
+                </table>
             </div>
         </section>
     </main>
@@ -157,8 +183,8 @@
         <div id="modal-subtask-form" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl p-6">
             <h3 id="subtask-form-title" class="text-xl font-black mb-6">Subtarefa</h3>
             <div class="flex flex-col gap-4">
-                <input id="sub-title-inp" type="text" placeholder="Título" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white">
-                <textarea id="sub-desc-inp" placeholder="Instruções" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white"></textarea>
+                <input id="sub-title-inp" type="text" placeholder="Título *" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none">
+                <textarea id="sub-desc-inp" placeholder="Instruções..." class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[100px] outline-none"></textarea>
                 <button id="submit-subtask-form" class="bg-primary text-white py-3 rounded-xl font-bold">Salvar</button>
                 <button onclick="app.closeModal()" class="text-slate-500 font-bold">Voltar</button>
             </div>
