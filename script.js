@@ -23,6 +23,7 @@ const app = {
     currentTaskId: null, activeSid: null, editSubId: null, tempPhotoBase64: null, 
     allTasks: [], activeTaskData: null, unsubs: [],
     lastReadNotif: localStorage.getItem('lastNotif') || 0,
+    filters: { status: "Todas", search: "" },
 
     init() { this.bindEvents(); this.checkAuth(); this.initTheme(); this.listenToNotifications(); },
     initTheme() { const t = localStorage.getItem('theme') || 'dark'; document.documentElement.classList.toggle('dark', t === 'dark'); },
@@ -42,14 +43,18 @@ const app = {
     },
 
     bindEvents() {
-        document.getElementById('login-form')?.addEventListener('submit', async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } catch(err) { alert("Erro."); } });
+        document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            try { await signInWithEmailAndPassword(auth, email, pass); } catch(err) { alert("Erro no login."); }
+        });
         document.getElementById('search-input').oninput = (e) => { this.filters.search = e.target.value; this.renderDashboard(); };
         document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = () => { document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); this.filters.status = btn.dataset.filter; this.renderDashboard(); }; });
         document.getElementById('save-task-btn').onclick = () => this.handleCreateTask();
         document.getElementById('save-profile-btn').onclick = () => this.handleSaveProfile();
-        document.getElementById('submit-change-password').onclick = () => this.handlePasswordUpdate();
-        document.getElementById('submit-subtask-form').onclick = () => this.handleSaveSubtask();
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
+        document.getElementById('submit-subtask-form').onclick = () => this.handleSaveSubtask();
         document.getElementById('profile-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); };
         document.getElementById('notif-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); };
         document.addEventListener('click', () => { document.getElementById('profile-menu')?.classList.add('hidden'); document.getElementById('notif-menu')?.classList.add('hidden'); });
@@ -65,32 +70,29 @@ const app = {
         });
     },
 
-    // --- LOGS (IMUNE A ERROS DE ÍNDICE) ---
+    // --- LOGS (SEM ORDERBY NO BANCO) ---
     async addLog(msg) {
         await addDoc(collection(db, "notificacoes"), {
-            text: msg,
-            author: auth.currentUser.displayName || auth.currentUser.email,
-            ts: Date.now() // Usamos timestamp numérico para evitar bloqueios de índice do servidor
+            text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now()
         });
     },
-
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
             const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
-            const logs = snap.docs.map(d => d.data()).sort((a,b) => b.ts - a.ts).slice(0, 15);
+            const logs = snap.docs.map(d => d.data()).sort((a,b) => b.ts - a.ts).slice(0, 10);
             list.innerHTML = logs.length ? '' : '<p class="p-8 text-center text-xs text-slate-400 italic">Vazio.</p>';
             let unread = 0;
             logs.forEach(dt => {
                 if ((dt.ts / 1000) > this.lastReadNotif) unread++;
                 const time = new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
-                list.innerHTML += `<div class="p-4 border-b dark:border-slate-800"><p class="text-xs font-medium text-slate-700 dark:text-slate-200">${dt.text}</p><div class="flex justify-between mt-2 text-[8px] font-black text-slate-400 uppercase"><span>${dt.author}</span><span>${time}</span></div></div>`;
+                list.innerHTML += `<div class="p-4 border-b dark:border-slate-800"><p class="text-xs font-medium">${dt.text}</p><div class="flex justify-between mt-1 text-[8px] font-black uppercase text-slate-400"><span>${dt.author}</span><span>${time}</span></div></div>`;
             });
             if(unread > 0) { badge.innerText = unread; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
         });
     },
     markNotifsRead() { this.lastReadNotif = Math.floor(Date.now() / 1000); localStorage.setItem('lastNotif', this.lastReadNotif); document.getElementById('notif-badge').classList.add('hidden'); },
 
-    // --- TAREFAS MOTOR (IMUNE A ERROS DE ÍNDICE) ---
+    // --- TAREFAS MOTOR (SEM ORDERBY NO BANCO) ---
     listenToTasks() { 
         onSnapshot(collection(db, "tarefas"), snap => { 
             this.allTasks = snap.docs; 
@@ -98,11 +100,9 @@ const app = {
             this.renderRanking(); 
         }); 
     },
-    
     renderDashboard() {
         const c = document.getElementById('tasks-container'); if(!c) return; c.innerHTML = '';
-        const sorted = this.allTasks.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-        
+        const sorted = this.allTasks.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
         sorted.forEach(t => {
             const mSearch = (t.title || "").toLowerCase().includes(this.filters.search.toLowerCase());
             const mStat = this.filters.status === "Todas" || t.status === this.filters.status;
@@ -110,7 +110,7 @@ const app = {
                 const p = CONFIG.prioridades[t.priority] || CONFIG.prioridades.low;
                 const div = document.createElement('div'); div.className = "p-4 bg-white dark:bg-slate-800 rounded-xl border dark:border-slate-800 mb-1 cursor-pointer flex items-center gap-3 shadow-sm";
                 div.onclick = (e) => { if(!e.target.closest('.drag-handle')) this.navigate('detalhes', t.id); };
-                div.innerHTML = `<span class="material-symbols-outlined drag-handle text-slate-300 dark:text-slate-600">drag_indicator</span><div class="flex-1 text-left"><span class="font-bold text-slate-900 dark:text-white">${t.title}</span><div class="flex items-center gap-2 mt-1 text-[9px] uppercase font-black opacity-60"><span class="text-primary">Geral</span><span>|</span><span>${t.assignees?.join(', ') || '---'}</span></div></div><span class="text-[9px] font-black uppercase px-2 py-1 rounded-full ${p.bg} text-white">${p.label}</span>`;
+                div.innerHTML = `<span class="material-symbols-outlined drag-handle text-slate-300 dark:text-slate-600">drag_indicator</span><div class="flex-1 text-left"><span class="font-bold text-slate-900 dark:text-white">${t.title}</span><div class="flex items-center gap-2 mt-1 text-[9px] uppercase font-black opacity-60"><span class="text-primary">Projeto</span><span>|</span><span>${t.assignees?.join(', ') || '---'}</span></div></div><span class="text-[9px] font-black uppercase px-2 py-1 rounded-full ${p.bg} text-white">${p.label}</span>`;
                 c.appendChild(div);
             }
         });
@@ -118,9 +118,9 @@ const app = {
     },
 
     async handleCreateTask() {
-        const title = document.getElementById('task-title').value; if(!title) return alert("Título necessário.");
+        const title = document.getElementById('task-title').value; if(!title) return;
         const assignees = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
-        await addDoc(collection(db, "tarefas"), { title, description: document.getElementById('task-desc').value, priority: document.getElementById('task-priority-droplist').value, assignees, status: "Em aberto", createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('task-date').value });
+        await addDoc(collection(db, "tarefas"), { title, description: document.getElementById('task-desc').value, priority: document.getElementById('task-priority-droplist').value, assignees, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('task-date').value });
         await this.addLog(`Criou a tarefa: "${title}"`);
         this.navigate('dashboard');
     },
@@ -140,17 +140,17 @@ const app = {
             const t = d.data(); this.activeTaskData = t;
             const p = CONFIG.prioridades[t.priority] || CONFIG.prioridades.low; const dateStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('pt-PT') : '---';
             container.innerHTML = `
-                <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>
+                <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm"><span class="material-symbols-outlined">arrow_back</span></button><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>
                 <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl text-left"><h1 class="text-4xl font-black mb-4">${t.title}</h1><p class="text-slate-500 whitespace-pre-line leading-relaxed mb-8 text-sm">${t.description || '...'}</p>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 border-t dark:border-slate-800 pt-6">
-                        <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400">Responsáveis</span><span class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</span></div>
+                        <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400">Equipa</span><span class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</span></div>
                         <div class="flex flex-col gap-1"><span class="text-[9px] font-black uppercase text-slate-400">Prazo</span><span class="text-xs font-bold">${dateStr}</span></div>
-                        <div class="flex flex-col gap-1 items-start flex-1"><span class="text-[9px] font-black uppercase text-slate-400 mb-2">Anexos</span><div id="task-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-2 text-[10px] font-black uppercase text-primary hover:opacity-70 flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
+                        <div class="flex flex-col gap-1 items-start flex-1"><span class="text-[9px] font-black uppercase text-slate-400 mb-2">Anexos</span><div id="task-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-2 text-[10px] font-black uppercase text-primary flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
                     <div class="flex flex-col gap-4"><div class="flex items-center justify-between p-2 font-black text-xs text-slate-400 uppercase">Subtarefas<button onclick="app.openSubtaskForm()" class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] shadow-lg">Adicionar</button></div><div id="subtasks-list" class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 divide-y dark:divide-slate-800 overflow-hidden shadow-sm"></div></div>
-                    <div class="flex flex-col gap-4"><h2 class="font-black uppercase text-xs text-slate-400 p-2">Discussão</h2><div class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 flex flex-col h-[400px] shadow-xl overflow-hidden"><div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div><div class="p-4 border-t dark:border-slate-800 flex gap-2"><input id="chat-input" type="text" class="flex-1 bg-white dark:bg-slate-800 border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-sm" placeholder="Mensagem..."><button onclick="app.sendChatMessage()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center"><span class="material-symbols-outlined">send</span></button></div></div></div>
+                    <div class="flex flex-col gap-4"><h2 class="font-black uppercase text-xs text-slate-400 p-2 text-left">Discussão</h2><div class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 flex flex-col h-[400px] shadow-xl overflow-hidden"><div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div><div class="p-4 border-t dark:border-slate-800 flex gap-2"><input id="chat-input" type="text" class="flex-1 bg-white dark:bg-slate-800 border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-sm" placeholder="Chat..."><button onclick="app.sendChatMessage()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg"><span class="material-symbols-outlined">send</span></button></div></div></div>
                 </div>
                 <div class="flex gap-4 mt-6"><button onclick="app.openEditModal()" class="flex-1 bg-yellow-500 text-white py-4 rounded-2xl font-black shadow-lg uppercase text-xs">Editar Tarefa</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg uppercase text-xs">Excluir</button></div>
             `;
@@ -159,17 +159,30 @@ const app = {
         }));
     },
 
+    // --- SUBTAREFAS ---
+    listenToSubtasks(tid) {
+        this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
+            const l = document.getElementById('subtasks-list'); if(!l) return;
+            const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
+            l.innerHTML = sts.length ? '' : '<p class="p-8 text-center text-xs text-slate-400 italic">Vazio.</p>';
+            sts.forEach(st => {
+                const p = CONFIG.prioridades[st.priority] || CONFIG.prioridades.low;
+                l.innerHTML += `<div class="flex items-center gap-3 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer text-left" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><span class="material-symbols-outlined drag-handle text-slate-300 dark:text-slate-600">drag_indicator</span><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary w-5 h-5"><span class="flex-1 text-sm font-bold ${st.completed?'subtask-done text-slate-400':'text-slate-700 dark:text-slate-200'}">${st.title}</span><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>`;
+            });
+        }));
+    },
+
     async openSubtaskView(sid) {
         this.activeSid = sid; const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
-        const p = CONFIG.prioridades[d.priority] || CONFIG.prioridades.low; const dateStr = d.dueDate ? new Date(d.dueDate).toLocaleDateString('pt-PT') : '---';
+        const dateStr = d.dueDate ? new Date(d.dueDate).toLocaleDateString('pt-PT') : '---';
         const cont = document.getElementById('subtask-view-content');
         cont.innerHTML = `
-            <div class="w-full md:w-1/2 p-8 border-r dark:border-slate-800 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                <div class="flex items-center justify-between"><span class="px-2 py-0.5 rounded text-[9px] font-black uppercase text-white ${p.bg}">${p.label}</span><button onclick="app.closeModal()"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
-                <div><h3 class="text-3xl font-black text-primary mb-2">${d.title}</h3><p class="text-sm text-slate-500 italic leading-relaxed">${d.description || '...'}</p></div>
-                <div class="grid grid-cols-2 gap-4 border-t dark:border-slate-800 pt-6"><div><span class="text-[9px] font-black uppercase tracking-widest">Responsáveis</span><p class="text-xs font-bold">${d.assignees?.join(', ') || '---'}</p></div><div><span class="text-[9px] font-black uppercase tracking-widest">Prazo</span><p class="text-xs font-bold">${dateStr}</p></div></div>
+            <div class="w-full md:w-1/2 p-8 border-r dark:border-slate-800 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-slate-900">
+                <div class="flex items-center justify-between font-black text-[10px] uppercase text-slate-400">Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined">close</span></button></div>
+                <h3 class="text-3xl font-black text-primary">${d.title}</h3>
+                <div class="grid grid-cols-2 gap-4 border-t dark:border-slate-800 pt-6"><div><span class="text-[9px] font-black uppercase tracking-widest">Equipa</span><p class="text-xs font-bold text-slate-700 dark:text-slate-300">${d.assignees?.join(', ') || '---'}</p></div><div><span class="text-[9px] font-black uppercase tracking-widest">Prazo</span><p class="text-xs font-bold text-slate-700 dark:text-slate-300">${dateStr}</p></div></div>
                 <div class="flex flex-col border-t dark:border-slate-800 pt-4"><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
-                <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Editar subtarefa</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
+                <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
             <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900/40 text-left">
                 <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
@@ -181,28 +194,27 @@ const app = {
         this.listenToSubChat(sid);
     },
 
-    // --- UTILITÁRIOS ---
-    openSubtaskForm(sid = null) { this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden'); if (sid) { getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "medium"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); document.getElementById('subtask-form-title').innerText = "Editar subtarefa"; }); } else { document.getElementById('subtask-form-title').innerText = "Adicionar subtarefa"; document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } },
-    async handleSaveSubtask() { const t = document.getElementById('sub-title-inp').value; if(!t) return; const assignees = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees, ts: Date.now() }; if (this.editSubId) { await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); await this.addLog(`Editou a subtarefa "${t}"`); } else { await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); await this.addLog(`Adicionou a subtarefa "${t}"`); } this.closeModal(); },
+    // --- AUXILIARES GLOBAIS ---
+    openSubtaskForm(sid = null) { this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden'); if (sid) { getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "medium"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); }); } else { document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } },
+    async handleSaveSubtask() { const t = document.getElementById('sub-title-inp').value; if(!t) return; const assignees = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees, ts_manual: Date.now() }; if (this.editSubId) { await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); await this.addLog(`Editou a subtarefa "${t}"`); } else { await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); await this.addLog(`Adicionou a subtarefa "${t}"`); } this.closeModal(); },
+    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const file = e.target.files[0]; if(!file || file.size > 800000) return alert("Arquivo < 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db, "tarefas", id) : doc(db, "tarefas", this.currentTaskId, "subtarefas", id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ nome: file.name, data: ev.target.result }); await updateDoc(path, { anexos }); }; r.readAsDataURL(file); }; inp.click(); },
     cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
     updateAvatar(u) { const av = document.getElementById('header-avatar'); if(u.photoURL) { av.innerText = ''; av.style.backgroundImage = `url('${u.photoURL}')`; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
     toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); },
     deleteSub(sid) { if(confirm("Eliminar?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.closeModal(); } },
-    loadUsers() { onSnapshot(query(collection(db, "usuarios"), orderBy("nome", "asc")), (snap) => { const opts = snap.docs.map(d => d.data().nome); ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { const el = document.getElementById(cid); if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold text-slate-700 dark:text-slate-300">${n}</span></label>`).join(''); }); }); },
+    loadUsers() { onSnapshot(collection(db, "usuarios"), (snap) => { const opts = snap.docs.map(d => d.data().nome); ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { const el = document.getElementById(cid); if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold text-slate-700 dark:text-slate-300">${n}</span></label>`).join(''); }); }); },
     compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX / img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
     async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); i.value = ''; },
     listenToChat(tid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",tid,"comentarios"), orderBy("createdAt","asc")), s => { const c = document.getElementById('chat-messages'); if(c) { c.innerHTML = ''; s.forEach(doc => { const d = doc.data(); const isMe = d.createdBy === auth.currentUser.uid; c.innerHTML += `<div class="flex flex-col ${isMe?'items-end':'items-start'}"><span class="text-[8px] font-black text-slate-400 mb-1 uppercase">${d.authorName}</span><div class="${isMe?'bg-primary text-white rounded-br-none':'bg-slate-100 dark:bg-slate-800 rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[85%]">${d.text}</div></div>`; }); c.scrollTop = c.scrollHeight; } })); },
-    listenToSubtasks(tid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",tid,"subtarefas")), s => { const l = document.getElementById('subtasks-list'); if(l) { l.innerHTML = ''; const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0)); sts.forEach(st => { const p = CONFIG.prioridades[st.priority] || CONFIG.prioridades.low; l.innerHTML += `<div class="flex items-center gap-3 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><span class="material-symbols-outlined drag-handle text-slate-300 dark:text-slate-600">drag_indicator</span><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary w-5 h-5"><span class="flex-1 text-sm font-bold ${st.completed?'subtask-done text-slate-400':'text-slate-700 dark:text-slate-200'}">${st.title}</span><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase text-white ${p.bg}">${p.label}</span></div>`; }); } })); },
     listenToSubChat(sid) { this.unsubs.push(onSnapshot(query(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), orderBy("createdAt","asc")), s => { const c = document.getElementById('sub-chat-messages'); if(c) { c.innerHTML = ''; s.forEach(doc => { const d = doc.data(); const isMe = d.createdBy === auth.currentUser.uid; c.innerHTML += `<div class="flex flex-col ${isMe?'items-end':'items-start'}"><div class="${isMe?'bg-primary text-white rounded-br-none':'bg-white dark:bg-slate-800 rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text}</div></div>`; }); c.scrollTop = c.scrollHeight; } })); },
     async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, createdAt: serverTimestamp() }); i.value = ''; },
     async handleDeleteTask(id) { if(confirm("Apagar?")) { const d = await getDoc(doc(db,"tarefas",id)); await this.addLog(`Eliminou a tarefa: "${d.data().title}"`); await deleteDoc(doc(db,"tarefas",id)); this.navigate('dashboard'); } },
-    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const file = e.target.files[0]; if(!file || file.size > 800000) return alert("Arquivo < 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db, "tarefas", id) : doc(db, "tarefas", this.currentTaskId, "subtarefas", id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ nome: file.name, data: ev.target.result }); await updateDoc(path, { anexos }); }; r.readAsDataURL(file); }; inp.click(); },
-    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1!==n2) return alert("Passwords diferentes."); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.navigate('dashboard'); } catch(e) { alert("Erro de segurança."); } },
-    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; document.getElementById('profile-page-name').innerText = u.displayName || "Usuário"; document.getElementById('profile-page-email').innerText = u.email; const av = document.getElementById('profile-page-avatar'); if(u.photoURL) av.style.backgroundImage = `url('${u.photoURL}')`; else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
+    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; document.getElementById('profile-page-name').innerText = u.displayName || "Usuário"; const av = document.getElementById('profile-page-avatar'); if(u.photoURL) av.style.backgroundImage = `url('${u.photoURL}')`; else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     async handleSaveProfile() { const b = document.getElementById('save-profile-btn'); const u = auth.currentUser; const f = this.tempPhotoBase64 || u.photoURL; try { await updateProfile(u, { displayName: document.getElementById('profile-name-input').value, photoURL: f }); await setDoc(doc(db,"usuarios",u.uid), { nome: document.getElementById('profile-name-input').value, bio: document.getElementById('profile-bio-input').value, foto: f, email: u.email }, {merge:true}); this.updateAvatar(u); this.navigate('dashboard'); } catch(e) { alert("Erro ao salvar."); } },
-    renderRanking() { const rc = document.getElementById('ranking-container'); if(!rc) return; const pts = {}; this.allTasks.forEach(d => { if(d.data().status === "Concluída") (d.data().assignees || ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); const srt = Object.entries(pts).sort((a,b)=>b[1]-a[1]); rc.innerHTML = ''; srt.forEach(([n, p], i) => { const pos = i + 1; let crown = ""; if(pos <= 3) { const cols = ["text-yellow-500", "text-slate-400", "text-amber-600"]; crown = `<svg class="w-4 h-4 ${cols[i]} ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5ZM19 19C19 19.5523 18.5523 20 18 20H6C5.44772 20 5 19.5523 5 19V18H19V19Z"/></svg>`; } rc.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl mb-1 shadow-sm"><div class="flex items-center gap-3"><span class="font-black text-slate-400 text-[10px] w-4">${pos}º</span><span class="text-[13px] font-bold flex items-center text-slate-900 dark:text-white">${n}${crown}</span></div><span class="font-black text-green-600 text-[10px]">${p} pts</span></div>`; }); },
-    async removeProfilePhoto() { if(confirm("Remover?")) { this.tempPhotoBase64 = ""; const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); document.getElementById('photo-options-perfil').classList.add('hidden'); } }
+    renderRanking() { const rc = document.getElementById('ranking-container'); if(!rc) return; const pts = {}; this.allTasks.forEach(d => { if(d.data().status === "Concluída") (d.data().assignees || ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); const srt = Object.entries(pts).sort((a,b)=>b[1]-a[1]); rc.innerHTML = ''; srt.forEach(([n, p], i) => { const pos = i + 1; let crown = ""; if(pos <= 3) { const col = ["text-yellow-500", "text-slate-400", "text-amber-600"]; crown = `<svg class="w-4 h-4 ${col[i]} ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5ZM19 19C19 19.5523 18.5523 20 18 20H6C5.44772 20 5 19.5523 5 19V18H19V19Z"/></svg>`; } rc.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl mb-1 shadow-sm"><div class="flex items-center gap-3"><span class="font-black text-slate-400 text-[10px] w-4">${pos}º</span><span class="text-[13px] font-bold flex items-center text-slate-900 dark:text-white">${n}${crown}</span></div><span class="font-black text-green-600 text-[10px]">${p} pts</span></div>`; }); },
+    async removeProfilePhoto() { if(confirm("Remover foto?")) { this.tempPhotoBase64 = ""; const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); document.getElementById('photo-options-perfil').classList.add('hidden'); } },
+    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1!==n2) return alert("Passwords diferentes."); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); alert("Sucesso!"); this.navigate('dashboard'); } catch(e) { alert("Erro de segurança."); } }
 };
 
 window.app = app;
