@@ -16,12 +16,8 @@
         #page-login.active { display: flex !important; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; background-color: #111621; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .filter-btn.active { background-color: #2463eb !important; color: white !important; }
-        
-        /* Estilização customizada para scrollbar dos checkboxes */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-full">
@@ -46,7 +42,7 @@
                 <div id="profile-menu" class="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl hidden overflow-hidden z-50">
                     <button class="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" onclick="app.navigate('perfil')"><span class="material-symbols-outlined text-lg">person</span> Editar perfil</button>
                     <button class="theme-toggle w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700"><span class="material-symbols-outlined text-lg">dark_mode</span> Alternar Tema</button>
-                    <button id="header-reset-password" class="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700"><span class="material-symbols-outlined text-lg">lock</span> Alterar senha</button>
+                    <button onclick="app.navigate('reset-password')" class="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700"><span class="material-symbols-outlined text-lg">lock</span> Alterar senha</button>
                     <hr class="border-slate-200 dark:border-slate-700"/>
                     <button id="admin-menu-link" class="hidden w-full text-left items-center gap-3 px-4 py-3 text-sm text-primary font-bold hover:bg-slate-50 dark:hover:bg-slate-700" onclick="app.navigate('admin')"><span class="material-symbols-outlined text-lg">admin_panel_settings</span> Painel Admin</button>
                     <button id="logout-btn" class="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-slate-50 dark:hover:bg-slate-700"><span class="material-symbols-outlined text-lg">logout</span> Sair</button>
@@ -102,53 +98,32 @@
             </div>
         </section>
 
-        <!-- NOVA TAREFA (MODIFICADA: Droplist Prioridade + Checkboxes) -->
+        <!-- NOVA TAREFA -->
         <section id="page-nova-tarefa" class="page-section px-6 lg:px-40 py-8">
             <div class="flex items-center justify-between mb-8">
                 <h2 class="text-3xl font-black">Nova Tarefa</h2>
-                <button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 transition-colors"><span class="material-symbols-outlined">close</span></button>
+                <button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl"><span class="material-symbols-outlined">close</span></button>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 flex flex-col gap-5">
                     <input id="task-title" type="text" class="w-full rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white font-bold" placeholder="Título da Tarefa *">
-                    <textarea id="task-desc" class="w-full min-h-[250px] rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Descreva os detalhes do que precisa ser feito..."></textarea>
+                    <textarea id="task-desc" class="w-full min-h-[250px] rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Descrição..."></textarea>
                 </div>
                 <div class="flex flex-col gap-5">
-                    
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Responsáveis</label>
-                        <!-- Container com Scroll para Checkboxes -->
-                        <div id="task-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-3 flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar">
-                            <span class="text-xs text-slate-400 italic">A carregar equipa...</span>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Setor</label>
-                        <select id="task-sector" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary cursor-pointer">
-                            <option value="Logística">Logística</option>
-                            <option value="Infraestrutura">Infraestrutura</option>
-                            <option value="SI">SI</option>
-                            <option value="Service Desk">Service Desk</option>
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Grau de Prioridade</label>
-                        <select id="task-priority-droplist" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary font-bold cursor-pointer">
-                            <option value="low" class="text-yellow-500 font-bold">🟢 Baixa</option>
-                            <option value="medium" selected class="text-orange-500 font-bold">🟡 Média</option>
-                            <option value="high" class="text-red-500 font-bold">🟠 Alta</option>
-                            <option value="urgent" class="text-rose-700 font-black">🔴 Urgente</option>
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Prazo</label>
-                        <input id="task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-
-                    <button id="save-task-btn" class="bg-primary text-white py-4 rounded-xl font-black shadow-lg hover:bg-primary/90 transition-all mt-2">Criar Tarefa</button>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Responsáveis</label>
+                    <div id="task-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-3 flex flex-col gap-2 max-h-[160px] overflow-y-auto"></div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Setor</label>
+                    <select id="task-sector" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white"><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Prioridade</label>
+                    <select id="task-priority-droplist" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white font-bold">
+                        <option value="low">🟢 Baixa</option>
+                        <option value="medium" selected>🟡 Média</option>
+                        <option value="high">🟠 Alta</option>
+                        <option value="urgent">🔴 Urgente</option>
+                    </select>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Prazo</label>
+                    <input id="task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white">
+                    <button id="save-task-btn" class="bg-primary text-white py-4 rounded-xl font-black shadow-lg">Criar Tarefa</button>
                 </div>
             </div>
         </section>
@@ -175,8 +150,33 @@
                     </div>
                     <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Biografia</label><textarea id="profile-bio-input" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white min-h-[100px] outline-none focus:ring-2 focus:ring-primary"></textarea></div>
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-                        <button id="profile-reset-password-btn" class="text-sm font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-lg">lock_reset</span> Redefinir Senha</button>
+                        <button onclick="app.navigate('reset-password')" class="text-sm font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-lg">lock_reset</span> Alterar Senha</button>
                         <button id="save-profile-btn" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all">Guardar Alterações</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PÁGINA: ALTERAR SENHA (NOVA) -->
+        <section id="page-reset-password" class="page-section px-6 lg:px-40 py-8">
+            <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl">
+                <h2 class="text-2xl font-black text-center mb-8">Segurança da Conta</h2>
+                <div class="flex flex-col gap-5">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Senha Atual</label>
+                        <input id="current-password-input" type="password" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Nova Senha</label>
+                        <input id="new-password-input" type="password" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Confirmar Nova Senha</label>
+                        <input id="confirm-password-input" type="password" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="flex justify-between items-center gap-4 mt-6">
+                        <button onclick="app.navigate('perfil')" class="text-sm font-bold text-slate-500 hover:text-primary transition-colors">Cancelar</button>
+                        <button id="submit-change-password" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-lg">Confirmar Alteração</button>
                     </div>
                 </div>
             </div>
