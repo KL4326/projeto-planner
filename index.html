@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Logística - Tarefas</title>
+    <title>TaskFlow - Planner</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -18,11 +18,10 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .filter-btn.active { background-color: #2463eb !important; color: white !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
         .drag-handle { cursor: grab; padding: 4px; }
         .drag-handle:active { cursor: grabbing; }
-        .attachment-card { transition: all 0.2s; }
-        .attachment-card:hover { transform: translateY(-2px); border-color: #2463eb; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-full transition-colors duration-300">
@@ -30,7 +29,7 @@
     <header id="main-header" class="hidden flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-6 py-3 lg:px-20 sticky top-0 z-50 gap-4">
         <div class="flex items-center gap-2 text-primary shrink-0 cursor-pointer" onclick="app.navigate('dashboard')">
             <span class="material-symbols-outlined text-3xl font-bold">layers</span>
-            <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block tracking-tighter">Planner - T.I</h2>
+            <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block tracking-tighter">TaskFlow</h2>
         </div>
         <div class="flex-1 max-w-md mx-4">
             <div class="relative group">
@@ -109,7 +108,7 @@
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 flex flex-col gap-5">
-                    <input id="task-title" type="text" class="w-full rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white font-bold text-lg" placeholder="Qual o título? *">
+                    <input id="task-title" type="text" class="w-full rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white font-bold text-lg" placeholder="Título *">
                     <textarea id="task-desc" class="w-full min-h-[350px] rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Descrição detalhada..."></textarea>
                 </div>
                 <div class="flex flex-col gap-6">
@@ -135,15 +134,14 @@
         </section>
 
         <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8">
-            <div id="details-view-content" class="max-w-6xl mx-auto flex flex-col gap-6 text-slate-900 dark:text-slate-100">
-                </div>
+            <div id="details-view-content" class="max-w-6xl mx-auto flex flex-col gap-6 text-slate-900 dark:text-slate-100"></div>
         </section>
 
         <section id="page-perfil" class="page-section px-6 lg:px-40 py-8">
             <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-10 rounded-3xl border dark:border-slate-800 shadow-xl text-center">
                 <div class="relative group w-32 h-32 mx-auto mb-6">
                     <div id="profile-page-avatar" class="w-full h-full rounded-full bg-primary text-white flex items-center justify-center text-4xl font-black bg-cover bg-center border-4 border-white dark:border-slate-800"></div>
-                    <button onclick="document.getElementById('profile-upload').click()" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full border-2 border-white dark:border-slate-800 hover:scale-110 transition-all"><span class="material-symbols-outlined text-sm">photo_camera</span></button>
+                    <button onclick="document.getElementById('profile-upload').click()" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full border-2 border-white dark:border-slate-800 hover:scale-110 transition-all shadow-lg"><span class="material-symbols-outlined text-sm">photo_camera</span></button>
                     <input type="file" id="profile-upload" class="hidden" accept="image/*">
                 </div>
                 <div class="flex flex-col gap-4 text-left">
@@ -164,8 +162,8 @@
                 <h2 class="text-2xl font-black text-center mb-8">Alterar Senha</h2>
                 <div class="flex flex-col gap-4">
                     <input id="current-password-input" type="password" placeholder="Senha Atual" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
-                    <input id="new-password-input" type="password" placeholder="Nova Senha" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
-                    <input id="confirm-password-input" type="password" placeholder="Confirmar Nova Senha" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                    <input id="new-password-input" type="password" placeholder="Nova Senha" class="rounded-xl border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                    <input id="confirm-password-input" type="password" placeholder="Confirmar Nova Senha" class="rounded-xl border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
                     <button id="submit-change-password" class="bg-primary text-white py-4 rounded-xl font-black shadow-lg">Confirmar</button>
                     <button onclick="app.navigate('perfil')" class="text-slate-500 text-sm font-bold">Voltar</button>
                 </div>
@@ -184,13 +182,13 @@
     <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
         
         <div id="modal-subtask-form" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl p-8">
-            <h3 id="subtask-form-title" class="text-xl font-black mb-6 uppercase tracking-widest">Etapa do Projeto</h3>
+            <h3 id="subtask-form-title" class="text-xl font-black mb-6 uppercase tracking-widest">Configurar Etapa</h3>
             <div class="flex flex-col gap-4 text-left">
                 <input id="sub-title-inp" type="text" placeholder="Título da Etapa *" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
                 <textarea id="sub-desc-inp" placeholder="O que deve ser feito?" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[100px] outline-none focus:ring-2 focus:ring-primary"></textarea>
                 <div class="grid grid-cols-2 gap-4">
                     <select id="sub-priority-inp" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none">
-                        <option value="low">🟢 Baixa</option><option value="medium" selected>🟡 Média</option><option value="high">🟠 Alta</option><option value="urgent">🔴 Urgente</option>
+                        <option value="low">Baixa</option><option value="medium" selected>Média</option><option value="high">Alta</option><option value="urgent">Urgente</option>
                     </select>
                     <input id="sub-date-inp" type="date" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none">
                 </div>
@@ -206,26 +204,25 @@
         </div>
 
         <div id="modal-subtask-view" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl h-[85vh] overflow-hidden flex flex-col">
-            <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden">
-                </div>
+            <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden"></div>
         </div>
 
-        <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar text-slate-900 dark:text-slate-100">
             <h3 class="text-xl font-black mb-8 uppercase tracking-widest">Editar Projeto</h3>
             <div class="flex flex-col gap-4 text-left">
                 <input id="edit-task-title" type="text" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white font-bold outline-none">
                 <textarea id="edit-task-desc" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[180px] outline-none"></textarea>
                 <div class="flex flex-col gap-2">
-                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Atualizar Equipa</label>
-                    <div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto"></div>
+                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Responsáveis</label>
+                    <div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar text-xs"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="edit-task-priority" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none"><option value="low">🟢 Baixa</option><option value="medium">🟡 Média</option><option value="high">🟠 Alta</option><option value="urgent">🔴 Urgente</option></select>
+                    <select id="edit-task-priority" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none"><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option><option value="urgent">Urgente</option></select>
                     <input id="edit-task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white">
                 </div>
                 <div class="flex justify-end gap-3 mt-8 border-t dark:border-slate-800 pt-6">
                     <button onclick="app.closeModal()" class="font-black text-slate-400 uppercase text-[10px] px-4">Voltar</button>
-                    <button id="submit-edit-task" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px]">Salvar</button>
+                    <button id="submit-edit-task" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px] tracking-widest">Salvar</button>
                 </div>
             </div>
         </div>
