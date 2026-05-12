@@ -14,13 +14,27 @@
     <style>
         .page-section { display: none; }
         .page-section.active { display: block; animation: fadeIn 0.3s ease-out; }
-        #page-login.active { display: flex !important; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; background-color: inherit; }
+        
+        /* Correção da sobreposição do login */
+        #page-login.active { 
+            display: flex !important; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            background-color: inherit;
+        }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .filter-btn.active { background-color: #2463eb !important; color: white !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
         .drag-handle { cursor: grab; padding: 4px; }
-        .subtask-done { text-decoration: line-through; opacity: 0.4; font-style: italic; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-full transition-colors duration-300">
@@ -36,19 +50,14 @@
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                 <input id="search-input" type="text" placeholder="Procurar no planner..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white">
             </div>
-
             <div class="relative">
                 <button id="notif-btn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all relative">
                     <span class="material-symbols-outlined text-slate-500 dark:text-slate-400">notifications</span>
-                    <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 size-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-background-dark">0</span>
+                    <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 size-4 bg-red-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-background-dark">0</span>
                 </button>
-                <div id="notif-menu" class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                    <div class="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                        <span class="text-xs font-black uppercase tracking-widest">Notificações</span>
-                        <button onclick="app.clearNotifications()" class="text-[10px] font-bold text-primary hover:underline">Limpar tudo</button>
-                    </div>
-                    <div id="notif-list" class="max-h-96 overflow-y-auto custom-scrollbar divide-y dark:divide-slate-800">
-                        </div>
+                <div id="notif-menu" class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden text-left">
+                    <div class="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50"><span class="text-xs font-black uppercase tracking-widest">Atividade</span></div>
+                    <div id="notif-list" class="max-h-96 overflow-y-auto custom-scrollbar divide-y dark:divide-slate-800"></div>
                 </div>
             </div>
         </div>
@@ -79,7 +88,7 @@
                 <form id="login-form" class="flex flex-col gap-4 text-left">
                     <input id="login-email" type="email" placeholder="E-mail corporativo" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
                     <input id="login-password" type="password" placeholder="Senha" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
-                    <button type="submit" class="bg-primary text-white font-black py-4 rounded-2xl hover:bg-primary/90 transition-all mt-2 shadow-lg uppercase text-sm tracking-widest">Entrar</button>
+                    <button type="submit" class="bg-primary text-white font-black py-4 rounded-2xl hover:bg-primary/90 transition-all mt-2 shadow-lg">Entrar</button>
                 </form>
             </div>
         </section>
@@ -88,16 +97,16 @@
             <div class="flex flex-col lg:flex-row gap-8">
                 <div class="flex-1 flex flex-col gap-6">
                     <div class="flex flex-wrap justify-between items-center gap-4">
-                        <div><h1 class="text-3xl font-black">Minhas Tarefas</h1><p class="text-slate-500 text-sm italic">Organize o seu dia a dia</p></div>
+                        <div><h1 class="text-3xl font-black">Minhas Tarefas</h1><p class="text-slate-500 text-sm">Gestão de equipa</p></div>
                         <button onclick="app.navigate('nova-tarefa')" class="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-black shadow-lg">Nova Tarefa</button>
                     </div>
                     <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border dark:border-slate-800 shadow-sm">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b dark:border-slate-800">
-                            <div id="status-filters" class="flex flex-wrap gap-2">
-                                <button data-filter="Todas" class="filter-btn active rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase transition-all">Todas</button>
-                                <button data-filter="Em aberto" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase transition-all">Em aberto</button>
-                                <button data-filter="Em andamento" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase transition-all">Em andamento</button>
-                                <button data-filter="Concluída" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase transition-all text-green-500">Concluídas</button>
+                            <div class="flex flex-wrap gap-2">
+                                <button data-filter="Todas" class="filter-btn active rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase">Todas</button>
+                                <button data-filter="Em aberto" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase">Em aberto</button>
+                                <button data-filter="Em andamento" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase">Em andamento</button>
+                                <button data-filter="Concluída" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-[10px] font-black uppercase text-green-500">Concluídas</button>
                             </div>
                             <div class="flex gap-2">
                                 <select id="filter-sector" class="h-9 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-black uppercase dark:text-white outline-none focus:ring-1 focus:ring-primary"><option value="Todos">Setores</option><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
@@ -108,8 +117,8 @@
                     </div>
                 </div>
                 <div class="w-80 hidden lg:block">
-                    <div class="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 overflow-hidden shadow-sm">
-                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b dark:border-slate-800 font-black text-[10px] uppercase text-primary tracking-widest flex items-center gap-2"><span class="material-symbols-outlined text-sm">workspace_premium</span> Ranking</div>
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b dark:border-slate-800 font-black text-xs uppercase text-primary">🏆 Ranking</div>
                         <div id="ranking-container" class="p-4 flex flex-col gap-2"></div>
                     </div>
                 </div>
@@ -117,33 +126,17 @@
         </section>
 
         <section id="page-nova-tarefa" class="page-section px-6 lg:px-40 py-8">
-            <div class="flex items-center justify-between mb-8">
-                <h2 class="text-3xl font-black">Nova Tarefa</h2>
-                <button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined">close</span></button>
-            </div>
+            <div class="flex items-center justify-between mb-8"><h2 class="text-3xl font-black">Nova Tarefa</h2><button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">Voltar</button></div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 flex flex-col gap-5">
-                    <input id="task-title" type="text" class="w-full rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white font-bold text-lg" placeholder="Título *">
-                    <textarea id="task-desc" class="w-full min-h-[350px] rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Descrição detalhada..."></textarea>
+                    <input id="task-title" type="text" class="w-full rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white font-bold" placeholder="Título da tarefa *">
+                    <textarea id="task-desc" class="w-full min-h-[350px] rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-5 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Descrição..."></textarea>
                 </div>
                 <div class="flex flex-col gap-6">
-                    <div class="flex flex-col gap-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Responsáveis</label>
-                        <div id="task-assignees-checkboxes" class="rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar text-slate-700 dark:text-slate-300"></div>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Setor</label>
-                        <select id="task-sector" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white outline-none"><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Prioridade</label>
-                        <select id="task-priority-droplist" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white font-bold outline-none"><option value="low">Baixa</option><option value="medium" selected>Média</option><option value="high">Alta</option><option value="urgent">Urgente</option></select>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Prazo Final</label>
-                        <input id="task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white outline-none">
-                    </div>
-                    <button id="save-task-btn" class="bg-primary text-white py-5 rounded-2xl font-black shadow-lg hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">Criar tarefa</button>
+                    <div class="flex flex-col gap-2"><label class="text-[10px] font-black text-slate-400 uppercase">Equipa</label><div id="task-assignees-checkboxes" class="rounded-2xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar"></div></div>
+                    <div class="flex flex-col gap-2"><label class="text-[10px] font-black text-slate-400 uppercase">Prioridade</label><select id="task-priority-droplist" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white font-bold outline-none"><option value="low">Baixa</option><option value="medium" selected>Média</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></div>
+                    <div class="flex flex-col gap-2"><label class="text-[10px] font-black text-slate-400 uppercase">Prazo</label><input id="task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white outline-none"></div>
+                    <button id="save-task-btn" class="bg-primary text-white py-5 rounded-2xl font-black shadow-lg uppercase text-xs">Criar tarefa</button>
                 </div>
             </div>
         </section>
@@ -155,14 +148,14 @@
                 <div class="relative w-32 h-32 mx-auto mb-6">
                     <div id="profile-page-avatar" class="w-full h-full rounded-full bg-primary text-white flex items-center justify-center text-4xl font-black bg-cover bg-center border-4 border-white dark:border-slate-800 shadow-md cursor-pointer" onclick="document.getElementById('photo-options').classList.toggle('hidden')"></div>
                     <div id="photo-options" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-2xl z-10 overflow-hidden">
-                        <button onclick="document.getElementById('profile-upload').click(); document.getElementById('photo-options').classList.add('hidden')" class="w-full px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 border-b dark:border-slate-700 flex items-center gap-2"><span class="material-symbols-outlined text-sm">edit</span> Alterar</button>
-                        <button onclick="app.removeProfilePhoto()" class="w-full px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><span class="material-symbols-outlined text-sm">delete</span> Remover</button>
+                        <button onclick="document.getElementById('profile-upload').click()" class="w-full px-4 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 border-b dark:border-slate-700">Alterar</button>
+                        <button onclick="app.removeProfilePhoto()" class="w-full px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">Remover</button>
                     </div>
                     <input type="file" id="profile-upload" class="hidden" accept="image/*">
                 </div>
                 <div class="flex flex-col gap-4 text-left">
-                    <input id="profile-name-input" type="text" placeholder="Nome Completo" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
-                    <input id="profile-cargo-input" type="text" placeholder="Cargo" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                    <input id="profile-name-input" type="text" placeholder="Nome Completo" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
+                    <input id="profile-cargo-input" type="text" placeholder="Cargo" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
                     <select id="profile-sector-input" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none"><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
                     <textarea id="profile-bio-input" placeholder="Biografia" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white min-h-[100px] outline-none"></textarea>
                     <div class="flex justify-between items-center gap-4 mt-4">
@@ -174,7 +167,7 @@
         </section>
 
         <section id="page-reset-password" class="page-section px-6 lg:px-40 py-8">
-            <div class="max-w-md mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl text-center">
+            <div class="max-w-md mx-auto bg-white dark:bg-slate-900 p-10 rounded-3xl border dark:border-slate-800 shadow-xl text-center">
                 <h2 class="text-2xl font-black mb-8">Alterar Senha</h2>
                 <div class="flex flex-col gap-4">
                     <input id="current-password-input" type="password" placeholder="Senha Atual" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white outline-none">
@@ -185,44 +178,33 @@
                 </div>
             </div>
         </section>
-
-        <section id="page-admin" class="page-section px-6 lg:px-20 py-8">
-            <h2 class="text-3xl font-black mb-8">Painel Admin</h2>
-            <div id="admin-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-center text-slate-900 dark:text-slate-100"></div>
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 overflow-hidden shadow-xl"><table class="w-full text-left text-slate-900 dark:text-slate-100"><tbody id="admin-users-table" class="divide-y dark:divide-slate-800"></tbody></table></div>
-        </section>
     </main>
 
     <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
         <div id="modal-subtask-form" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl p-8">
             <h3 id="subtask-form-title" class="text-xl font-black mb-6 uppercase tracking-widest dark:text-white">Subtarefa</h3>
             <div class="flex flex-col gap-4 text-left">
-                <input id="sub-title-inp" type="text" placeholder="O que deve ser feito? *" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none focus:ring-2 focus:ring-primary">
-                <textarea id="sub-desc-inp" placeholder="Instruções..." class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[100px] outline-none focus:ring-2 focus:ring-primary"></textarea>
+                <input id="sub-title-inp" type="text" placeholder="Título *" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none">
+                <textarea id="sub-desc-inp" placeholder="Instruções..." class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[100px] outline-none"></textarea>
                 <div class="grid grid-cols-2 gap-4">
                     <select id="sub-priority-inp" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-slate-900 dark:text-white outline-none"><option value="low">Baixa</option><option value="medium" selected>Média</option><option value="high">Alta</option><option value="urgent">Urgente</option></select>
                     <input id="sub-date-inp" type="date" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white outline-none">
                 </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Responsáveis</label>
-                    <div id="sub-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar text-slate-900 dark:text-slate-100"></div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6"><button onclick="app.closeModal()" class="px-6 py-2 font-black text-slate-400 uppercase text-[10px]">Cancelar</button><button id="submit-subtask-form" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px]">Gravar</button></div>
+                <div id="sub-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar"></div>
+                <div class="flex justify-end gap-3 mt-6"><button onclick="app.closeModal()" class="px-6 py-2 font-black text-slate-400 uppercase text-[10px]">Cancelar</button><button id="submit-subtask-form" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg">Gravar</button></div>
             </div>
         </div>
-
         <div id="modal-subtask-view" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-5xl rounded-3xl shadow-2xl h-[85vh] overflow-hidden flex flex-col">
             <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden"></div>
         </div>
-
-        <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar text-slate-900 dark:text-slate-100">
+        <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar text-slate-900 dark:text-slate-100 text-left">
             <h3 class="text-xl font-black mb-8 uppercase tracking-widest">Editar Projeto</h3>
-            <div class="flex flex-col gap-4 text-left">
+            <div class="flex flex-col gap-4">
                 <input id="edit-task-title" type="text" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white font-bold outline-none">
                 <textarea id="edit-task-desc" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white min-h-[180px] outline-none"></textarea>
-                <div class="flex flex-col gap-2"><label class="text-[9px] font-black uppercase text-slate-400 ml-1">Responsáveis</label><div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar text-xs"></div></div>
+                <div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-slate-700 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar"></div>
                 <div class="grid grid-cols-2 gap-4"><select id="edit-task-priority" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-800 p-4 dark:text-white outline-none"><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option><option value="urgent">Urgente</option></select><input id="edit-task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white"></div>
-                <div class="flex justify-end gap-3 mt-8 border-t dark:border-slate-800 pt-6"><button onclick="app.closeModal()" class="font-black text-slate-400 uppercase text-[10px] px-4">Voltar</button><button id="submit-edit-task" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px]">Salvar</button></div>
+                <div class="flex justify-end gap-3 mt-8 border-t dark:border-slate-800 pt-6"><button onclick="app.closeModal()" class="font-black text-slate-400 px-4 uppercase text-[10px]">Voltar</button><button id="submit-edit-task" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg">Salvar</button></div>
             </div>
         </div>
     </div>
