@@ -11,11 +11,9 @@
         tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#2463eb", "background-light": "#f6f6f8", "background-dark": "#111621" }, fontFamily: { "display": ["Manrope", "sans-serif"] } } } }
     </script>
     <style>
-        /* Estilos SPA para evitar o 'pisca' */
         .page-section { display: none; }
         .page-section.active { display: block; animation: fadeIn 0.3s ease-out; }
         
-        /* Regra mestre para centralizar o Login */
         #page-login.active { 
             display: flex !important; 
             flex-direction: column;
@@ -26,6 +24,7 @@
             width: 100%;
             height: 100%;
             z-index: 50;
+            background-color: #111621; /* Garante fundo escuro no login se estiver em dark mode */
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -39,14 +38,12 @@
             <span class="material-symbols-outlined text-3xl font-bold">layers</span>
             <h2 class="text-slate-900 dark:text-white text-xl font-black hidden sm:block">Planner</h2>
         </div>
-
         <div class="flex-1 max-w-md mx-4">
             <div class="relative group">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                 <input id="search-input" type="text" placeholder="Procurar tarefa..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white">
             </div>
         </div>
-
         <div class="flex items-center gap-4 shrink-0">
             <div class="relative">
                 <div id="profile-btn" class="flex items-center gap-2 cursor-pointer p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
@@ -65,37 +62,111 @@
         </div>
     </header>
 
-    <main>
+    <main id="main-content">
         <section id="page-login" class="page-section bg-slate-50 dark:bg-background-dark">
             <div class="w-full max-w-md bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border dark:border-slate-800 text-center">
                 <span class="material-symbols-outlined text-6xl text-primary font-bold mb-4">layers</span>
-                <h2 class="text-2xl font-black mb-2">TaskFlow</h2>
+                <h2 class="text-2xl font-black mb-2 dark:text-white">TaskFlow</h2>
                 <p class="text-slate-500 text-sm mb-8 font-medium">Aceda à sua área de trabalho</p>
                 <form id="login-form" class="flex flex-col gap-4 text-left">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold text-slate-400 ml-1 uppercase">E-mail</label>
-                        <input id="login-email" type="email" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-3 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold text-slate-400 ml-1 uppercase">Senha</label>
-                        <input id="login-password" type="password" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-3 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
-                    </div>
-                    <button type="submit" class="bg-primary text-white font-bold py-4 rounded-2xl hover:bg-primary/90 transition-all shadow-lg mt-2">Entrar no Sistema</button>
+                    <input id="login-email" type="email" placeholder="E-mail" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-3 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
+                    <input id="login-password" type="password" placeholder="Senha" class="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 p-3 outline-none focus:ring-2 focus:ring-primary dark:text-white" required>
+                    <button type="submit" id="login-btn-text" class="bg-primary text-white font-bold py-4 rounded-2xl hover:bg-primary/90 transition-all shadow-lg mt-2">Entrar</button>
                 </form>
             </div>
         </section>
 
         <section id="page-dashboard" class="page-section px-6 lg:px-20 py-8">
-            </section>
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="flex-1 flex flex-col gap-6">
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <div><h1 class="text-3xl font-black">Minhas Tarefas</h1><p class="text-slate-500 text-sm">Gestão de equipa</p></div>
+                        <button onclick="app.navigate('nova-tarefa')" class="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg">Nova Tarefa</button>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800 shadow-sm">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b dark:border-slate-800">
+                            <div class="flex flex-wrap gap-2">
+                                <button data-filter="Todas" class="filter-btn active rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-xs font-bold">Todas</button>
+                                <button data-filter="Em aberto" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-xs font-bold">Em aberto</button>
+                                <button data-filter="Em andamento" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-xs font-bold">Em andamento</button>
+                                <button data-filter="Concluída" class="filter-btn rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-xs font-bold">Concluídas</button>
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="filter-sector" class="h-9 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-black uppercase dark:text-white"><option value="Todos">Setores</option><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
+                                <select id="filter-assignee" class="h-9 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-black uppercase dark:text-white"><option value="Todos">Responsáveis</option></select>
+                            </div>
+                        </div>
+                        <div id="tasks-container" class="grid grid-cols-1 gap-2 mt-4"></div>
+                    </div>
+                </div>
+                <div class="w-80 hidden lg:block">
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 border-b dark:border-slate-800 font-black text-xs uppercase text-primary">Ranking</div>
+                        <div id="ranking-container" class="p-4 flex flex-col gap-2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        <section id="page-nova-tarefa" class="page-section px-6 lg:px-40 py-8"></section>
-        <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8"><div id="details-view-content"></div></section>
-        <section id="page-perfil" class="page-section px-6 lg:px-40 py-8"></section>
-        <section id="page-admin" class="page-section px-6 lg:px-20 py-8"></section>
+        <section id="page-nova-tarefa" class="page-section px-6 lg:px-40 py-8">
+            <div class="flex items-center justify-between mb-8"><h2 class="text-3xl font-black">Nova Tarefa</h2><button onclick="app.navigate('dashboard')" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">Voltar</button></div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 flex flex-col gap-5">
+                    <input id="task-title" type="text" class="w-full rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Título *">
+                    <textarea id="task-desc" class="w-full min-h-[250px] rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 outline-none focus:ring-2 focus:ring-primary dark:text-white" placeholder="Descrição..."></textarea>
+                </div>
+                <div class="flex flex-col gap-5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Responsáveis</label>
+                    <select id="task-assignees" multiple class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white min-h-[150px]"></select>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Setor</label>
+                    <select id="task-sector" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white"><option value="Logística">Logística</option><option value="Infraestrutura">Infraestrutura</option><option value="SI">SI</option><option value="Service Desk">Service Desk</option></select>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Prazo</label>
+                    <input id="task-date" type="date" class="rounded-xl border dark:border-slate-700 bg-white dark:bg-slate-900 p-4 dark:text-white">
+                    <button id="save-task-btn" class="bg-primary text-white py-4 rounded-xl font-black shadow-lg">Criar Tarefa</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="page-detalhes" class="page-section px-6 lg:px-40 py-8">
+            <div id="details-view-content"></div>
+        </section>
+
+        <section id="page-perfil" class="page-section px-6 lg:px-40 py-8">
+            <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-xl">
+                <div id="profile-page-avatar" class="size-24 rounded-full bg-primary mx-auto mb-4 bg-cover bg-center border-4 border-white dark:border-slate-800"></div>
+                <h3 id="profile-page-name" class="text-2xl font-black text-center mb-10">...</h3>
+                <div class="flex flex-col gap-4">
+                    <input id="profile-name-input" type="text" placeholder="Nome" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white">
+                    <input id="profile-photo-input" type="url" placeholder="URL da Foto" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white">
+                    <textarea id="profile-bio-input" placeholder="Bio" class="rounded-xl border dark:border-slate-700 dark:bg-slate-800 p-4 dark:text-white"></textarea>
+                    <button id="save-profile-btn" class="bg-primary text-white py-4 rounded-xl font-bold">Guardar Alterações</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="page-admin" class="page-section px-6 lg:px-20 py-8">
+            <h2 class="text-3xl font-black mb-8">Admin</h2>
+            <div id="admin-stats" class="grid grid-cols-3 gap-6 mb-10"></div>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 overflow-hidden">
+                <table class="w-full text-left"><tbody id="admin-users-table"></tbody></table>
+            </div>
+        </section>
     </main>
 
     <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div id="modal-subtask-form" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl p-6">
+            <h3 id="subtask-form-title" class="text-xl font-black mb-6">Subtarefa</h3>
+            <div class="flex flex-col gap-4">
+                <input id="sub-title-inp" type="text" placeholder="Título" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white">
+                <textarea id="sub-desc-inp" placeholder="Instruções" class="rounded-xl border dark:border-slate-700 bg-transparent p-4 dark:text-white"></textarea>
+                <button id="submit-subtask-form" class="bg-primary text-white py-3 rounded-xl font-bold">Salvar</button>
+                <button onclick="app.closeModal()" class="text-slate-500 font-bold">Voltar</button>
+            </div>
         </div>
+        <div id="modal-subtask-view" class="modal-box hidden bg-white dark:bg-slate-900 w-full max-w-4xl rounded-2xl h-[80vh] overflow-hidden flex flex-col">
+            <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden"></div>
+        </div>
+    </div>
 
     <script type="module" src="script.js"></script>
 </body>
