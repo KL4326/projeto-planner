@@ -5,7 +5,6 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Logística - Tarefas</title>
     
-    <!-- Ícone do Navegador -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -56,7 +55,7 @@
                     <span id="notif-badge" class="hidden absolute -top-1 -right-1 size-5 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-[#1a1c22] animate-bounce">0</span>
                 </button>
                 <div id="notif-menu" class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-[#1a1c22] border dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
-                    <div class="p-4 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-primary">Atividade</div>
+                    <div class="p-4 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-primary">Atividade da Equipa</div>
                     <div id="notif-list" class="max-h-96 overflow-y-auto custom-scrollbar divide-y dark:divide-white/5"></div>
                 </div>
             </div>
@@ -103,7 +102,18 @@
             <div class="lg:col-span-8 flex flex-col gap-4">
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Lista de Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
-                    <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                                <span class="material-symbols-outlined text-[18px]">filter_list</span> <span id="assignee-filter-count">Equipa</span>
+                            </button>
+                            <div id="assignee-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
+                                <div class="p-3 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-gray-500">Filtrar Responsável</div>
+                                <div id="assignee-filter-list" class="max-h-60 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-1"></div>
+                            </div>
+                        </div>
+                        <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
+                    </div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
                     <table class="w-full text-left">
@@ -133,7 +143,7 @@
             <h3 class="text-2xl font-black mb-8 dark:text-white">Criar Nova Tarefa</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-5">
-                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Título</label><input type="text" id="nova-titulo" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary outline-none mt-1"></div>
+                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Título</label><input type="text" id="nova-titulo" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
                     <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="nova-desc" class="w-full h-40 rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary outline-none mt-1"></textarea></div>
                 </div>
                 <div class="space-y-5">
