@@ -65,7 +65,6 @@ const app = {
                 h.classList.replace('hidden', 'flex'); 
                 this.updateAvatar(u); 
                 
-                // Carregar Header Info Real
                 const ud = await getDoc(doc(db, "usuarios", u.uid));
                 if(ud.exists()) {
                     document.getElementById('user-display-name').innerText = ud.data().nome || u.displayName || u.email;
@@ -82,7 +81,7 @@ const app = {
         onSnapshot(collection(db, "notificacoes"), snap => {
             const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => b.ts - a.ts);
-            if (logs.length > this.lastLogCount) { badge.innerText = logs.length - this.lastLogCount; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+            if (snap.size > this.lastLogCount) { badge.innerText = snap.size - this.lastLogCount; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
             list.innerHTML = logs.length ? '' : '<p class="p-8 text-center text-xs text-gray-400 italic">Sem alertas.</p>';
             logs.slice(0, 15).forEach(dt => {
                 const time = new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
@@ -90,7 +89,7 @@ const app = {
             });
         });
     },
-    markNotifsRead() { onSnapshot(collection(db,"notificacoes"), s => { this.lastLogCount = s.docs.length; localStorage.setItem('lastLogCount', this.lastLogCount); document.getElementById('notif-badge').classList.add('hidden'); }); },
+    markNotifsRead() { onSnapshot(collection(db,"notificacoes"), s => { this.lastLogCount = s.size; localStorage.setItem('lastLogCount', this.lastLogCount); document.getElementById('notif-badge').classList.add('hidden'); }); },
 
     listenToTasks() { onSnapshot(collection(db, "tarefas"), snap => { this.allTasks = snap.docs; this.renderDashboard(); this.renderRanking(); }); },
     renderDashboard() {
@@ -98,8 +97,13 @@ const app = {
         const sorted = this.allTasks.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
         const stats = { 'Atrasado': 0, 'Em aberto': 0, 'Em andamento': 0, 'Concluída': 0, 'Cancelada': 0 };
         const hoje = new Date().toISOString().split('T')[0];
-        sorted.forEach(t => { if(t.status!=='Concluída'&&t.status!=='Cancelada'&&t.dueDate<hoje) stats['Atrasado']++; else stats[t.status]++; });
+        sorted.forEach(t => { 
+            let sReal = t.status;
+            if(sReal!=='Concluída'&&sReal!=='Cancelada'&&t.dueDate<hoje) sReal = 'Atrasado';
+            stats[sReal]++;
+        });
         this.renderStats(stats, sorted.length);
+
         let filtered = sorted.filter(t => { return t.title.toLowerCase().includes(this.filters.search.toLowerCase()) && (this.filters.status === "Todas" || t.status === this.filters.status); });
         document.getElementById('taskCount').innerText = `(${filtered.length})`;
         filtered.forEach(t => {
@@ -112,7 +116,7 @@ const app = {
 
     renderStats(s, total) {
         const container = document.getElementById('statsContainer');
-        const cards = [ {label: 'Todas', val: total, color: 'gray-500', icon: 'list'}, {label: 'Em aberto', val: s['Em aberto'], color: 'primary', icon: 'pending_actions'}, {label: 'Em andamento', val: s['Em andamento'], color: 'accent-yellow', icon: 'bolt'}, {label: 'Concluída', val: s['Concluída'], color: 'accent-green', icon: 'verified'}, {label: 'Cancelada', val: s['Cancelada'], color: 'accent-red', icon: 'cancel'} ];
+        const cards = [ {label: 'Todas', val: total, color: 'gray-500', icon: 'list'}, {label: 'Em aberto', val: s['Em aberto']+s['Atrasado'], color: 'primary', icon: 'pending_actions'}, {label: 'Em andamento', val: s['Em andamento'], color: 'accent-yellow', icon: 'bolt'}, {label: 'Concluída', val: s['Concluída'], color: 'accent-green', icon: 'verified'}, {label: 'Cancelada', val: s['Cancelada'], color: 'accent-red', icon: 'cancel'} ];
         container.innerHTML = cards.map(c => `<div onclick="app.applyStatFilter('${c.label}')" class="cursor-pointer bg-white dark:bg-gray-800 p-5 rounded-2xl border ${this.filters.status===c.label?'ring-2 ring-primary border-primary':'border-gray-200 dark:border-white/10'} shadow-sm relative overflow-hidden transition-all hover:scale-105"><div class="absolute top-0 left-0 w-1 h-full bg-${c.color}"></div><div class="flex justify-between items-start mb-2"><p class="text-gray-500 text-[10px] font-black uppercase tracking-widest">${c.label}</p><span class="material-symbols-outlined text-${c.color} bg-${c.color}/10 p-2 rounded-lg text-lg">${c.icon}</span></div><h3 class="text-3xl font-black dark:text-white">${c.val}</h3></div>`).join('');
     },
     applyStatFilter(label) { this.filters.status = label; this.renderDashboard(); },
@@ -130,13 +134,25 @@ const app = {
             if(!d.exists()) return;
             const t = d.data(); this.activeTaskData = t;
             const p = CONFIG.prioridades[t.priority] || CONFIG.prioridades['Média'];
-            let actionBtn = (t.status==='Em aberto' || t.status==='Atrasado') ? `<button onclick="app.updateTaskStatus('${id}', 'Em andamento')" class="bg-primary text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-primary/20 hover:brightness-110">Iniciar tarefa</button>` : (t.status==='Em andamento' ? `<button onclick="app.updateTaskStatus('${id}', 'Cancelada')" class="bg-red-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-red-500/20 hover:brightness-110">Cancelar tarefa</button>` : '');
-            let concluirBtn = (t.status!=='Concluída'&&t.status!=='Cancelada') ? `<button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-emerald-500/20 hover:brightness-110">Concluir</button>` : '';
+            
+            let actionBtn = '';
+            let concluirBtn = '';
+            let reabrirBtn = '';
+
+            if (t.status === 'Em aberto' || t.status === 'Atrasado') {
+                actionBtn = `<button onclick="app.updateTaskStatus('${id}', 'Em andamento')" class="bg-primary text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-primary/20 hover:brightness-110 transition-all">Iniciar tarefa</button>`;
+                concluirBtn = `<button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-emerald-500/20 hover:brightness-110 transition-all">Concluir</button>`;
+            } else if (t.status === 'Em andamento') {
+                actionBtn = `<button onclick="app.updateTaskStatus('${id}', 'Cancelada')" class="bg-red-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-red-500/20 hover:brightness-110 transition-all">Cancelar tarefa</button>`;
+                concluirBtn = `<button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-emerald-500/20 hover:brightness-110 transition-all">Concluir</button>`;
+            } else if (t.status === 'Concluída' || t.status === 'Cancelada') {
+                reabrirBtn = `<button onclick="app.updateTaskStatus('${id}', 'Em aberto')" class="bg-blue-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-500/20 hover:brightness-110 transition-all flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">refresh</span> Reabrir</button>`;
+            }
 
             container.innerHTML = `
-                <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm border dark:border-white/10 hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><div class="flex items-center gap-3">${actionBtn}${concluirBtn}<span class="${p.bg} text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-lg">${p.label}</span></div></div>
+                <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm border dark:border-white/10 hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><div class="flex items-center gap-3">${actionBtn}${concluirBtn}${reabrirBtn}<span class="${p.bg} text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-lg">${p.label}</span></div></div>
                 <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-200 dark:border-white/10 shadow-xl"><h1 class="text-4xl font-black mb-4 dark:text-white">${t.title}</h1><p class="text-gray-500 dark:text-gray-400 whitespace-pre-line leading-relaxed mb-8 text-sm">${t.description || '...'}</p>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${t.dueDate || '---'}</p></div><div class="flex flex-col items-start"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="task-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div></div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold text-primary">${t.assignees?.join(', ') || '---'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo Final</span><p class="text-xs font-bold dark:text-white">${t.dueDate ? new Date(t.dueDate).toLocaleDateString('pt-PT') : '---'}</p></div><div class="flex flex-col items-start"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="task-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div></div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="flex flex-col gap-4 text-left"><div class="flex items-center justify-between p-2 font-black text-xs text-slate-400 uppercase">Subtarefas<button onclick="app.openSubtaskForm()" class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] shadow-lg hover:scale-105 transition-all">Adicionar</button></div><div id="subtasks-list" class="bg-white dark:bg-gray-800 rounded-3xl border dark:border-white/10 divide-y dark:divide-white/5 shadow-sm"></div></div>
@@ -155,7 +171,11 @@ const app = {
         }));
     },
 
-    async updateTaskStatus(id, newStatus) { await updateDoc(doc(db, "tarefas", id), { status: newStatus }); await this.addLog(`Manteve a tarefa para "${newStatus}"`); },
+    async updateTaskStatus(id, newStatus) { 
+        await updateDoc(doc(db, "tarefas", id), { status: newStatus }); 
+        const d = await getDoc(doc(db,"tarefas",id));
+        await this.addLog(`🔄 "${d.data().title}" -> ${newStatus}`); 
+    },
 
     listenToSubtasks(tid) {
         this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
@@ -169,27 +189,49 @@ const app = {
     },
 
     async openSubtaskView(sid) {
-        this.activeSid = sid; const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
+        this.activeSid = sid; 
+        const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
         const p = CONFIG.prioridades[d.priority] || CONFIG.prioridades['Média'];
         const cont = document.getElementById('subtask-view-content');
         cont.innerHTML = `
             <div class="w-full md:w-1/2 p-8 border-r dark:border-white/10 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#1a1c22] text-left">
                 <div class="flex items-center justify-between font-black text-[10px] uppercase text-gray-400 tracking-widest">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-gray-400">close</span></button></div>
-                <div><div class="flex items-center gap-3 mb-2"><h3 class="text-3xl font-black text-primary">${d.title}</h3><span class="${p.bg} text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">${p.label}</span></div><div class="p-4 bg-gray-50 dark:bg-black/20 rounded-xl border dark:border-white/5 text-sm text-gray-500 dark:text-gray-300 italic leading-relaxed">${d.description || 'Sem descrição.'}</div></div>
-                <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${d.dueDate || '---'}</p></div></div>
+                <div><div class="flex items-center gap-3 mb-2"><h3 class="text-3xl font-black text-primary">${d.title}</h3><span class="${p.bg} text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">${p.label}</span></div><div class="p-4 bg-gray-50 dark:bg-black/20 rounded-xl border dark:border-white/5 text-sm text-gray-500 dark:text-gray-300 italic leading-relaxed">${d.description || 'Sem descrição detalhada.'}</div></div>
+                <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo Final</span><p class="text-xs font-bold dark:text-white">${d.dueDate ? new Date(d.dueDate).toLocaleDateString('pt-PT') : '---'}</p></div></div>
                 <div class="flex flex-col border-t dark:border-white/5 pt-4 text-left"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                 <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
             <div class="flex-1 flex flex-col bg-gray-50 dark:bg-black/40 text-left">
                 <div class="p-4 border-b dark:border-white/10 font-black text-[10px] uppercase text-gray-400">Chat Interno</div>
                 <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Escreva..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
+                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
             </div>
         `;
         const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-white dark:bg-white/5 border dark:border-white/10 text-[9px] font-bold rounded shadow-sm hover:text-primary transition-all">${a.name}</a>`; });
         document.getElementById('modal-backdrop').classList.remove('hidden'); document.getElementById('modal-backdrop').classList.add('flex');
         document.getElementById('modal-subtask-view').classList.remove('hidden');
         this.listenToSubChat(sid);
+    },
+
+    async sendSubComment() { 
+        const i = document.getElementById('sub-chat-input'); 
+        if(!i || !i.value.trim()) return; 
+        await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { 
+            text: i.value, 
+            authorName: auth.currentUser.displayName, 
+            createdBy: auth.currentUser.uid, 
+            ts: Date.now() 
+        }); 
+        i.value = ''; 
+    },
+
+    listenToSubChat(sid) { 
+        this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
+            const c = document.getElementById('sub-chat-messages'); if(!c) return; 
+            const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
+            c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text}</div></div>`).join(''); 
+            c.scrollTop = c.scrollHeight; 
+        })); 
     },
 
     // --- REUTILIZÁVEIS ---
@@ -235,9 +277,7 @@ const app = {
     async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return this.showToast("As senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.showToast("Senha alterada com sucesso!"); this.navigate('perfil'); document.getElementById('current-password-input').value = ''; document.getElementById('new-password-input').value = ''; document.getElementById('confirm-password-input').value = ''; } catch(e) { this.showToast("Senha atual incorreta.", "error"); } },
 
     listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-gray-400 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-gray-100 dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[85%] font-medium">${d.text}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
-    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
-    listenToSubChat(sid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
-    async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; }
+    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; }
 };
 
 window.app = app;
