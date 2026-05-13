@@ -34,7 +34,6 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
         
-        // Reset formulário Nova Tarefa (Remove cache)
         if(pageId === 'nova-tarefa') {
             const tInp = document.getElementById('nova-titulo'); if(tInp) tInp.value = '';
             const dInp = document.getElementById('nova-desc'); if(dInp) dInp.value = '';
@@ -88,7 +87,9 @@ const app = {
         }); 
     },
 
-    async addLog(msg) { try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) {} },
+    async addLog(msg) {
+        try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) {}
+    },
 
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
@@ -272,17 +273,17 @@ const app = {
             <div class="w-full md:w-1/2 p-8 border-r dark:border-white/10 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#1a1c22] text-left">
                 <div class="flex items-center justify-between font-black text-[10px] uppercase text-gray-400 tracking-widest">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-gray-400">close</span></button></div>
                 <div><div class="flex items-center gap-3 mb-2"><h3 class="text-3xl font-black text-primary">${d.title || 'Sem título'}</h3><span class="${p.bg} text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">${p.label}</span></div><div class="p-4 bg-gray-50 dark:bg-black/20 rounded-xl border dark:border-white/5 text-sm text-gray-500 dark:text-gray-300 italic leading-relaxed">${d.description || 'Sem descrição detalhada.'}</div></div>
-                <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${prazoSafe}</p></div></div>
+                <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo Final</span><p class="text-xs font-bold dark:text-white">${prazoSafe}</p></div></div>
                 <div class="flex flex-col border-t dark:border-white/5 pt-4 text-left"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                 <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-50 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
-            <div class="flex-1 flex flex-col bg-gray-50 dark:bg-black/40 text-left">
+            <div class="flex-1 flex flex-col bg-white dark:bg-black/40 text-left">
                 <div class="p-4 border-b dark:border-white/10 font-black text-[10px] uppercase text-gray-400">Chat Interno</div>
                 <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
+                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-gray-50 dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
             </div>
         `;
-        const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-white dark:bg-white/5 border dark:border-white/10 text-[9px] font-bold rounded shadow-sm hover:text-primary transition-all">${a.name}</a>`; });
+        const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-gray-50 dark:bg-white/5 border dark:border-white/10 text-[9px] font-bold rounded shadow-sm hover:text-primary transition-all">${a.name}</a>`; });
         document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-view').classList.remove('hidden');
         this.listenToSubChat(sid);
     },
@@ -303,7 +304,7 @@ const app = {
         this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
             const c = document.getElementById('sub-chat-messages'); if(!c) return; 
             const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
-            c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text || ''}</div></div>`).join(''); 
+            c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-gray-100 dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text || ''}</div></div>`).join(''); 
             c.scrollTop = c.scrollHeight; 
         })); 
     },
@@ -352,12 +353,14 @@ const app = {
     },
     
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
+    
+    // --- RANKING ---
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
         const pts = {}; 
         this.allTasks.forEach(t => { 
-            if(t.data().status === "Concluída") {
-                (t.data().assignees && t.data().assignees.length ? t.data().assignees : ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
+            if(t.status === "Concluída") {
+                (t.assignees && t.assignees.length ? t.assignees : ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
             }
         }); 
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
