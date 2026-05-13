@@ -22,7 +22,7 @@ const CONFIG = {
 const app = {
     currentTaskId: null, activeSid: null, editSubId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
-    filters: { status: "Todas", search: "", assignees: [] },
+    filters: { status: "Todas", search: "", assignees: [], priorities: [] },
 
     init() { this.bindEvents(); this.checkAuth(); this.initTheme(); this.listenToNotifications(); },
     initTheme() { if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); },
@@ -34,7 +34,7 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
         
-        // Blindagem contra cache do formulário
+        // Reset formulário Nova Tarefa (Remove cache)
         if(pageId === 'nova-tarefa') {
             const tInp = document.getElementById('nova-titulo'); if(tInp) tInp.value = '';
             const dInp = document.getElementById('nova-desc'); if(dInp) dInp.value = '';
@@ -58,6 +58,7 @@ const app = {
             document.getElementById('notif-menu')?.classList.add('hidden'); 
             document.getElementById('profile-menu')?.classList.add('hidden'); 
             document.getElementById('assignee-filter-menu')?.classList.add('hidden');
+            document.getElementById('priority-filter-menu')?.classList.add('hidden');
         });
         
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
@@ -87,9 +88,7 @@ const app = {
         }); 
     },
 
-    async addLog(msg) {
-        try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) {}
-    },
+    async addLog(msg) { try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) {} },
 
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
@@ -137,6 +136,17 @@ const app = {
         this.renderDashboard();
     },
 
+    togglePriorityFilter(val, isChecked) {
+        if(isChecked) {
+            if(!this.filters.priorities.includes(val)) this.filters.priorities.push(val);
+        } else {
+            this.filters.priorities = this.filters.priorities.filter(p => p !== val);
+        }
+        const count = this.filters.priorities.length;
+        document.getElementById('priority-filter-count').innerText = count > 0 ? `Prioridade (${count})` : 'Prioridade';
+        this.renderDashboard();
+    },
+
     renderDashboard() {
         try {
             const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
@@ -154,10 +164,14 @@ const app = {
             let filtered = sorted.filter(t => { 
                 const statusStr = t.status || 'Em aberto';
                 const titleStr = t.title || '';
+                const prioStr = t.priority || 'Média';
+                
                 const matchStatus = (this.filters.status === "Todas" || statusStr === this.filters.status);
                 const matchSearch = titleStr.toLowerCase().includes(this.filters.search.toLowerCase());
                 const matchAssignee = this.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => this.filters.assignees.includes(a)));
-                return matchStatus && matchSearch && matchAssignee; 
+                const matchPriority = this.filters.priorities.length === 0 || this.filters.priorities.includes(prioStr);
+                
+                return matchStatus && matchSearch && matchAssignee && matchPriority; 
             });
             
             document.getElementById('taskCount').innerText = `(${filtered.length})`;
@@ -260,7 +274,7 @@ const app = {
                 <div><div class="flex items-center gap-3 mb-2"><h3 class="text-3xl font-black text-primary">${d.title || 'Sem título'}</h3><span class="${p.bg} text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">${p.label}</span></div><div class="p-4 bg-gray-50 dark:bg-black/20 rounded-xl border dark:border-white/5 text-sm text-gray-500 dark:text-gray-300 italic leading-relaxed">${d.description || 'Sem descrição detalhada.'}</div></div>
                 <div class="grid grid-cols-2 gap-4 border-t dark:border-white/5 pt-6"><div><span class="text-[9px] font-black uppercase text-gray-400">Responsáveis</span><p class="text-xs font-bold dark:text-white">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] font-black uppercase text-gray-400">Prazo</span><p class="text-xs font-bold dark:text-white">${prazoSafe}</p></div></div>
                 <div class="flex flex-col border-t dark:border-white/5 pt-4 text-left"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
-                <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
+                <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-50 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
             <div class="flex-1 flex flex-col bg-gray-50 dark:bg-black/40 text-left">
                 <div class="p-4 border-b dark:border-white/10 font-black text-[10px] uppercase text-gray-400">Chat Interno</div>
@@ -330,7 +344,6 @@ const app = {
                 if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary w-4 h-4"><span class="text-xs font-bold">${n}</span></label>`).join(''); 
             }); 
             
-            // Popula o Filtro de Equipa no Dashboard
             const filterEl = document.getElementById('assignee-filter-list');
             if(filterEl) {
                 filterEl.innerHTML = opts.map(n => `<label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="${n}" onchange="app.toggleAssigneeFilter(this.value, this.checked)" class="rounded text-primary w-4 h-4" ${this.filters.assignees.includes(n) ? 'checked' : ''}><span class="text-xs font-bold dark:text-white">${n}</span></label>`).join('');
@@ -343,8 +356,8 @@ const app = {
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
         const pts = {}; 
         this.allTasks.forEach(t => { 
-            if(t.status === "Concluída") {
-                (t.assignees && t.assignees.length ? t.assignees : ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
+            if(t.data().status === "Concluída") {
+                (t.data().assignees && t.data().assignees.length ? t.data().assignees : ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
             }
         }); 
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
