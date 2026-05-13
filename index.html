@@ -103,16 +103,34 @@
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Lista de Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
                     <div class="flex items-center gap-3">
+                        <!-- FILTRO: RESPONSÁVEL -->
                         <div class="relative">
-                            <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
-                                <span class="material-symbols-outlined text-[18px]">filter_list</span> <span id="assignee-filter-count">Equipa</span>
+                            <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); document.getElementById('priority-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                                <span class="material-symbols-outlined text-[18px]">person</span> <span id="assignee-filter-count">Equipa</span>
                             </button>
                             <div id="assignee-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
                                 <div class="p-3 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-gray-500">Filtrar Responsável</div>
                                 <div id="assignee-filter-list" class="max-h-60 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-1"></div>
                             </div>
                         </div>
-                        <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
+
+                        <!-- FILTRO: PRIORIDADE -->
+                        <div class="relative">
+                            <button onclick="document.getElementById('priority-filter-menu').classList.toggle('hidden'); document.getElementById('assignee-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                                <span class="material-symbols-outlined text-[18px]">flag</span> <span id="priority-filter-count">Prioridade</span>
+                            </button>
+                            <div id="priority-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
+                                <div class="p-3 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-gray-500">Filtrar Prioridade</div>
+                                <div class="p-2 flex flex-col gap-1">
+                                    <label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="Alta" onchange="app.togglePriorityFilter(this.value, this.checked)" class="rounded text-primary w-4 h-4"><span class="text-xs font-bold dark:text-white">Alta</span></label>
+                                    <label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="Média" onchange="app.togglePriorityFilter(this.value, this.checked)" class="rounded text-primary w-4 h-4"><span class="text-xs font-bold dark:text-white">Média</span></label>
+                                    <label class="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded cursor-pointer transition-all"><input type="checkbox" value="Baixa" onchange="app.togglePriorityFilter(this.value, this.checked)" class="rounded text-primary w-4 h-4"><span class="text-xs font-bold dark:text-white">Baixa</span></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NOVA TAREFA -->
+                        <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg ml-2"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
