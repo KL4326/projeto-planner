@@ -133,7 +133,7 @@ const app = {
             this.filters.assignees = this.filters.assignees.filter(n => n !== name);
         }
         const count = this.filters.assignees.length;
-        document.getElementById('assignee-filter-count').innerText = count > 0 ? `Equipa (${count})` : 'Equipa';
+        document.getElementById('assignee-filter-count').innerText = count > 0 ? `Equipe (${count})` : 'Equipe';
         this.renderDashboard();
     },
 
@@ -148,9 +148,27 @@ const app = {
         this.renderDashboard();
     },
 
+    clearFilters() {
+        this.filters.assignees = [];
+        this.filters.priorities = [];
+        document.querySelectorAll('#assignee-filter-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.getElementById('assignee-filter-count').innerText = 'Equipe';
+        document.getElementById('priority-filter-count').innerText = 'Prioridade';
+        this.renderDashboard();
+    },
+
     renderDashboard() {
         try {
             const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
+            
+            // Controle de visibilidade do Botão Limpar Filtro
+            const clearBtn = document.getElementById('clear-filters-btn');
+            if (clearBtn) {
+                if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+
             const sorted = [...this.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
             const stats = { 'Atrasado': 0, 'Em aberto': 0, 'Em andamento': 0, 'Concluída': 0, 'Cancelada': 0 };
             const hoje = new Date().toISOString().split('T')[0];
@@ -354,13 +372,13 @@ const app = {
     
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
     
-    // --- RANKING C/ COROAS ---
+    // --- RANKING ---
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
         const pts = {}; 
         this.allTasks.forEach(t => { 
             if(t.status === "Concluída") {
-                (t.assignees && t.assignees.length ? t.assignees : ["Equipa"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
+                (t.assignees && t.assignees.length ? t.assignees : ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
             }
         }); 
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
