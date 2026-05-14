@@ -277,13 +277,13 @@ const app = {
                 <div class="flex flex-col border-t dark:border-white/5 pt-4 text-left"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                 <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-50 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
-            <div class="flex-1 flex flex-col bg-white dark:bg-black/40 text-left">
+            <div class="flex-1 flex flex-col bg-gray-50 dark:bg-black/40 text-left">
                 <div class="p-4 border-b dark:border-white/10 font-black text-[10px] uppercase text-gray-400">Chat Interno</div>
                 <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-gray-50 dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
+                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
             </div>
         `;
-        const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-gray-50 dark:bg-white/5 border dark:border-white/10 text-[9px] font-bold rounded shadow-sm hover:text-primary transition-all">${a.name}</a>`; });
+        const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-white dark:bg-white/5 border dark:border-white/10 text-[9px] font-bold rounded shadow-sm hover:text-primary transition-all">${a.name}</a>`; });
         document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-view').classList.remove('hidden');
         this.listenToSubChat(sid);
     },
@@ -304,7 +304,7 @@ const app = {
         this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
             const c = document.getElementById('sub-chat-messages'); if(!c) return; 
             const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
-            c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-gray-100 dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text || ''}</div></div>`).join(''); 
+            c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text || ''}</div></div>`).join(''); 
             c.scrollTop = c.scrollHeight; 
         })); 
     },
@@ -354,7 +354,7 @@ const app = {
     
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
     
-    // --- RANKING ---
+    // --- RANKING C/ COROAS ---
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
         const pts = {}; 
@@ -364,7 +364,16 @@ const app = {
             }
         }); 
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
-        rc.innerHTML = sorted.length ? sorted.map((r, i) => `<div class="flex items-center gap-4 text-left"><div class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-sm font-black text-primary">${i+1}</div><div class="flex-1"><p class="font-bold text-sm dark:text-white">${r[0]}</p><div class="mt-2 w-full bg-gray-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="text-right text-xs font-black dark:text-white">${r[1]}</div></div>`).join('') : '<p class="text-gray-500 text-xs text-center py-4 italic">Nenhuma tarefa concluída.</p>'; 
+        
+        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
+            let crown = '';
+            const svgIcon = `<svg class="w-4 h-4 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+            if (i === 0) crown = `<span class="text-[#FFD700]" title="1º Lugar">${svgIcon}</span>`;
+            else if (i === 1) crown = `<span class="text-[#C0C0C0]" title="2º Lugar">${svgIcon}</span>`;
+            else if (i === 2) crown = `<span class="text-[#CD7F32]" title="3º Lugar">${svgIcon}</span>`;
+
+            return `<div class="flex items-center gap-4 text-left"><div class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-sm font-black text-primary">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2"><p class="font-bold text-sm dark:text-white">${r[0]}</p>${crown}</div><div class="mt-2 w-full bg-gray-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="text-right text-xs font-black dark:text-white">${r[1]}</div></div>`;
+        }).join('') : '<p class="text-gray-500 text-xs text-center py-4 italic">Nenhuma tarefa concluída.</p>'; 
     },
     
     signOut() { 
