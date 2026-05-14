@@ -162,7 +162,6 @@ const app = {
         try {
             const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
             
-            // Controle de visibilidade do Botão Limpar Filtro
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0) clearBtn.classList.remove('hidden');
@@ -170,32 +169,38 @@ const app = {
             }
 
             const sorted = [...this.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
-            const stats = { 'Atrasado': 0, 'Em aberto': 0, 'Em andamento': 0, 'Concluída': 0, 'Cancelada': 0 };
             const hoje = new Date().toISOString().split('T')[0];
             
-            sorted.forEach(t => { 
-                let sReal = t.status || 'Em aberto';
-                if(sReal !== 'Concluída' && sReal !== 'Cancelada' && t.dueDate && t.dueDate < hoje) sReal = 'Atrasado';
-                if (stats[sReal] !== undefined) stats[sReal]++;
-            });
-            this.renderStats(stats, sorted.length);
-
-            let filtered = sorted.filter(t => { 
-                const statusStr = t.status || 'Em aberto';
+            // 1. Aplica filtros de Busca, Responsável e Prioridade (Ignorando o clique nos cartões de Status)
+            let baseFiltered = sorted.filter(t => { 
                 const titleStr = t.title || '';
                 const prioStr = t.priority || 'Média';
                 
-                const matchStatus = (this.filters.status === "Todas" || statusStr === this.filters.status);
                 const matchSearch = titleStr.toLowerCase().includes(this.filters.search.toLowerCase());
                 const matchAssignee = this.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => this.filters.assignees.includes(a)));
                 const matchPriority = this.filters.priorities.length === 0 || this.filters.priorities.includes(prioStr);
                 
-                return matchStatus && matchSearch && matchAssignee && matchPriority; 
+                return matchSearch && matchAssignee && matchPriority; 
+            });
+
+            // 2. Com a lista filtrada, calcula os números para exibir nos cartões de status
+            const stats = { 'Atrasado': 0, 'Em aberto': 0, 'Em andamento': 0, 'Concluída': 0, 'Cancelada': 0 };
+            baseFiltered.forEach(t => { 
+                let sReal = t.status || 'Em aberto';
+                if(sReal !== 'Concluída' && sReal !== 'Cancelada' && t.dueDate && t.dueDate < hoje) sReal = 'Atrasado';
+                if (stats[sReal] !== undefined) stats[sReal]++;
+            });
+            this.renderStats(stats, baseFiltered.length);
+
+            // 3. Aplica o último filtro, o de Status (que é comandado clicando nos próprios cartões)
+            let finalFiltered = baseFiltered.filter(t => {
+                const statusStr = t.status || 'Em aberto';
+                return this.filters.status === "Todas" || statusStr === this.filters.status;
             });
             
-            document.getElementById('taskCount').innerText = `(${filtered.length})`;
+            document.getElementById('taskCount').innerText = `(${finalFiltered.length})`;
             
-            filtered.forEach(t => {
+            finalFiltered.forEach(t => {
                 const prazo = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
                 const p = CONFIG.prioridades[t.priority || 'Média'] || CONFIG.prioridades['Média'];
                 const s_slug = (t.status || 'Em aberto').replace(/\s+/g, '-');
