@@ -55,7 +55,7 @@
                     <span id="notif-badge" class="hidden absolute -top-1 -right-1 size-5 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-[#1a1c22] animate-bounce">0</span>
                 </button>
                 <div id="notif-menu" class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-[#1a1c22] border dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
-                    <div class="p-4 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-primary">Atividade da Equipa</div>
+                    <div class="p-4 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-primary">Atividade da Equipe</div>
                     <div id="notif-list" class="max-h-96 overflow-y-auto custom-scrollbar divide-y dark:divide-white/5"></div>
                 </div>
             </div>
@@ -103,9 +103,16 @@
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Lista de Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
                     <div class="flex items-center gap-3">
+                        
+                        <!-- BOTÃO LIMPAR FILTROS -->
+                        <button id="clear-filters-btn" onclick="app.clearFilters()" class="hidden bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400 px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition-all hover:brightness-95">
+                            <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Limpar
+                        </button>
+
+                        <!-- FILTRO: RESPONSÁVEL -->
                         <div class="relative">
                             <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); document.getElementById('priority-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
-                                <span class="material-symbols-outlined text-[18px]">person</span> <span id="assignee-filter-count">Equipa</span>
+                                <span class="material-symbols-outlined text-[18px]">person</span> <span id="assignee-filter-count">Equipe</span>
                             </button>
                             <div id="assignee-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
                                 <div class="p-3 border-b dark:border-white/10 bg-gray-50 dark:bg-black/20 font-bold text-xs uppercase text-gray-500">Filtrar Responsável</div>
@@ -113,6 +120,7 @@
                             </div>
                         </div>
 
+                        <!-- FILTRO: PRIORIDADE -->
                         <div class="relative">
                             <button onclick="document.getElementById('priority-filter-menu').classList.toggle('hidden'); document.getElementById('assignee-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                 <span class="material-symbols-outlined text-[18px]">flag</span> <span id="priority-filter-count">Prioridade</span>
@@ -127,6 +135,7 @@
                             </div>
                         </div>
 
+                        <!-- NOVA TAREFA -->
                         <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg ml-2"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
                     </div>
                 </div>
@@ -138,7 +147,7 @@
                                 <th class="px-6 py-4 min-w-[300px]">Título / Prazo</th>
                                 <th class="px-6 py-4">Status</th>
                                 <th class="px-6 py-4">Prioridade</th>
-                                <th class="px-6 py-4 text-right">Equipa</th>
+                                <th class="px-6 py-4 text-right">Equipe</th>
                             </tr>
                         </thead>
                         <tbody id="taskTableBody" class="divide-y divide-gray-100 dark:divide-white/5"></tbody>
@@ -162,7 +171,7 @@
                     <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="nova-desc" class="w-full h-40 rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary outline-none mt-1"></textarea></div>
                 </div>
                 <div class="space-y-5">
-                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Equipa Responsável</label><div id="task-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar mt-1"></div></div>
+                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Equipe Responsável</label><div id="task-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar mt-1"></div></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Prioridade</label><select id="nova-prio" class="w-full rounded-xl border-gray-200 dark:bg-white/5 dark:text-white outline-none focus:ring-primary mt-1"><option value="Alta">Alta</option><option value="Média" selected>Média</option><option value="Baixa">Baixa</option></select></div>
                         <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Prazo</label><input type="date" id="nova-fim" class="w-full rounded-xl border-gray-200 dark:bg-white/5 dark:text-white outline-none focus:ring-primary mt-1"></div>
@@ -232,7 +241,7 @@
                 <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Prioridade</label><select id="sub-priority-inp" class="w-full rounded-xl border dark:border-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"><option value="Baixa">Baixa</option><option value="Média" selected>Média</option><option value="Alta">Alta</option></select></div>
                 <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Prazo</label><input id="sub-date-inp" type="date" class="w-full rounded-xl border dark:border-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
             </div>
-            <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Equipa</label><div id="sub-assignees-checkboxes" class="rounded-xl border dark:border-white/10 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar text-white mt-1"></div></div>
+            <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Equipe</label><div id="sub-assignees-checkboxes" class="rounded-xl border dark:border-white/10 p-3 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar text-white mt-1"></div></div>
             <div class="flex justify-end gap-3 mt-4"><button onclick="app.closeModal()" class="px-6 py-2 font-black text-gray-400 uppercase text-[10px] hover:brightness-110 transition-all">Cancelar</button><button id="submit-subtask-form" class="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg uppercase text-[10px] transition-all hover:brightness-110">Gravar</button></div>
         </div>
     </div>
@@ -243,7 +252,7 @@
         <div class="flex flex-col gap-4">
             <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Título</label><input id="edit-task-title" type="text" class="w-full rounded-xl border dark:border-white/10 p-4 dark:text-white font-bold outline-none focus:ring-2 focus:ring-primary mt-1"></div>
             <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="edit-task-desc" class="w-full rounded-xl border dark:border-white/10 p-4 dark:text-white min-h-[180px] outline-none focus:ring-2 focus:ring-primary mt-1"></textarea></div>
-            <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1 block">Equipa</label><div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-white/10 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar text-white mt-1"></div></div>
+            <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1 block">Equipe</label><div id="edit-assignees-checkboxes" class="rounded-xl border dark:border-white/10 p-3 flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar text-white mt-1"></div></div>
             <div class="grid grid-cols-2 gap-4">
                 <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Prioridade</label><select id="edit-task-priority" class="w-full rounded-xl border dark:border-white/10 p-4 dark:text-white outline-none mt-1"><option value="Alta">Alta</option><option value="Média">Média</option><option value="Baixa">Baixa</option></select></div>
                 <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Prazo Final</label><input id="edit-task-date" type="date" class="w-full rounded-xl border dark:border-white/10 p-4 dark:text-white outline-none mt-1"></div>
