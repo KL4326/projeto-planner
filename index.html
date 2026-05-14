@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>TaskFlow - Planner T.I</title>
+    <title>Logística - Tarefas</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     
@@ -40,7 +40,7 @@
     <div class="flex items-center gap-8 w-full max-w-[1440px] mx-auto">
         <div class="flex items-center gap-3 min-w-fit cursor-pointer" onclick="app.navigate('dashboard')">
             <div class="bg-primary p-1.5 rounded-lg"><span class="material-symbols-outlined text-white">dataset</span></div>
-            <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white uppercase tracking-tighter">TaskFlow</h1>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white uppercase tracking-tighter">Tarefas</h1>
         </div>
         
         <div class="flex-1 flex items-center gap-4 text-left">
@@ -103,7 +103,6 @@
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Lista de Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
                     <div class="flex items-center gap-3">
-                        <!-- FILTRO: RESPONSÁVEL -->
                         <div class="relative">
                             <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); document.getElementById('priority-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                 <span class="material-symbols-outlined text-[18px]">person</span> <span id="assignee-filter-count">Equipa</span>
@@ -114,7 +113,6 @@
                             </div>
                         </div>
 
-                        <!-- FILTRO: PRIORIDADE -->
                         <div class="relative">
                             <button onclick="document.getElementById('priority-filter-menu').classList.toggle('hidden'); document.getElementById('assignee-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                 <span class="material-symbols-outlined text-[18px]">flag</span> <span id="priority-filter-count">Prioridade</span>
@@ -129,7 +127,6 @@
                             </div>
                         </div>
 
-                        <!-- NOVA TAREFA -->
                         <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg ml-2"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
                     </div>
                 </div>
