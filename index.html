@@ -82,7 +82,6 @@
 </header>
 
 <main id="main-content" class="max-w-[1440px] mx-auto p-6 relative z-0">
-    <!-- LOGIN -->
     <section id="page-login" class="page-section active">
         <div class="w-full max-w-md bg-white dark:bg-[#1a1c22] p-10 rounded-3xl shadow-2xl border dark:border-white/10 text-center text-left">
             <span class="material-symbols-outlined text-6xl text-primary font-bold mb-4">layers</span>
@@ -95,23 +94,20 @@
         </div>
     </section>
 
-    <!-- DASHBOARD -->
     <section id="page-dashboard" class="page-section">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8" id="statsContainer"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8" id="statsContainer"></div>
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
             <div class="lg:col-span-8 flex flex-col gap-4">
                 <div class="flex items-center justify-between mb-2">
                     <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Lista de Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
                     <div class="flex items-center gap-3">
                         
-                        <!-- BOTÃO LIMPAR FILTROS -->
-                        <button id="clear-filters-btn" onclick="app.clearFilters()" class="hidden bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400 px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition-all hover:brightness-95">
+                        <button id="clear-filters-btn" onclick="app.clearFilters()" class="hidden bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400 px-3 py-2.5 rounded-xl text-xs font-black flex items-center gap-1 shadow-sm transition-all hover:brightness-95">
                             <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Limpar
                         </button>
 
-                        <!-- FILTRO: RESPONSÁVEL -->
                         <div class="relative">
-                            <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); document.getElementById('priority-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                            <button onclick="document.getElementById('assignee-filter-menu').classList.toggle('hidden'); document.getElementById('priority-filter-menu').classList.add('hidden'); document.getElementById('date-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                 <span class="material-symbols-outlined text-[18px]">person</span> <span id="assignee-filter-count">Equipe</span>
                             </button>
                             <div id="assignee-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
@@ -120,9 +116,8 @@
                             </div>
                         </div>
 
-                        <!-- FILTRO: PRIORIDADE -->
                         <div class="relative">
-                            <button onclick="document.getElementById('priority-filter-menu').classList.toggle('hidden'); document.getElementById('assignee-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                            <button onclick="document.getElementById('priority-filter-menu').classList.toggle('hidden'); document.getElementById('assignee-filter-menu').classList.add('hidden'); document.getElementById('date-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                 <span class="material-symbols-outlined text-[18px]">flag</span> <span id="priority-filter-count">Prioridade</span>
                             </button>
                             <div id="priority-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
@@ -135,7 +130,16 @@
                             </div>
                         </div>
 
-                        <!-- NOVA TAREFA -->
+                        <div class="relative">
+                            <button onclick="document.getElementById('date-filter-menu').classList.toggle('hidden'); document.getElementById('assignee-filter-menu').classList.add('hidden'); document.getElementById('priority-filter-menu').classList.add('hidden'); event.stopPropagation();" class="bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                                <span class="material-symbols-outlined text-[18px]">calendar_today</span> <span id="date-filter-label">Prazo</span>
+                            </button>
+                            <div id="date-filter-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 p-3 text-left">
+                                <div class="font-bold text-xs uppercase text-gray-500 mb-2">Filtrar por Data</div>
+                                <input type="date" id="dashboard-date-filter" onchange="app.handleDateFilter(this.value)" class="w-full rounded-lg text-xs p-2 dark:bg-[#1e293b] dark:text-white border-gray-200 dark:border-white/10 focus:ring-primary outline-none">
+                            </div>
+                        </div>
+
                         <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-lg ml-2"><span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa</button>
                     </div>
                 </div>
@@ -161,14 +165,13 @@
         </div>
     </section>
 
-    <!-- NOVA TAREFA -->
     <section id="page-nova-tarefa" class="page-section max-w-4xl mx-auto text-left">
         <div class="bg-white dark:bg-[#1a1c22] rounded-3xl p-8 border dark:border-white/10 shadow-2xl">
             <h3 class="text-2xl font-black mb-8 dark:text-white">Criar Nova Tarefa</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-5">
                     <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Título</label><input type="text" id="nova-titulo" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
-                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="nova-desc" class="w-full h-40 rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary outline-none mt-1"></textarea></div>
+                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="nova-desc" class="w-full h-40 rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary mt-1"></textarea></div>
                 </div>
                 <div class="space-y-5">
                     <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Equipe Responsável</label><div id="task-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar mt-1"></div></div>
@@ -185,10 +188,8 @@
         </div>
     </section>
 
-    <!-- DETALHES -->
     <section id="page-detalhes" class="page-section"><div id="details-view-content" class="max-w-6xl mx-auto flex flex-col gap-6 text-left"></div></section>
 
-    <!-- PERFIL -->
     <section id="page-perfil" class="page-section max-w-2xl mx-auto">
         <div class="bg-white dark:bg-[#1a1c22] p-10 rounded-3xl border dark:border-white/10 shadow-xl text-center">
             <div class="relative w-32 h-32 mx-auto mb-8">
@@ -212,14 +213,13 @@
         </div>
     </section>
 
-    <!-- ALTERAR SENHA -->
     <section id="page-reset-password" class="page-section max-w-md mx-auto text-left">
         <div class="bg-white dark:bg-[#1a1c22] p-10 rounded-3xl border dark:border-white/10 shadow-xl">
             <h2 class="text-2xl font-black mb-8 dark:text-white flex items-center gap-2"><span class="material-symbols-outlined text-primary">security</span> Segurança</h2>
             <div class="flex flex-col gap-5">
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Confirme</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
+                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none"></div>
+                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none"></div>
+                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Confirme</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none"></div>
                 <div class="flex gap-3 mt-4">
                     <button onclick="app.navigate('perfil')" class="flex-1 bg-gray-100 dark:bg-white/5 py-4 rounded-xl font-bold text-gray-500 uppercase text-xs transition-all hover:brightness-90">Voltar</button>
                     <button onclick="app.handlePasswordUpdate()" class="flex-[2] bg-primary text-white py-4 rounded-xl font-black shadow-lg uppercase text-xs hover:brightness-110 transition-all">Confirmar</button>
@@ -229,9 +229,7 @@
     </section>
 </main>
 
-<!-- MODAIS GLOBAIS -->
 <div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
-    <!-- SUBTAREFA FORM -->
     <div id="modal-subtask-form" class="modal-box hidden bg-white dark:bg-[#1a1c22] w-full max-w-xl rounded-3xl p-8 text-left border dark:border-white/10 shadow-2xl">
         <h3 id="subtask-form-title" class="text-xl font-black mb-6 uppercase text-primary">Subtarefa</h3>
         <div class="flex flex-col gap-4">
@@ -246,7 +244,6 @@
         </div>
     </div>
     
-    <!-- EDITAR TAREFA -->
     <div id="modal-edit-task" class="modal-box hidden bg-white dark:bg-[#1a1c22] w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto border dark:border-white/10 text-left shadow-2xl">
         <h3 class="text-xl font-black mb-8 uppercase text-primary">Editar Tarefa</h3>
         <div class="flex flex-col gap-4">
@@ -261,7 +258,6 @@
         </div>
     </div>
     
-    <!-- SUBTAREFA VIEW -->
     <div id="modal-subtask-view" class="modal-box hidden bg-white dark:bg-[#1a1c22] w-full max-w-6xl rounded-3xl h-[85vh] overflow-hidden flex flex-col text-left border dark:border-white/10 shadow-2xl">
         <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden"></div>
     </div>
