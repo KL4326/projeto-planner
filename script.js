@@ -22,7 +22,7 @@ const CONFIG = {
 const app = {
     currentTaskId: null, activeSid: null, editSubId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
-    filters: { status: "Todas", search: "", assignees: [], priorities: [] },
+    filters: { status: "Todas", search: "", assignees: [], priorities: [], dueDate: "" },
 
     init() { this.bindEvents(); this.checkAuth(); this.initTheme(); this.listenToNotifications(); },
     initTheme() { if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); },
@@ -178,8 +178,13 @@ const app = {
             
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
-                if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0 || this.filters.dueDate !== "") clearBtn.classList.remove('hidden');
-                else clearBtn.classList.add('hidden');
+                if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0 || this.filters.dueDate !== "") {
+                    clearBtn.classList.remove('hidden');
+                    clearBtn.classList.add('flex');
+                } else {
+                    clearBtn.classList.add('hidden');
+                    clearBtn.classList.remove('flex');
+                }
             }
 
             const sorted = [...this.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
@@ -199,7 +204,7 @@ const app = {
                 return matchSearch && matchAssignee && matchPriority && matchDate; 
             });
 
-            // 2. Processamento estatístico de volume c/ isolamento da aba "Atrasadas" (Divergência Zero)
+            // 2. Processamento estatístico de volume c/ isolamento da aba "Atrasadas"
             const stats = { 'Em aberto': 0, 'Em andamento': 0, 'Atrasadas': 0, 'Concluídas': 0, 'Canceladas': 0 };
             baseFiltered.forEach(t => { 
                 const sReal = t.status || 'Em aberto';
@@ -308,6 +313,12 @@ const app = {
         }));
     },
 
+    async updateTaskStatus(id, newStatus) { 
+        await updateDoc(doc(db, "tarefas", id), { status: newStatus }); 
+        const d = await getDoc(doc(db,"tarefas",id));
+        await this.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${newStatus}`); 
+    },
+
     listenToSubtasks(tid) {
         this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
@@ -334,10 +345,10 @@ const app = {
                 <div class="flex flex-col border-t dark:border-white/5 pt-4 text-left"><span class="text-[9px] font-black uppercase text-gray-400 mb-2">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:opacity-70 transition-all"><span class="material-symbols-outlined text-sm">attach_file</span> ANEXAR</button></div>
                 <div class="flex gap-2 mt-auto pt-6"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md transition-all">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-4 rounded-xl hover:bg-red-50 hover:text-white transition-all"><span class="material-symbols-outlined text-sm">delete</span></button></div>
             </div>
-            <div class="flex-1 flex flex-col bg-white dark:bg-black/40 text-left">
+            <div class="flex-1 flex flex-col bg-gray-50 dark:bg-black/40 text-left">
                 <div class="p-4 border-b dark:border-white/10 font-black text-[10px] uppercase text-gray-400">Chat Interno</div>
                 <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-gray-50 dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
+                <div class="p-4 border-t dark:border-white/10 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-[#1a1c22] border-none rounded-xl px-4 text-sm outline-none dark:text-white shadow-inner" placeholder="Pressione Enter..."><button onclick="app.sendSubComment()" class="bg-primary text-white size-10 rounded-xl flex items-center justify-center shadow-lg transition-all"><span class="material-symbols-outlined">send</span></button></div>
             </div>
         `;
         const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2 bg-white dark:bg-white/5 border dark:border-white/10 text-[9px] font-bold rounded shadow-sm hover:text-primary transition-all">${a.name}</a>`; });
@@ -345,11 +356,54 @@ const app = {
         this.listenToSubChat(sid);
     },
 
+    async sendSubComment() { 
+        const i = document.getElementById('sub-chat-input'); 
+        if(!i || !i.value.trim()) return; 
+        await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { 
+            text: i.value, 
+            authorName: auth.currentUser.displayName, 
+            createdBy: auth.currentUser.uid, 
+            ts: Date.now() 
+        }); 
+        i.value = ''; 
+    },
+
+    listenToSubChat(sid) { 
+        this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
+            const c = document.getElementById('sub-chat-messages'); if(!c) return; 
+            const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
+            c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[90%] font-medium">${d.text || ''}</div></div>`).join(''); 
+            c.scrollTop = c.scrollHeight; 
+        })); 
+    },
+
     // --- REUTILIZÁVEIS ---
+    async openEditModal() { 
+        const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); const t = d.data(); 
+        document.getElementById('edit-task-title').value = t.title || ""; 
+        document.getElementById('edit-task-desc').value = t.description || ""; 
+        document.getElementById('edit-task-priority').value = t.priority || "Média"; 
+        document.getElementById('edit-task-date').value = t.dueDate || ""; 
+        document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); 
+        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
+        document.getElementById('modal-edit-task').classList.remove('hidden'); 
+    },
+    async handleUpdateTask() { const title = document.getElementById('edit-task-title').value; const resps = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value); await updateDoc(doc(db, "tarefas", this.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); await this.addLog(`✏️ Editou a tarefa: "${title}"`); this.closeModal(); },
+    
+    openSubtaskForm(sid = null) { 
+        this.editSubId = sid; this.closeModal(); 
+        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
+        document.getElementById('modal-subtask-form').classList.remove('hidden'); 
+        if(sid) { getDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title || ""; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "Média"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); }); } 
+        else { document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } 
+    },
+    async handleSaveSubtask() { const t = document.getElementById('sub-title-inp').value; if(!t) return; const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; if (this.editSubId) { await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); await this.addLog(`✏️ Editou a subtarefa: "${t}"`); } else { await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); await this.addLog(`➕ Criou subtarefa: "${t}"`); } this.closeModal(); },
+    
     cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
     updateAvatar(u) { const av = document.getElementById('header-avatar'); if(u.photoURL) { av.innerText = ''; av.style.backgroundImage = `url('${u.photoURL}')`; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.getElementById('modal-backdrop').classList.remove('flex'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
-    showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
+    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Concluiu uma etapa" : "⭕ Marcou como pendente"); },
+    deleteSub(sid) { if(confirm("Remover?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.addLog("🗑️ Removeu subtarefa"); this.closeModal(); } },
     
     loadUsers() { 
         onSnapshot(collection(db, "usuarios"), (snap) => { 
@@ -366,6 +420,9 @@ const app = {
         }); 
     },
     
+    showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/10`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> ${m}`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); },
+    
+    // --- RANKING ---
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; 
         const pts = {}; 
@@ -393,7 +450,17 @@ const app = {
         if(emailInput) emailInput.value = '';
         if(passInput) passInput.value = '';
         signOut(auth); 
-    }
+    },
+    
+    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",this.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); this.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); this.showToast("Anexo enviado!"); }; r.readAsDataURL(f); }; inp.click(); },
+    async handleDeleteTask(id) { if(confirm("Excluir tarefa?")) { const d = await getDoc(doc(db,"tarefas",id)); const title = d.data().title || 'Tarefa'; await deleteDoc(doc(db,"tarefas",id)); await this.addLog(`🗑️ Excluiu: "${title}"`); this.navigate('dashboard'); } },
+    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(u.photoURL) { av.style.backgroundImage = `url('${u.photoURL}')`; av.innerText = ''; } else av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); },
+    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value, photoURL: this.tempPhotoBase64 || auth.currentUser.photoURL }); await setDoc(doc(db,"usuarios",auth.currentUser.uid), { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value, foto: this.tempPhotoBase64 || auth.currentUser.photoURL }, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; this.showToast("Perfil salvo!"); this.navigate('dashboard'); } catch(e) { this.showToast("Erro ao salvar", "error"); } },
+    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); document.getElementById('photo-options').classList.add('hidden'); this.tempPhotoBase64 = ""; } },
+    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return this.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.showToast("Senha alterada!"); this.navigate('perfil'); document.getElementById('current-password-input').value = ''; document.getElementById('new-password-input').value = ''; document.getElementById('confirm-password-input').value = ''; } catch(e) { this.showToast("Senha atual incorreta.", "error"); } },
+    compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
+    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-gray-400 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-gray-100 dark:bg-white/10 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-xs shadow-sm max-w-[85%] font-medium">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; }
 };
 
 window.app = app;
