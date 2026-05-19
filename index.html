@@ -102,7 +102,7 @@
                     <h2 class="text-xl font-bold dark:text-white uppercase tracking-tight">Lista de Tarefas <span id="taskCount" class="text-gray-400 text-sm font-medium">(0)</span></h2>
                     <div class="flex items-center gap-3">
                         
-                        <button id="clear-filters-btn" onclick="app.clearFilters()" class="hidden bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400 px-3 py-2.5 rounded-xl text-xs font-black flex items-center gap-1 shadow-sm transition-all hover:brightness-95">
+                        <button id="clear-filters-btn" onclick="app.clearFilters()" class="hidden bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400 px-3 py-2.5 rounded-xl text-xs font-black items-center gap-1 shadow-sm transition-all hover:brightness-95">
                             <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Limpar
                         </button>
 
@@ -171,7 +171,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-5">
                     <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Título</label><input type="text" id="nova-titulo" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
-                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="nova-desc" class="w-full h-40 rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary mt-1"></textarea></div>
+                    <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Descrição</label><textarea id="nova-desc" class="w-full h-40 rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white focus:ring-primary outline-none mt-1"></textarea></div>
                 </div>
                 <div class="space-y-5">
                     <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Equipe Responsável</label><div id="task-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar mt-1"></div></div>
@@ -217,9 +217,9 @@
         <div class="bg-white dark:bg-[#1a1c22] p-10 rounded-3xl border dark:border-white/10 shadow-xl">
             <h2 class="text-2xl font-black mb-8 dark:text-white flex items-center gap-2"><span class="material-symbols-outlined text-primary">security</span> Segurança</h2>
             <div class="flex flex-col gap-5">
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none"></div>
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none"></div>
-                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Confirme</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none"></div>
+                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
+                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
+                <div><label class="text-[10px] font-bold uppercase text-gray-500 ml-1">Confirme</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:bg-white/5 p-4 dark:text-white outline-none focus:ring-primary mt-1"></div>
                 <div class="flex gap-3 mt-4">
                     <button onclick="app.navigate('perfil')" class="flex-1 bg-gray-100 dark:bg-white/5 py-4 rounded-xl font-bold text-gray-500 uppercase text-xs transition-all hover:brightness-90">Voltar</button>
                     <button onclick="app.handlePasswordUpdate()" class="flex-[2] bg-primary text-white py-4 rounded-xl font-black shadow-lg uppercase text-xs hover:brightness-110 transition-all">Confirmar</button>
