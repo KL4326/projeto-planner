@@ -38,6 +38,7 @@
         .page-section { display: none; }
         .page-section.active { display: block !important; }
         #page-login.active { display: flex !important; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 9999; background-color: #0f172a; }
+        .subtask-done { text-decoration: line-through; opacity: 0.4; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #c0c8c7; border-radius: 20px; }
@@ -171,7 +172,7 @@
     </section>
 
     <section id="page-calendario" class="page-section">
-        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-[1200px] mx-auto bento-highlight">
+        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-[1400px] mx-auto bento-highlight">
             <div class="flex items-center justify-between mb-8">
                 <h2 id="calendar-month-year" class="font-display text-2xl font-bold text-primary dark:text-white capitalize flex items-center gap-3">...</h2>
                 <div class="flex gap-2">
@@ -271,7 +272,7 @@
     </button>
 </nav>
 
-<div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
+<div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
     <div id="modal-subtask-form" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-xl rounded-3xl p-8 text-left border dark:border-white/5 shadow-2xl">
         <h3 id="subtask-form-title" class="font-display text-xl font-bold text-primary dark:text-white mb-6 border-b dark:border-white/5 pb-3">Adicionar Subtarefa</h3>
         <div class="flex flex-col gap-5">
