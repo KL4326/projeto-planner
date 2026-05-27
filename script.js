@@ -75,7 +75,6 @@ const app = {
         document.addEventListener('click', () => { 
             document.getElementById('notif-menu')?.classList.add('hidden'); 
             document.getElementById('profile-menu')?.classList.add('hidden'); 
-            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
         });
         
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
@@ -170,31 +169,36 @@ const app = {
         }); 
     },
 
-    toggleAssigneeFilter(name, isChecked) {
-        if(isChecked) { if(!this.filters.assignees.includes(name)) this.filters.assignees.push(name); } 
-        else { this.filters.assignees = this.filters.assignees.filter(n => n !== name); }
-        document.getElementById('assignee-filter-count').innerText = this.filters.assignees.length > 0 ? `Equipe (${this.filters.assignees.length})` : 'Equipe';
-        this.renderDashboard();
-    },
+    // Nova Lógica Mestre e Síncrona de Filtros (Lê do HTML)
+    applyFilters() {
+        const eqCheckboxes = document.querySelectorAll('#assignee-filter-list input:checked');
+        this.filters.assignees = Array.from(eqCheckboxes).map(cb => cb.value);
+        
+        const prioCheckboxes = document.querySelectorAll('#priority-filter-menu input:checked');
+        this.filters.priorities = Array.from(prioCheckboxes).map(cb => cb.value);
+        
+        const dateInput = document.getElementById('dashboard-date-filter');
+        this.filters.dueDate = dateInput ? dateInput.value : '';
 
-    togglePriorityFilter(val, isChecked) {
-        if(isChecked) { if(!this.filters.priorities.includes(val)) this.filters.priorities.push(val); } 
-        else { this.filters.priorities = this.filters.priorities.filter(p => p !== val); }
-        this.renderDashboard();
-    },
+        const countEq = this.filters.assignees.length;
+        document.getElementById('assignee-filter-count').innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
+        
+        const countPrio = this.filters.priorities.length;
+        document.getElementById('priority-filter-count').innerText = countPrio > 0 ? `Prioridade (${countPrio})` : 'Prioridade';
+        
+        const labelDate = document.getElementById('date-filter-label');
+        if(labelDate) labelDate.innerText = this.filters.dueDate ? this.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
 
-    handleDateFilter(val) {
-        this.filters.dueDate = val;
         this.renderDashboard();
     },
 
     clearFilters() {
-        this.filters.assignees = []; this.filters.priorities = []; this.filters.dueDate = "";
         document.querySelectorAll('#assignee-filter-list input[type="checkbox"]').forEach(cb => cb.checked = false);
         document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
-        if(document.getElementById('dashboard-date-filter')) document.getElementById('dashboard-date-filter').value = '';
-        document.getElementById('assignee-filter-count').innerText = 'Equipe';
-        this.renderDashboard();
+        const dateInp = document.getElementById('dashboard-date-filter');
+        if(dateInp) dateInp.value = '';
+        
+        this.applyFilters();
     },
 
     renderDashboard() {
@@ -254,7 +258,6 @@ const app = {
                 
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
-                // Cores dinâmicas injetadas manualmente para evitar purga do Tailwind
                 const statusColors = {
                     'Em aberto': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
                     'Em andamento': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
@@ -281,16 +284,18 @@ const app = {
                 });
 
                 const borderClass = isAtrasada ? 'border-red-500' : 'border-transparent dark:border-white/5';
+                const rowId = `task-row-${t.id}`;
                 
                 c.innerHTML += `
-                    <div class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
+                    <div id="${rowId}" class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-wrap items-center gap-3 mb-1.5">
                                 <h4 class="font-display font-bold text-primary dark:text-white truncate text-lg ${statusName==='Concluída'?'line-through opacity-50':''}">${title}</h4>
                                 <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${pColor} flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">flag</span>${pLabel}</span>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium">
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${pColor} flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">flag</span>${pLabel}</span>
+                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
                             </div>
                         </div>
@@ -420,13 +425,17 @@ const app = {
         grid.innerHTML = '';
 
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        monthYearLabel.innerText = `${meses[this.currentMonth]} de ${this.currentYear}`;
+        
+        const currentMonthPrefix = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
+        const totalTarefasMes = this.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
+        
+        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-sm text-primary dark:text-gray-400 ml-2">(${totalTarefasMes} Tarefas)</span>`;
 
         const primeiroDiaSemana = new Date(this.currentYear, this.currentMonth, 1).getDay();
         const totalDiasMes = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
 
         for(let i = 0; i < primeiroDiaSemana; i++) {
-            grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[90px]"></div>`;
+            grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`;
         }
 
         for(let dia = 1; dia <= totalDiasMes; dia++) {
@@ -437,13 +446,13 @@ const app = {
             const tarefasDoDia = this.allTasks.filter(t => t.dueDate === dateStr);
             let indicatorsHtml = '';
             tarefasDoDia.forEach(t => {
-                indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`;
+                indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`;
             });
 
             grid.innerHTML += `
-                <div class="p-3 bg-white dark:bg-[#151c2c] rounded-2xl min-h-[90px] border border-gray-100 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div class="p-3 bg-white dark:bg-[#151c2c] rounded-2xl min-h-[140px] border border-gray-100 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-shadow">
                     <span class="text-xs font-black text-on-surface-variant/80 text-left dark:text-gray-400">${dia}</span>
-                    <div class="flex-grow overflow-y-auto custom-scrollbar flex flex-col max-h-20 mt-1 pr-1">${indicatorsHtml}</div>
+                    <div class="flex-grow overflow-y-auto custom-scrollbar flex flex-col mt-1 pr-1">${indicatorsHtml}</div>
                 </div>
             `;
         }
@@ -519,13 +528,18 @@ const app = {
         }));
     },
     async saveReminder() {
-        const title = document.getElementById('lembrete-title-inp').value; if(!title) return;
-        const desc = document.getElementById('lembrete-desc-inp').value;
-        const d = new Date();
-        const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: hoje, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
-        document.getElementById('lembrete-title-inp').value = ''; document.getElementById('lembrete-desc-inp').value = '';
-        this.closeModal();
+        try {
+            const title = document.getElementById('lembrete-title-inp').value; if(!title) return;
+            const desc = document.getElementById('lembrete-desc-inp').value;
+            const d = new Date();
+            const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: hoje, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
+            document.getElementById('lembrete-title-inp').value = ''; document.getElementById('lembrete-desc-inp').value = '';
+            this.closeModal();
+            this.showToast("Lembrete diário gravado!");
+        } catch(e) {
+            console.error(e);
+        }
     },
     toggleReminder(id, val) { updateDoc(doc(db, "lembretes", id), { completed: val }); },
     deleteReminder(id) { if(confirm('Apagar lembrete?')) deleteDoc(doc(db, "lembretes", id)); },
@@ -563,7 +577,6 @@ const app = {
         this.listenToSubChat(sid);
     },
     
-    // Injeção de usuários nos checkboxes para edição e visualização
     loadUsers() { 
         onSnapshot(collection(db, "usuarios"), (snap) => { 
             this.userMap = {};
@@ -575,7 +588,7 @@ const app = {
             }); 
             const filterEl = document.getElementById('assignee-filter-list');
             if(filterEl) {
-                filterEl.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-1.5 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${n}" onchange="app.toggleAssigneeFilter(this.value, this.checked)" class="rounded text-primary focus:ring-0 w-4 h-4" ${this.filters.assignees.includes(n) ? 'checked' : ''}><span class="text-xs font-bold dark:text-gray-300">${n}</span></label>`).join('');
+                filterEl.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-1.5 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all has-[:checked]:bg-primary/10 has-[:checked]:text-primary dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400"><input type="checkbox" value="${n}" onchange="app.applyFilters()" class="hidden"><span class="text-xs font-bold dark:text-gray-300">${n}</span></label>`).join('');
             }
         }); 
     },
