@@ -49,7 +49,7 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
         
-        document.querySelectorAll('#bottom-nav button').forEach(b => {
+        document.querySelectorAll('#bottom-nav b').forEach(b => {
             b.className = "flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:text-gray-400 dark:hover:text-white transition-all font-display text-[11px] font-semibold w-24 h-14 rounded-full";
         });
         const activeNavBtn = document.getElementById(`nav-btn-${pageId === 'dashboard' ? 'dashboard' : pageId}`);
@@ -80,9 +80,6 @@ const app = {
         document.addEventListener('click', () => { 
             document.getElementById('notif-menu')?.classList.add('hidden'); 
             document.getElementById('profile-menu')?.classList.add('hidden'); 
-            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
-            document.getElementById('priority-filter-menu')?.classList.add('hidden');
-            document.getElementById('date-filter-menu')?.classList.add('hidden');
         });
         
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
@@ -182,7 +179,6 @@ const app = {
         }); 
     },
 
-    // Nova Lógica Mestre e Síncrona de Filtros (Lê do HTML)
     applyFilters() {
         const eqCheckboxes = document.querySelectorAll('#assignee-filter-list input:checked');
         this.filters.assignees = Array.from(eqCheckboxes).map(cb => cb.value);
@@ -299,16 +295,16 @@ const app = {
                 const rowId = `task-row-${t.id}`;
                 
                 c.innerHTML += `
-                    <div id="${rowId}" class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
+                    <div id="${rowId}" class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cubic-bezier bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-wrap items-center gap-3 mb-1.5">
                                 <h4 class="font-display font-bold text-primary dark:text-white truncate text-lg ${statusName==='Concluída'?'line-through opacity-50':''}">${title}</h4>
                                 <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium">
-                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
-                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
                                 <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${pColor} flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">flag</span>${pLabel}</span>
+                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
                             </div>
                         </div>
                         <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0 pt-3 md:pt-0 border-t dark:border-white/5 md:border-none">
@@ -325,18 +321,6 @@ const app = {
                 this.calculateTaskProgress(t.id);
             });
         } catch (e) {}
-    },
-
-    calculateTaskProgress(tid) {
-        onSnapshot(collection(db, "tarefas", tid, "subtarefas"), s => {
-            const total = s.size;
-            const completed = s.docs.filter(d => d.data().completed === true).length;
-            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-            const bar = document.getElementById(`progress-bar-${tid}`);
-            const txt = document.getElementById(`progress-text-${tid}`);
-            if(bar) bar.style.width = `${pct}%`;
-            if(txt) txt.innerText = `${pct}%`;
-        });
     },
 
     renderStats(s, total) {
@@ -441,7 +425,7 @@ const app = {
         const currentMonthPrefix = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
         const totalTarefasMes = this.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
         
-        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-sm text-primary dark:text-gray-400 ml-2 font-bold bg-surface-container dark:bg-white/5 px-3 py-1 rounded-full">(${totalTarefasMes} Tarefas)</span>`;
+        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest bg-surface-container dark:bg-white/5 px-3 py-1.5 rounded-xl">(${totalTarefasMes} Demandas)</span>`;
 
         const primeiroDiaSemana = new Date(this.currentYear, this.currentMonth, 1).getDay();
         const totalDiasMes = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
@@ -590,7 +574,6 @@ const app = {
         this.listenToSubChat(sid);
     },
     
-    // Injeção de usuários nos checkboxes para edição e visualização
     loadUsers() { 
         onSnapshot(collection(db, "usuarios"), (snap) => { 
             this.userMap = {};
@@ -605,6 +588,17 @@ const app = {
                 filterEl.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-1.5 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all has-[:checked]:bg-primary/10 has-[:checked]:text-primary dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400"><input type="checkbox" value="${n}" onchange="app.applyFilters()" class="hidden"><span class="text-xs font-bold dark:text-gray-300">${n}</span></label>`).join('');
             }
         }); 
+    },
+    
+    renderRanking() { 
+        const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
+        this.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
+        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
+        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
+            let crown = ''; const svg = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svg}</span>`; else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svg}</span>`; else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svg}</span>`;
+            return `<div class="flex items-center gap-4"><div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div><div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="font-black text-right dark:text-white text-lg">${r[1]}</div></div>`;
+        }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
     },
     
     cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
@@ -633,7 +627,6 @@ const app = {
         } 
     },
     
-    // Perfil lendo/salvando string Base64 direto no Firestore ao invés do Auth.photoURL (Burlando limite)
     async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; 
         const av = document.getElementById('profile-page-avatar'); 
         if(dt.foto || u.photoURL) { av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; av.innerText = ''; } else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; }
@@ -661,12 +654,12 @@ const app = {
     
     compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
     
-    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     listenToSubChat(sid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
-    async openEditModal() { const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); const t = d.data(); document.getElementById('edit-task-title').value = t.title || ""; document.getElementById('edit-task-desc').value = t.description || ""; document.getElementById('edit-task-priority').value = t.priority || "Média"; document.getElementById('edit-task-date').value = t.dueDate || ""; document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-edit-task').classList.remove('hidden'); },
-    async handleUpdateTask() { const title = document.getElementById('edit-task-title').value; const resps = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value); await updateDoc(doc(db, "tarefas", this.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); await this.addLog(`✏️ Editou a tarefa: "${title}"`); this.closeModal(); },
+    
+    async onEditModal() { const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); const t = d.data(); document.getElementById('edit-task-title').value = t.title || ""; document.getElementById('edit-task-desc').value = t.description || ""; document.getElementById('edit-task-priority').value = t.priority || "Média"; document.getElementById('edit-task-date').value = t.dueDate || ""; document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-edit-task').classList.remove('hidden'); },
     openSubtaskForm(sid = null) { this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden'); if(sid) { getDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title || ""; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "Média"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); }); } else { document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } },
     async handleSaveSubtask() { const t = document.getElementById('sub-title-inp').value; if(!t) return; const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; if (this.editSubId) { await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); } else { await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); } this.closeModal(); },
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
