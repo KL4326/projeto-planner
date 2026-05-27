@@ -38,6 +38,11 @@ const app = {
         localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); 
     },
 
+    getTodayStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+
     navigate(pageId, params = null) {
         this.cleanup();
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -75,6 +80,9 @@ const app = {
         document.addEventListener('click', () => { 
             document.getElementById('notif-menu')?.classList.add('hidden'); 
             document.getElementById('profile-menu')?.classList.add('hidden'); 
+            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
+            document.getElementById('priority-filter-menu')?.classList.add('hidden');
+            document.getElementById('date-filter-menu')?.classList.add('hidden');
         });
         
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
@@ -143,7 +151,12 @@ const app = {
         onSnapshot(collection(db, "notificacoes"), snap => {
             const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
-            if (snap.size > this.lastLogCount) { badge.innerText = snap.size - this.lastLogCount; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+            if (snap.size > this.lastLogCount) { 
+                badge.innerText = snap.size - this.lastLogCount; 
+                badge.classList.remove('hidden'); 
+            } else { 
+                badge.classList.add('hidden'); 
+            }
             list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Sem registros.</p>';
             logs.slice(0, 15).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
@@ -214,8 +227,7 @@ const app = {
             }
 
             const sorted = [...this.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
-            const d = new Date();
-            const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const hoje = this.getTodayStr();
             
             let baseFiltered = sorted.filter(t => { 
                 const matchSearch = (t.title || '').toLowerCase().includes(this.filters.search.toLowerCase());
@@ -294,9 +306,9 @@ const app = {
                                 <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${pColor} flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">flag</span>${pLabel}</span>
-                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
+                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${pColor} flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">flag</span>${pLabel}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0 pt-3 md:pt-0 border-t dark:border-white/5 md:border-none">
@@ -429,7 +441,7 @@ const app = {
         const currentMonthPrefix = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
         const totalTarefasMes = this.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
         
-        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-sm text-primary dark:text-gray-400 ml-2">(${totalTarefasMes} Tarefas)</span>`;
+        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-sm text-primary dark:text-gray-400 ml-2 font-bold bg-surface-container dark:bg-white/5 px-3 py-1 rounded-full">(${totalTarefasMes} Tarefas)</span>`;
 
         const primeiroDiaSemana = new Date(this.currentYear, this.currentMonth, 1).getDay();
         const totalDiasMes = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
@@ -502,8 +514,7 @@ const app = {
     listenToReminders() {
         this.unsubs.push(onSnapshot(collection(db, "lembretes"), s => {
             const rc = document.getElementById('remindersContainer'); if(!rc) return;
-            const d = new Date();
-            const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const hoje = this.getTodayStr();
             
             const lembretesHoje = s.docs
                 .map(d => ({id: d.id, ...d.data()}))
@@ -529,14 +540,16 @@ const app = {
     },
     async saveReminder() {
         try {
-            const title = document.getElementById('lembrete-title-inp').value; if(!title) return;
-            const desc = document.getElementById('lembrete-desc-inp').value;
-            const d = new Date();
-            const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const titleInp = document.getElementById('lembrete-title-inp');
+            const descInp = document.getElementById('lembrete-desc-inp');
+            const title = titleInp.value; 
+            if(!title) return;
+            const desc = descInp.value;
+            const hoje = this.getTodayStr();
             await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: hoje, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
-            document.getElementById('lembrete-title-inp').value = ''; document.getElementById('lembrete-desc-inp').value = '';
+            titleInp.value = ''; descInp.value = '';
             this.closeModal();
-            this.showToast("Lembrete diário gravado!");
+            this.showToast("Lembrete criado com sucesso!");
         } catch(e) {
             console.error(e);
         }
@@ -577,6 +590,7 @@ const app = {
         this.listenToSubChat(sid);
     },
     
+    // Injeção de usuários nos checkboxes para edição e visualização
     loadUsers() { 
         onSnapshot(collection(db, "usuarios"), (snap) => { 
             this.userMap = {};
@@ -593,25 +607,31 @@ const app = {
         }); 
     },
     
-    renderRanking() { 
-        const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
-        this.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
-        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
-        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
-            let crown = ''; const svg = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
-            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svg}</span>`; else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svg}</span>`; else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svg}</span>`;
-            return `<div class="flex items-center gap-4"><div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div><div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="font-black text-right dark:text-white text-lg">${r[1]}</div></div>`;
-        }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
-    },
-    
     cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.getElementById('modal-backdrop').classList.remove('flex'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
+    
     toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); },
-    deleteSub(sid) { if(confirm("Remover?")) { deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.closeModal(); } },
+    deleteSub(sid) { 
+        if(confirm("Remover subtarefa?")) { 
+            deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); 
+            this.addLog("🗑️ Excluiu uma subtarefa");
+            this.closeModal(); 
+        } 
+    },
+    
     signOut() { const em = document.getElementById('login-email'); const ps = document.getElementById('login-password'); if(em) em.value = ''; if(ps) ps.value = ''; signOut(auth); },
     
     async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",this.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); this.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); this.showToast("Anexo salvo!"); }; r.readAsDataURL(f); }; inp.click(); },
-    async handleDeleteTask(id) { if(confirm("Excluir tarefa?")) { await deleteDoc(doc(db,"tarefas",id)); this.navigate('dashboard'); } },
+    
+    async handleDeleteTask(id) { 
+        if(confirm("Excluir tarefa?")) { 
+            const d = await getDoc(doc(db,"tarefas",id)); 
+            const title = d.exists() ? d.data().title : 'Tarefa';
+            await deleteDoc(doc(db,"tarefas",id)); 
+            this.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
+            this.navigate('dashboard'); 
+        } 
+    },
     
     // Perfil lendo/salvando string Base64 direto no Firestore ao invés do Auth.photoURL (Burlando limite)
     async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; 
