@@ -105,7 +105,6 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div class="lg:col-span-3 flex flex-col gap-6">
-                
                 <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight">
                     <div class="flex items-center justify-between mb-4 border-b dark:border-white/5 pb-2">
                         <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400">Filtros Avançados</h3>
@@ -115,31 +114,46 @@
                     </div>
                     <div class="space-y-6">
                         <div>
-                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3">Equipe</p>
-                            <div id="assignee-filter-list" class="flex flex-col gap-2"></div>
+                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="assignee-filter-count">Equipe</p>
+                            <div id="assignee-filter-list" class="flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1"></div>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3">Prioridade</p>
+                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="priority-filter-count">Prioridade</p>
                             <div id="priority-filter-menu" class="flex gap-2 flex-wrap">
                                 <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
-                                    <input type="checkbox" value="Alta" onchange="app.togglePriorityFilter(this.value, this.checked)" class="hidden"> Alta
+                                    <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="hidden"> Alta
                                 </label>
                                 <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
-                                    <input type="checkbox" value="Média" onchange="app.togglePriorityFilter(this.value, this.checked)" class="hidden"> Média
+                                    <input type="checkbox" value="Média" onchange="app.applyFilters()" class="hidden"> Média
                                 </label>
                                 <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
-                                    <input type="checkbox" value="Baixa" onchange="app.togglePriorityFilter(this.value, this.checked)" class="hidden"> Baixa
+                                    <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="hidden"> Baixa
                                 </label>
                             </div>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3">Prazo Específico</p>
+                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="date-filter-label">Prazo Específico</p>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">calendar_today</span>
-                                <input type="date" id="dashboard-date-filter" onchange="app.handleDateFilter(this.value)" class="w-full pl-10 pr-4 py-2.5 text-xs font-bold rounded-xl bg-surface-container dark:bg-white/5 border-none dark:text-white outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
+                                <input type="date" id="dashboard-date-filter" onchange="app.applyFilters()" class="w-full pl-10 pr-4 py-2.5 text-xs font-bold rounded-xl bg-surface-container dark:bg-white/5 border-none dark:text-white outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-6 flex flex-col gap-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="font-display text-xl font-bold text-primary dark:text-white">Explorador de Tarefas <span id="taskCount" class="text-on-surface-variant/50 text-sm ml-1 font-medium">(0)</span></h2>
+                </div>
+                <div id="taskTableBody" class="flex flex-col gap-4"></div>
+            </div>
+
+            <div class="lg:col-span-3 flex flex-col gap-6">
+                
+                <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight">
+                    <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400 mb-6 border-b dark:border-white/5 pb-2">Ranking da Equipe</h3>
+                    <div id="rankingContainer" class="space-y-5"></div>
                 </div>
 
                 <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight">
@@ -151,26 +165,13 @@
                     </div>
                     <div id="remindersContainer" class="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar pr-1"></div>
                 </div>
-            </div>
 
-            <div class="lg:col-span-6 flex flex-col gap-4">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 class="font-display text-xl font-bold text-primary dark:text-white">Explorador de Tarefas <span id="taskCount" class="text-on-surface-variant/50 text-sm ml-1 font-medium">(0)</span></h2>
-                </div>
-                <div id="taskTableBody" class="flex flex-col gap-4"></div>
-            </div>
-
-            <div class="lg:col-span-3">
-                <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight sticky top-28">
-                    <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400 mb-6 border-b dark:border-white/5 pb-2">Ranking da Equipe</h3>
-                    <div id="rankingContainer" class="space-y-5"></div>
-                </div>
             </div>
         </div>
     </section>
 
     <section id="page-calendario" class="page-section">
-        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-5xl mx-auto bento-highlight">
+        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-[1200px] mx-auto bento-highlight">
             <div class="flex items-center justify-between mb-8">
                 <h2 id="calendar-month-year" class="font-display text-2xl font-bold text-primary dark:text-white capitalize">...</h2>
                 <div class="flex gap-2">
@@ -181,7 +182,7 @@
             <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 dark:text-gray-500 mb-4">
                 <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
             </div>
-            <div id="calendar-grid" class="grid grid-cols-7 gap-3 min-h-[500px]"></div>
+            <div id="calendar-grid" class="grid grid-cols-7 gap-3 min-h-[700px]"></div>
         </div>
     </section>
 
@@ -215,12 +216,10 @@
                         <button onclick="app.handleSaveProfile()" class="bg-primary text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 w-48 shadow-md mt-2">Salvar Alterações</button>
                     </div>
                 </div>
-
                 <div id="config-tab-users" class="config-subtab hidden space-y-6">
                     <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Diretório de Usuários</h3>
                     <div id="config-users-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2"></div>
                 </div>
-
                 <div id="config-tab-security" class="config-subtab hidden space-y-6">
                     <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Segurança e Acesso</h3>
                     <div class="flex flex-col gap-5 max-w-md">
@@ -248,7 +247,7 @@
                         <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prioridade</label><select id="nova-prio" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30 cursor-pointer"><option value="Alta">Alta</option><option value="Média" selected>Média</option><option value="Baixa">Baixa</option></select></div>
                         <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prazo Final</label><input type="date" id="nova-fim" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30 cursor-pointer"></div>
                     </div>
-                    <div class="flex gap-3 pt-6 mt-2">
+                    <div class="flex gap-3 pt-6 mt-2 border-t dark:border-white/5">
                         <button onclick="app.navigate('dashboard')" class="flex-1 bg-surface-container-high dark:bg-white/5 py-4 rounded-xl font-bold text-on-surface-variant dark:text-gray-300 text-sm hover:opacity-80 transition-all">Cancelar</button>
                         <button onclick="app.criarTarefa()" class="flex-[2] bg-primary text-white py-4 rounded-xl font-bold shadow-lg text-sm transition-all hover:opacity-90">Salvar Tarefa</button>
                     </div>
