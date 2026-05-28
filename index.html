@@ -83,7 +83,7 @@
         <div class="w-full max-w-md bg-white dark:bg-[#151c2c] p-10 rounded-3xl shadow-2xl border dark:border-white/5 text-center">
             <span class="material-symbols-outlined text-6xl text-primary dark:text-white font-bold mb-4">layers</span>
             <h2 class="text-2xl font-display font-bold mb-8 text-on-surface dark:text-white tracking-tight text-left">Acesso Restrito</h2>
-            <form id="login-form" class="flex flex-col gap-4 text-left">
+            <form id="login-form" class="flex flex-col gap-4 text-left" onsubmit="app.handleLogin(event)">
                 <input id="login-email" type="email" placeholder="E-mail corporativo" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
                 <input id="login-password" type="password" placeholder="Senha" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
                 <button type="submit" class="bg-primary dark:bg-white/10 text-white font-bold py-4 rounded-2xl hover:opacity-90 shadow-lg uppercase text-sm tracking-wider mt-2 transition-all">Entrar</button>
