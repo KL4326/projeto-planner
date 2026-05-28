@@ -24,7 +24,6 @@ const app = {
     userMap: {},
     allReminders: [],
     currentReminderDate: '',
-    reminderUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -35,11 +34,21 @@ const app = {
     
     initTheme() { 
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
+        const savedColor = localStorage.getItem('primaryColor');
+        if (savedColor) {
+            document.documentElement.style.setProperty('--color-primary', savedColor);
+        }
     },
     
     toggleTheme() { 
         document.documentElement.classList.toggle('dark'); 
         localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); 
+    },
+
+    changePrimaryColor(hex) {
+        document.documentElement.style.setProperty('--color-primary', hex);
+        localStorage.setItem('primaryColor', hex);
+        app.showToast("Cor de destaque atualizada!");
     },
 
     getTodayStr() {
@@ -48,7 +57,7 @@ const app = {
     },
 
     navigate(pageId, params = null) {
-        app.cleanup();
+        this.cleanup();
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
@@ -67,12 +76,12 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.renderReminders(); }
-        if(pageId === 'calendario') app.renderCalendar();
-        if(pageId === 'configuracoes') app.showConfigTab('profile');
-        if(pageId === 'detalhes' && params) { app.renderDetails(params); }
+        if(pageId === 'dashboard') { this.renderDashboard(); this.renderRanking(); }
+        if(pageId === 'calendario') this.renderCalendar();
+        if(pageId === 'configuracoes') this.showConfigTab('profile');
+        if(pageId === 'detalhes' && params) { this.renderDetails(params); }
         
-        app.closeModal(); 
+        this.closeModal(); 
         window.scrollTo(0,0);
     },
 
@@ -350,15 +359,22 @@ const app = {
                 `;
             });
             c.innerHTML = htmlStr;
-            finalFiltered.forEach(t => app.calculateTaskProgress(t.id));
+            finalFiltered.forEach(t => app.calculateTaskProgress(t.id, t.status));
         } catch (e) { console.error("Erro na renderização", e); }
     },
 
-    calculateTaskProgress(tid) {
+    calculateTaskProgress(tid, status) {
         getDocs(collection(db, "tarefas", tid, "subtarefas")).then(s => {
             const total = s.size;
-            const completed = s.docs.filter(d => d.data().completed === true).length;
-            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+            let pct = 0;
+            
+            if (total > 0) {
+                const completed = s.docs.filter(d => d.data().completed === true).length;
+                pct = Math.round((completed / total) * 100);
+            } else if (status === 'Concluída' || status === 'Concluídas') {
+                pct = 100;
+            }
+            
             const bar = document.getElementById(`progress-bar-${tid}`);
             const txt = document.getElementById(`progress-text-${tid}`);
             if(bar) bar.style.width = `${pct}%`;
@@ -449,13 +465,15 @@ const app = {
             `;
             const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
             
+            if (app.subtaskUnsub) { app.subtaskUnsub(); }
+            if (app.chatUnsub) { app.chatUnsub(); }
             app.listenToSubtasks(id); 
             app.listenToChat(id);
         }));
     },
 
     listenToSubtasks(tid) {
-        const unsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
+        app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
             l.innerHTML = sts.length ? sts.map(st => {
@@ -463,7 +481,7 @@ const app = {
                 return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
-        app.unsubs.push(unsub);
+        app.unsubs.push(app.subtaskUnsub);
     },
 
     renderCalendar() {
@@ -558,6 +576,7 @@ const app = {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
+        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
@@ -696,8 +715,9 @@ const app = {
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
             document.getElementById('modal-subtask-view').classList.remove('hidden');
             
-            const unsubChat = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
-            app.unsubs.push(unsubChat);
+            if(app.chatUnsub) app.chatUnsub();
+            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
+            app.unsubs.push(app.chatUnsub);
             
         } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
     },
