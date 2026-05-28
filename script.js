@@ -71,20 +71,34 @@ const app = {
         this.closeModal(); window.scrollTo(0,0);
     },
 
+    // Blindagem de Eventos Nativos
     bindEvents() {
-        document.getElementById('login-form')?.addEventListener('submit', async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } catch(err) { this.showToast("Erro no login.", "error"); } });
-        document.getElementById('search-input').oninput = (e) => { this.filters.search = e.target.value; this.renderDashboard(); };
-        document.getElementById('notif-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); };
-        document.getElementById('profile-trigger').onclick = (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); };
+        const lf = document.getElementById('login-form');
+        if(lf) lf.addEventListener('submit', async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } catch(err) { this.showToast("Erro no login.", "error"); } });
+        
+        const si = document.getElementById('search-input');
+        if(si) si.oninput = (e) => { this.filters.search = e.target.value; this.renderDashboard(); };
+        
+        const nb = document.getElementById('notif-btn');
+        if(nb) nb.onclick = (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); };
+        
+        const pt = document.getElementById('profile-trigger');
+        if(pt) pt.onclick = (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); };
         
         document.addEventListener('click', () => { 
-            document.getElementById('notif-menu')?.classList.add('hidden'); 
-            document.getElementById('profile-menu')?.classList.add('hidden'); 
+            const nm = document.getElementById('notif-menu'); if(nm) nm.classList.add('hidden'); 
+            const pm = document.getElementById('profile-menu'); if(pm) pm.classList.add('hidden'); 
+            const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
         });
         
-        document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
-        document.getElementById('submit-subtask-form').onclick = () => this.handleSaveSubtask();
-        document.getElementById('profile-upload')?.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
+        const st = document.getElementById('submit-edit-task');
+        if(st) st.onclick = () => this.handleUpdateTask();
+        
+        const ss = document.getElementById('submit-subtask-form');
+        if(ss) ss.onclick = () => this.handleSaveSubtask();
+        
+        const pu = document.getElementById('profile-upload');
+        if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
     },
 
     checkAuth() { 
@@ -322,7 +336,19 @@ const app = {
             });
             c.innerHTML = htmlStr;
             finalFiltered.forEach(t => this.calculateTaskProgress(t.id));
-        } catch (e) {}
+        } catch (e) { console.error("Erro na renderização", e) }
+    },
+
+    calculateTaskProgress(tid) {
+        getDocs(collection(db, "tarefas", tid, "subtarefas")).then(s => {
+            const total = s.size;
+            const completed = s.docs.filter(d => d.data().completed === true).length;
+            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const bar = document.getElementById(`progress-bar-${tid}`);
+            const txt = document.getElementById(`progress-text-${tid}`);
+            if(bar) bar.style.width = `${pct}%`;
+            if(txt) txt.innerText = `${pct}%`;
+        }).catch(e => console.error(e));
     },
 
     renderStats(s, total) {
@@ -346,6 +372,18 @@ const app = {
         `).join('');
     },
     applyStatFilter(label) { this.filters.status = label; this.renderDashboard(); },
+
+    async criarTarefa() {
+        try {
+            const title = document.getElementById('nova-titulo').value; 
+            if(!title) { this.showToast("Título obrigatório", "error"); return; }
+            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
+            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
+            await this.addLog(`➕ Adicionou a tarefa: "${title}"`); 
+            this.navigate('dashboard');
+            this.showToast("Tarefa distribuída com sucesso!");
+        } catch(e) { console.error(e); this.showToast("Erro ao criar.", "error"); }
+    },
 
     renderDetails(id) {
         this.currentTaskId = id; const container = document.getElementById('details-view-content');
@@ -397,6 +435,17 @@ const app = {
         }));
     },
 
+    listenToSubtasks(tid) {
+        this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
+            const l = document.getElementById('subtasks-list'); if(!l) return;
+            const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
+            l.innerHTML = sts.length ? sts.map(st => {
+                const prioColor = st.priority === 'Alta' ? 'text-red-600 dark:text-red-400' : (st.priority === 'Baixa' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400');
+                return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
+            }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
+        }));
+    },
+
     // --- CALENDÁRIO CORPORATIVO ---
     renderCalendar() {
         const grid = document.getElementById('calendar-grid');
@@ -435,6 +484,12 @@ const app = {
                 </div>
             `;
         }
+    },
+    changeMonth(dir) {
+        this.currentMonth += dir;
+        if(this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
+        if(this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
+        this.renderCalendar();
     },
 
     // --- CONFIGURAÇÕES & USUÁRIOS ---
@@ -518,7 +573,7 @@ const app = {
             const titleInp = document.getElementById('lembrete-title-inp');
             const descInp = document.getElementById('lembrete-desc-inp');
             const title = titleInp.value; 
-            if(!title) return;
+            if(!title) { this.showToast("Título obrigatório", "error"); return; }
             const desc = descInp.value;
             const hoje = this.getTodayStr();
 
@@ -530,11 +585,11 @@ const app = {
             } else {
                 await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: hoje, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
                 await this.addLog(`➕ Criou lembrete: "${title}"`);
-                this.showToast("Lembrete criado com sucesso!");
+                this.showToast("Lembrete criado!");
             }
             titleInp.value = ''; descInp.value = '';
             this.closeModal();
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error(e); this.showToast("Erro ao salvar", "error"); }
     },
     async toggleReminder(id, val) { 
         await updateDoc(doc(db, "lembretes", id), { completed: val }); 
@@ -551,54 +606,78 @@ const app = {
     },
 
     // --- REUTILIZÁVEIS E GLOBAIS ---
-    loadUsers() { 
-        onSnapshot(collection(db, "usuarios"), (snap) => { 
-            this.userMap = {};
-            snap.docs.forEach(d => { this.userMap[d.id] = { uid: d.id, ...d.data() }; });
-            const opts = snap.docs.map(d => d.data().nome); 
-            ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
-                const el = document.getElementById(cid); 
-                if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${n}</span></label>`).join(''); 
-            }); 
-            const filterEl = document.getElementById('assignee-filter-list');
-            if(filterEl) {
-                filterEl.innerHTML = opts.map(n => `
-                    <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                        <input type="checkbox" value="${n}" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4" ${this.filters.assignees.includes(n) ? 'checked' : ''}>
-                        <span class="text-xs font-medium dark:text-white">${n}</span>
-                    </label>
-                `).join('');
-            }
-        }); 
+    async updateTaskStatus(id, newStatus) { 
+        let realStatus = newStatus;
+        if(newStatus === 'Concluídas') realStatus = 'Concluída';
+        if(newStatus === 'Canceladas') realStatus = 'Cancelada';
+        await updateDoc(doc(db, "tarefas", id), { status: realStatus }); 
+        const d = await getDoc(doc(db,"tarefas",id));
+        await this.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
     },
-    renderRanking() { 
-        const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
-        this.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
-        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
-        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
-            let crown = ''; const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
-            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svgIcon}</span>`; else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svgIcon}</span>`;
-            return `<div class="flex items-center gap-4"><div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div><div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="font-black text-right dark:text-white text-lg">${r[1]}</div></div>`;
-        }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
+    async openSubtaskView(sid) {
+        this.activeSid = sid; const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
+        const prioColor = d.priority === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : (d.priority === 'Baixa' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400');
+        const prazoSafe = d.dueDate ? d.dueDate.split('-').reverse().join('/') : '---';
+        const cont = document.getElementById('subtask-view-content');
+        cont.innerHTML = `
+            <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
+                <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
+                <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
+                <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
+                <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
+                <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
+            </div>
+            <div class="flex-1 flex flex-col bg-surface-container dark:bg-transparent text-left">
+                <div class="p-5 border-b border-gray-200 dark:border-white/5 font-black text-[10px] uppercase text-on-surface-variant/70 tracking-wider">Chat da Subtarefa</div>
+                <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
+                <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem..."><button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button></div>
+            </div>
+        `;
+        const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
+        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-view').classList.remove('hidden');
+        this.listenToSubChat(sid);
     },
-    changeMonth(dir) { this.currentMonth += dir; if(this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; } if(this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; } this.renderCalendar(); },
-    cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
-    closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.getElementById('modal-backdrop').classList.remove('flex'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
-    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); },
-    async deleteSub(sid) { if(confirm("Remover subtarefa?")) { const d = await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid)); const subTitle = d.exists() ? d.data().title : 'Subtarefa'; await deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); this.addLog(`🗑️ Excluiu a subtarefa: "${subTitle}"`); this.closeModal(); } },
-    signOut() { const em = document.getElementById('login-email'); const ps = document.getElementById('login-password'); if(em) em.value = ''; if(ps) ps.value = ''; signOut(auth); },
-    async handleDeleteTask(id) { if(confirm("Excluir tarefa?")) { const d = await getDoc(doc(db,"tarefas",id)); const title = d.exists() ? d.data().title : 'Tarefa'; await deleteDoc(doc(db,"tarefas",id)); this.addLog(`🗑️ Excluiu a tarefa: "${title}"`); this.navigate('dashboard'); } },
-    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(dt.foto || u.photoURL) { av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; av.innerText = ''; } else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; } },
-    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); const novaFoto = this.tempPhotoBase64; const updateObj = { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value }; if (novaFoto !== null) updateObj.foto = novaFoto; await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; const avH = document.getElementById('header-avatar'); if (novaFoto) { avH.style.backgroundImage = `url('${novaFoto}')`; avH.innerText = ''; } else if (novaFoto === "") { avH.style.backgroundImage = 'none'; avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); } this.showToast("Perfil corporativo atualizado!"); this.navigate('dashboard'); } catch(e) { this.showToast("Erro ao salvar", "error"); } },
-    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); this.tempPhotoBase64 = ""; } },
-    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return this.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); this.showToast("Senha alterada!"); this.navigate('dashboard'); } catch(e) { this.showToast("Senha atual incorreta.", "error"); } },
-    compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
-    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
-    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
-    listenToSubChat(sid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
-    async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
+    async openEditModal() { 
+        try {
+            const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); 
+            if(!d.exists()) return this.showToast("Tarefa não encontrada.", "error");
+            const t = d.data(); 
+            document.getElementById('edit-task-title').value = t.title || ""; 
+            document.getElementById('edit-task-desc').value = t.description || ""; 
+            document.getElementById('edit-task-priority').value = t.priority || "Média"; 
+            document.getElementById('edit-task-date').value = t.dueDate || ""; 
+            document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); 
+            document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
+            document.getElementById('modal-edit-task').classList.remove('hidden'); 
+        } catch(e) { console.error(e); this.showToast("Erro ao abrir edição", "error"); }
+    },
+    async handleUpdateTask() { 
+        try {
+            const title = document.getElementById('edit-task-title').value; 
+            const resps = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value); 
+            await updateDoc(doc(db, "tarefas", this.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); 
+            await this.addLog(`✏️ Editou a tarefa: "${title}"`); 
+            this.closeModal(); 
+            this.showToast("Tarefa atualizada!");
+        } catch(e) { console.error(e); this.showToast("Erro ao atualizar", "error"); }
+    },
     openSubtaskForm(sid = null) { this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden'); if(sid) { getDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title || ""; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "Média"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); }); } else { document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } },
-    async handleSaveSubtask() { const t = document.getElementById('sub-title-inp').value; if(!t) return; const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; if (this.editSubId) { await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); } else { await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); } this.closeModal(); },
+    async handleSaveSubtask() { 
+        try {
+            const t = document.getElementById('sub-title-inp').value; if(!t) return; 
+            const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); 
+            const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; 
+            if (this.editSubId) { 
+                await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); 
+                await this.addLog(`✏️ Editou a subtarefa: "${t}"`);
+            } else { 
+                await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); 
+                await this.addLog(`➕ Criou subtarefa: "${t}"`);
+            } 
+            this.closeModal(); 
+            this.showToast("Subtarefa gravada!");
+        } catch(e) { console.error(e); this.showToast("Erro", "error"); }
+    },
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
 };
 
