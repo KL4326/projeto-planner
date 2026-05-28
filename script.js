@@ -15,10 +15,6 @@ const fb = initializeApp(firebaseConfig);
 const db = getFirestore(fb);
 const auth = getAuth(fb);
 
-const CONFIG = {
-    prioridades: { 'Alta': { label: 'Alta', bg: 'bg-rose-600' }, 'Média': { label: 'Média', bg: 'bg-orange-500' }, 'Baixa': { label: 'Baixa', bg: 'bg-emerald-500' } }
-};
-
 const app = {
     currentTaskId: null, activeSid: null, editSubId: null, editReminderId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
@@ -71,7 +67,6 @@ const app = {
         this.closeModal(); window.scrollTo(0,0);
     },
 
-    // Ações de evento direto para evitar falhas de DOM Async
     async handleLogin(e) {
         e.preventDefault();
         try {
@@ -82,21 +77,32 @@ const app = {
     },
 
     bindEvents() {
-        document.getElementById('search-input')?.addEventListener('input', (e) => { this.filters.search = e.target.value; this.renderDashboard(); });
-        document.getElementById('notif-btn')?.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); });
-        document.getElementById('profile-trigger')?.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); });
+        const lf = document.getElementById('login-form');
+        if(lf) lf.addEventListener('submit', (e) => this.handleLogin(e));
+
+        const si = document.getElementById('search-input');
+        if(si) si.addEventListener('input', (e) => { this.filters.search = e.target.value; this.renderDashboard(); });
+        
+        const nb = document.getElementById('notif-btn');
+        if(nb) nb.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); });
+        
+        const pt = document.getElementById('profile-trigger');
+        if(pt) pt.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); });
         
         document.addEventListener('click', () => { 
-            document.getElementById('notif-menu')?.classList.add('hidden'); 
-            document.getElementById('profile-menu')?.classList.add('hidden'); 
-            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
-            document.getElementById('priority-filter-menu')?.classList.add('hidden');
-            document.getElementById('date-filter-menu')?.classList.add('hidden');
+            const nm = document.getElementById('notif-menu'); if(nm) nm.classList.add('hidden'); 
+            const pm = document.getElementById('profile-menu'); if(pm) pm.classList.add('hidden'); 
+            const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
         });
         
-        const st = document.getElementById('submit-edit-task'); if(st) st.onclick = () => this.handleUpdateTask();
-        const ss = document.getElementById('submit-subtask-form'); if(ss) ss.onclick = () => this.handleSaveSubtask();
-        const pu = document.getElementById('profile-upload'); if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
+        const st = document.getElementById('submit-edit-task');
+        if(st) st.onclick = () => this.handleUpdateTask();
+        
+        const ss = document.getElementById('submit-subtask-form');
+        if(ss) ss.onclick = () => this.handleSaveSubtask();
+        
+        const pu = document.getElementById('profile-upload');
+        if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
     },
 
     checkAuth() { 
@@ -154,7 +160,11 @@ const app = {
         } 
     },
 
-    async addLog(msg) { try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) {} },
+    async addLog(msg) { 
+        try { 
+            await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
+        } catch(e) { console.error(e); } 
+    },
     
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
@@ -204,9 +214,6 @@ const app = {
         const countEq = this.filters.assignees.length;
         document.getElementById('assignee-filter-count').innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
         
-        const countPrio = this.filters.priorities.length;
-        document.getElementById('priority-filter-count').innerText = countPrio > 0 ? `Prioridade (${countPrio})` : 'Prioridade';
-        
         const labelDate = document.getElementById('date-filter-label');
         if(labelDate) labelDate.innerText = this.filters.dueDate ? this.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
 
@@ -224,7 +231,7 @@ const app = {
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
+            const c = document.getElementById('taskTableBody'); if(!c) return;
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0 || this.filters.dueDate !== "") {
@@ -311,13 +318,13 @@ const app = {
                     <div id="${rowId}" class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cubic-bezier bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-wrap items-center gap-3 mb-1.5">
-                                <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
                                 <h4 class="font-display font-bold text-primary dark:text-white truncate text-lg ${statusName==='Concluída'?'line-through opacity-50':''}">${title}</h4>
+                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium mt-2">
-                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
-                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
                                 <span class="flex items-center gap-1 font-bold ${pColor} uppercase tracking-wider text-[10px]"><span class="material-symbols-outlined text-[12px]">flag</span>${pLabel}</span>
+                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
                             </div>
                         </div>
                         <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0 pt-3 md:pt-0 border-t dark:border-white/5 md:border-none">
@@ -387,9 +394,9 @@ const app = {
             (t.assignees || []).forEach(name => {
                 const uData = Object.values(this.userMap).find(u => u.nome === name);
                 if(uData && uData.foto) {
-                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
+                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm -ml-2 first:ml-0" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
                 } else {
-                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
+                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm -ml-2 first:ml-0" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
                 }
             });
 
@@ -407,7 +414,7 @@ const app = {
                     </div>
                     <div class="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/5 pt-6 md:pt-0 md:pl-8 text-left flex flex-col">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60 mb-3">Equipe Executora</span>
-                        <div class="flex flex-wrap gap-2">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
+                        <div class="flex flex-wrap gap-1">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -520,7 +527,6 @@ const app = {
 
     // --- LEMBRETES DIÁRIOS ---
     listenToReminders() {
-        // Blindagem para não duplicar o Snapshot Global de Lembretes
         if(this.reminderUnsub) return;
         this.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
             const rc = document.getElementById('remindersContainer'); if(!rc) return;
@@ -611,33 +617,6 @@ const app = {
         const d = await getDoc(doc(db,"tarefas",id));
         await this.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
     },
-    async openSubtaskView(sid) {
-        this.activeSid = sid; const d = (await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid))).data();
-        const prioColor = d.priority === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : (d.priority === 'Baixa' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400');
-        const prazoSafe = d.dueDate ? d.dueDate.split('-').reverse().join('/') : '---';
-        const cont = document.getElementById('subtask-view-content');
-        cont.innerHTML = `
-            <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
-                <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
-                <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
-                <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
-                <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
-                <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
-            </div>
-            <div class="flex-1 flex flex-col bg-surface-container dark:bg-transparent text-left">
-                <div class="p-5 border-b border-gray-200 dark:border-white/5 font-black text-[10px] uppercase text-on-surface-variant/70 tracking-wider">Chat da Subtarefa</div>
-                <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem..."><button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button></div>
-            </div>
-        `;
-        const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
-        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-view').classList.remove('hidden');
-        
-        if(this.chatUnsub) this.chatUnsub();
-        this.chatUnsub = onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
-        this.unsubs.push(this.chatUnsub);
-    },
-    
     async openEditModal() { 
         try {
             const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); 
