@@ -16,7 +16,13 @@ const db = getFirestore(fb);
 const auth = getAuth(fb);
 
 const app = {
-    currentTaskId: null, activeSid: null, editSubId: null, editReminderId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
+    currentTaskId: null, 
+    activeSid: null, 
+    editSubId: null, 
+    editReminderId: null, 
+    allTasks: [], 
+    unsubs: [], 
+    tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
     filters: { status: "Todas", search: "", assignees: [], priorities: [], dueDate: "" },
     currentYear: new Date().getFullYear(),
@@ -115,9 +121,23 @@ const app = {
             const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
         });
         
-        const st = document.getElementById('submit-edit-task'); if(st) st.onclick = () => app.handleUpdateTask();
-        const ss = document.getElementById('submit-subtask-form'); if(ss) ss.onclick = () => app.handleSaveSubtask();
-        const pu = document.getElementById('profile-upload'); if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) app.compressImage(f, (b64) => { app.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
+        const st = document.getElementById('submit-edit-task'); 
+        if(st) st.onclick = () => app.handleUpdateTask();
+        
+        const ss = document.getElementById('submit-subtask-form'); 
+        if(ss) ss.onclick = () => app.handleSaveSubtask();
+        
+        const pu = document.getElementById('profile-upload'); 
+        if(pu) pu.addEventListener('change', (e) => { 
+            const f = e.target.files[0]; 
+            if(f) {
+                app.compressImage(f, (b64) => { 
+                    app.tempPhotoBase64 = b64; 
+                    document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; 
+                    document.getElementById('profile-page-avatar').innerText = ''; 
+                }); 
+            }
+        });
     },
 
     checkAuth() { 
@@ -187,7 +207,10 @@ const app = {
     
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
-            const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
+            const list = document.getElementById('notif-list'); 
+            const badge = document.getElementById('notif-badge'); 
+            if(!list) return;
+            
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
             if (snap.size > app.lastLogCount) { 
                 badge.innerText = snap.size - app.lastLogCount; 
@@ -195,6 +218,7 @@ const app = {
             } else { 
                 badge.classList.add('hidden'); 
             }
+            
             list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Sem registros.</p>';
             logs.slice(0, 15).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
@@ -251,7 +275,9 @@ const app = {
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return;
+            const c = document.getElementById('taskTableBody'); 
+            if(!c) return;
+            
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
@@ -304,7 +330,6 @@ const app = {
                 const pLabel = t.priority || 'Média';
                 const title = t.title || 'Sem título';
                 const statusName = t.status || 'Em aberto';
-                
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
                 const statusColors = {
@@ -385,6 +410,7 @@ const app = {
     renderStats(s, total) {
         const container = document.getElementById('statsContainer');
         if(!container) return;
+        
         const cards = [ 
             {label: 'Todas', val: total, color: 'text-gray-500 dark:text-gray-400', icon: 'list'}, 
             {label: 'Em aberto', val: s['Em aberto'], color: 'text-blue-600 dark:text-blue-400', icon: 'pending_actions'}, 
@@ -393,6 +419,7 @@ const app = {
             {label: 'Concluídas', val: s['Concluídas'], color: 'text-emerald-600 dark:text-emerald-400', icon: 'verified'}, 
             {label: 'Canceladas', val: s['Canceladas'], color: 'text-slate-400 dark:text-slate-500', icon: 'cancel'} 
         ];
+        
         container.innerHTML = cards.map(c => `
             <div onclick="app.applyStatFilter('${c.label}')" class="glass-panel rounded-2xl p-5 flex flex-col justify-between h-[104px] hover:-translate-y-1 transition-all cursor-pointer border ${app.filters.status===c.label?'ring-2 ring-primary border-transparent':'border-gray-200 dark:border-white/5'} shadow-sm relative overflow-hidden bento-highlight dark:bg-[#151c2c]">
                 <div class="flex justify-between items-start">
@@ -404,7 +431,10 @@ const app = {
         `).join('');
     },
 
-    applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
+    applyStatFilter(label) { 
+        app.filters.status = label; 
+        app.renderDashboard(); 
+    },
 
     async criarTarefa() {
         try {
@@ -419,12 +449,20 @@ const app = {
     },
 
     renderDetails(id) {
-        app.currentTaskId = id; const container = document.getElementById('details-view-content');
-        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
+        app.currentTaskId = id; 
+        const container = document.getElementById('details-view-content');
+        
+        if (app.taskUnsub) { 
+            app.taskUnsub(); 
+            app.taskUnsub = null; 
+        }
         
         app.taskUnsub = onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
-            const t = d.data(); app.activeTaskData = t;
+            const t = d.data(); 
+            app.activeTaskData = t;
+            
+            const statusSafe = t.status || 'Em aberto';
             const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
             let btns = t.status === 'Concluída' || t.status === 'Cancelada' || t.status === 'Concluídas' || t.status === 'Canceladas'
@@ -464,23 +502,46 @@ const app = {
                 </div>
                 <div class="flex gap-4 mt-6"><button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button></div>
             `;
-            const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
+            
+            const al = document.getElementById('task-att-list'); 
+            (t.anexos || []).forEach(a => { 
+                al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; 
+            });
             
             app.listenToSubtasks(id); 
             app.listenToChat(id);
-        }));
+        });
+        
+        app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
-        if(app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
+        if(app.subtaskUnsub) { 
+            app.subtaskUnsub(); 
+            app.subtaskUnsub = null; 
+        }
+        
         app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
-            const l = document.getElementById('subtasks-list'); if(!l) return;
+            const l = document.getElementById('subtasks-list'); 
+            if(!l) return;
+            
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
+            
             l.innerHTML = sts.length ? sts.map(st => {
                 const prioColor = st.priority === 'Alta' ? 'text-red-600 dark:text-red-400' : (st.priority === 'Baixa' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400');
-                return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title || 'Sem título'}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
+                return `
+                    <div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')">
+                        <input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer">
+                        <div class="flex-1 flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span>
+                            <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span>
+                    </div>
+                `;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
+        app.unsubs.push(app.subtaskUnsub);
     },
 
     renderCalendar() {
@@ -498,7 +559,9 @@ const app = {
         const primeiroDiaSemana = new Date(app.currentYear, app.currentMonth, 1).getDay();
         const totalDiasMes = new Date(app.currentYear, app.currentMonth + 1, 0).getDate();
 
-        for(let i = 0; i < primeiroDiaSemana; i++) { grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`; }
+        for(let i = 0; i < primeiroDiaSemana; i++) {
+            grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`;
+        }
 
         for(let dia = 1; dia <= totalDiasMes; dia++) {
             const mFormat = String(app.currentMonth + 1).padStart(2, '0');
@@ -507,7 +570,9 @@ const app = {
 
             const tarefasDoDia = app.allTasks.filter(t => t.dueDate === dateStr);
             let indicatorsHtml = '';
-            tarefasDoDia.forEach(t => { indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`; });
+            tarefasDoDia.forEach(t => {
+                indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`;
+            });
 
             grid.innerHTML += `
                 <div class="p-3 bg-white dark:bg-[#151c2c] rounded-2xl min-h-[140px] border border-gray-100 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -571,12 +636,16 @@ const app = {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
+        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
         const rc = document.getElementById('remindersContainer'); if(!rc) return;
         const targetDate = app.currentReminderDate || app.getTodayStr();
-        const filtered = app.allReminders.filter(l => l.dueDate === targetDate).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        
+        const filtered = app.allReminders
+            .filter(l => l.dueDate === targetDate)
+            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
         if (filtered.length === 0) {
             rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete para esta data.</p>';
@@ -628,6 +697,7 @@ const app = {
             const descInp = document.getElementById('lembrete-desc-inp');
             const dateInp = document.getElementById('lembrete-date-inp');
             const title = titleInp.value; 
+            
             if(!title) { app.showToast("Título obrigatório", "error"); return; }
             const desc = descInp.value;
             const targetDate = (dateInp && dateInp.value) ? dateInp.value : app.getTodayStr();
@@ -635,17 +705,20 @@ const app = {
             if (app.editReminderId) {
                 await updateDoc(doc(db, "lembretes", app.editReminderId), { title, description: desc, dueDate: targetDate });
                 await app.addLog(`✏️ Alterou lembrete para: "${title}"`);
-                app.showToast("Lembrete updated!");
+                app.showToast("Lembrete atualizado!");
                 app.editReminderId = null;
             } else {
                 await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: targetDate, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
                 await app.addLog(`➕ Criou lembrete: "${title}"`);
                 app.showToast("Lembrete criado com sucesso!");
             }
-            titleInp.value = ''; descInp.value = '';
+            
+            titleInp.value = ''; 
+            descInp.value = '';
             app.currentReminderDate = targetDate;
             const rFilter = document.getElementById('reminder-date-filter');
             if(rFilter) rFilter.value = targetDate;
+            
             app.renderReminders();
             app.closeModal();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
@@ -666,6 +739,15 @@ const app = {
         } 
     },
 
+    async updateTaskStatus(id, newStatus) { 
+        let realStatus = newStatus;
+        if(newStatus === 'Concluídas') realStatus = 'Concluída';
+        if(newStatus === 'Canceladas') realStatus = 'Cancelada';
+        await updateDoc(doc(db, "tarefas", id), { status: realStatus }); 
+        const d = await getDoc(doc(db,"tarefas",id));
+        await app.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
+    },
+    
     async openSubtaskView(sid) {
         try {
             app.activeSid = sid; 
@@ -680,25 +762,63 @@ const app = {
             cont.innerHTML = `
                 <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
                     <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
-                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
-                    <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
-                    <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
-                    <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title || 'Sem título'}</h3>
+                            <span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span>
+                        </div>
+                        <div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs">
+                        <div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div>
+                        <div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div>
+                    </div>
+                    <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left">
+                        <span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span>
+                        <div id="sub-att-list" class="flex flex-wrap gap-2"></div>
+                        <button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button>
+                    </div>
+                    <div class="flex gap-3 mt-auto pt-8">
+                        <button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button>
+                        <button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button>
+                    </div>
                 </div>
                 <div class="flex-1 flex flex-col bg-surface-container dark:bg-transparent text-left">
                     <div class="p-5 border-b border-gray-200 dark:border-white/5 font-black text-[10px] uppercase text-on-surface-variant/70 tracking-wider">Chat da Subtarefa</div>
                     <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                    <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem..."><button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button></div>
+                    <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2">
+                        <input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem...">
+                        <button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button>
+                    </div>
                 </div>
             `;
             const sl = document.getElementById('sub-att-list'); 
-            (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
+            (d.anexos || []).forEach(a => { 
+                sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; 
+            });
             
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
             document.getElementById('modal-subtask-view').classList.remove('hidden');
             
-            if(app.chatUnsub) app.chatUnsub();
-            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
+            if(app.chatUnsub) {
+                app.chatUnsub();
+                app.chatUnsub = null;
+            }
+            
+            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
+                const c = document.getElementById('sub-chat-messages'); 
+                if(c) { 
+                    const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
+                    c.innerHTML = msgs.map(d => `
+                        <div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}">
+                            <span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span>
+                            <div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div>
+                        </div>
+                    `).join(''); 
+                    c.scrollTop = c.scrollHeight; 
+                } 
+            });
+            app.unsubs.push(app.chatUnsub);
             
         } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
     },
@@ -775,10 +895,12 @@ const app = {
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
             const opts = snap.docs.map(d => d.data().nome); 
+            
             ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
                 const el = document.getElementById(cid); 
                 if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${n}</span></label>`).join(''); 
             }); 
+            
             const filterEl = document.getElementById('assignee-filter-list');
             if(filterEl) {
                 filterEl.innerHTML = opts.map(n => `
@@ -792,13 +914,34 @@ const app = {
     },
     
     renderRanking() { 
-        const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
-        app.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
+        const rc = document.getElementById('rankingContainer'); 
+        if(!rc) return; 
+        
+        const pts = {}; 
+        app.allTasks.forEach(t => { 
+            if(t.status === "Concluída" || t.status === "Concluídas") {
+                (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
+            }
+        }); 
+        
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
         rc.innerHTML = sorted.length ? sorted.map((r, i) => {
-            let crown = ''; const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
-            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svgIcon}</span>`; else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svgIcon}</span>`;
-            return `<div class="flex items-center gap-4"><div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div><div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="font-black text-right dark:text-white text-lg">${r[1]}</div></div>`;
+            let crown = ''; 
+            const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; 
+            else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svgIcon}</span>`; 
+            else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svgIcon}</span>`;
+            
+            return `
+                <div class="flex items-center gap-4">
+                    <div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div>
+                        <div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div>
+                    </div>
+                    <div class="font-black text-right dark:text-white text-lg">${r[1]}</div>
+                </div>
+            `;
         }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
     },
     
@@ -808,6 +951,7 @@ const app = {
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
         if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
+        if (app.reminderUnsub) { app.reminderUnsub(); app.reminderUnsub = null; }
     },
     
     closeModal() { 
@@ -844,20 +988,163 @@ const app = {
             const d = await getDoc(doc(db,"tarefas",id)); 
             const title = d.exists() ? d.data().title : 'Tarefa';
             await deleteDoc(doc(db,"tarefas",id)); 
-            app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
+            await app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
             app.navigate('dashboard'); 
         } 
     },
 
-    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",app.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); await app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); app.showToast("Anexo salvo!"); }; r.readAsDataURL(f); }; inp.click(); },
-    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(dt.foto || u.photoURL) { av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; av.innerText = ''; } else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; } },
-    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); const novaFoto = app.tempPhotoBase64; const updateObj = { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value }; if (novaFoto !== null) updateObj.foto = novaFoto; await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; const avH = document.getElementById('header-avatar'); if (novaFoto) { avH.style.backgroundImage = `url('${novaFoto}')`; avH.innerText = ''; } else if (novaFoto === "") { avH.style.backgroundImage = 'none'; avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); } app.showToast("Perfil corporativo atualizado!"); app.navigate('dashboard'); } catch(e) { app.showToast("Erro ao salvar", "error"); } },
-    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); app.tempPhotoBase64 = ""; } },
-    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return app.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); app.showToast("Senha alterada!"); app.navigate('dashboard'); } catch(e) { app.showToast("Senha atual incorreta.", "error"); } },
-    compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
-    listenToChat(tid) { if(app.chatUnsub) app.chatUnsub(); app.chatUnsub = onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } }); app.unsubs.push(app.chatUnsub); },
-    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
-    showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
+    async handleFileUpload(type, id) { 
+        const inp = document.createElement('input'); 
+        inp.type = 'file'; 
+        inp.onchange = (e) => { 
+            const f = e.target.files[0]; 
+            if(!f || f.size > 800000) return alert("< 800KB"); 
+            const r = new FileReader(); 
+            r.onload = async (ev) => { 
+                const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",app.currentTaskId,"subtarefas",id); 
+                const d = await getDoc(path); 
+                const anexos = d.data().anexos || []; 
+                anexos.push({ name: f.name, data: ev.target.result }); 
+                await updateDoc(path, { anexos }); 
+                await app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); 
+                app.showToast("Anexo salvo!"); 
+            }; 
+            r.readAsDataURL(f); 
+        }; 
+        inp.click(); 
+    },
+    
+    async loadProfileData() { 
+        const u = auth.currentUser; 
+        if(!u) return; 
+        const d = await getDoc(doc(db, "usuarios", u.uid)); 
+        const dt = d.data() || {}; 
+        document.getElementById('profile-name-input').value = u.displayName || ""; 
+        document.getElementById('profile-role-input').value = dt.cargo || ""; 
+        document.getElementById('profile-bio-input').value = dt.bio || ""; 
+        const av = document.getElementById('profile-page-avatar'); 
+        if(dt.foto || u.photoURL) { 
+            av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; 
+            av.innerText = ''; 
+        } else { 
+            av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); 
+            av.style.backgroundImage = 'none'; 
+        } 
+    },
+    
+    async handleSaveProfile() { 
+        try { 
+            await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); 
+            const novaFoto = app.tempPhotoBase64; 
+            const updateObj = { 
+                nome: document.getElementById('profile-name-input').value, 
+                cargo: document.getElementById('profile-role-input').value, 
+                bio: document.getElementById('profile-bio-input').value 
+            }; 
+            if (novaFoto !== null) updateObj.foto = novaFoto; 
+            await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); 
+            
+            document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; 
+            document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; 
+            
+            const avH = document.getElementById('header-avatar'); 
+            if (novaFoto) { 
+                avH.style.backgroundImage = `url('${novaFoto}')`; 
+                avH.innerText = ''; 
+            } else if (novaFoto === "") { 
+                avH.style.backgroundImage = 'none'; 
+                avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); 
+            } 
+            app.showToast("Perfil atualizado!"); 
+            app.navigate('dashboard'); 
+        } catch(e) { app.showToast("Erro ao salvar", "error"); } 
+    },
+    
+    async removeProfilePhoto() { 
+        if(confirm("Remover foto?")) { 
+            const av = document.getElementById('profile-page-avatar'); 
+            av.style.backgroundImage = 'none'; 
+            av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); 
+            app.tempPhotoBase64 = ""; 
+        } 
+    },
+    
+    async handlePasswordUpdate() { 
+        const u = auth.currentUser; 
+        const cur = document.getElementById('current-password-input').value; 
+        const n1 = document.getElementById('new-password-input').value; 
+        const n2 = document.getElementById('confirm-password-input').value; 
+        
+        if(n1 !== n2) return app.showToast("Senhas não coincidem.", "error"); 
+        
+        try { 
+            await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); 
+            await updatePassword(u, n1); 
+            app.showToast("Senha alterada!"); 
+            app.navigate('dashboard'); 
+        } catch(e) { app.showToast("Senha atual incorreta.", "error"); } 
+    },
+    
+    compressImage(f, cb) { 
+        const r = new FileReader(); 
+        r.readAsDataURL(f); 
+        r.onload = (e) => { 
+            const img = new Image(); 
+            img.src = e.target.result; 
+            img.onload = () => { 
+                const canvas = document.createElement('canvas'); 
+                const MAX = 300; 
+                canvas.width = MAX; 
+                canvas.height = img.height * (MAX/img.width); 
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); 
+                cb(canvas.toDataURL('image/jpeg', 0.7)); 
+            }; 
+        }; 
+    },
+    
+    listenToChat(tid) { 
+        if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
+        app.chatUnsub = onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { 
+            const c = document.getElementById('chat-messages'); 
+            if(c) { 
+                const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
+                c.innerHTML = msgs.map(d => `
+                    <div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}">
+                        <span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span>
+                        <div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div>
+                    </div>
+                `).join(''); 
+                c.scrollTop = c.scrollHeight; 
+            } 
+        }); 
+        app.unsubs.push(app.chatUnsub); 
+    },
+    
+    async sendChatMessage() { 
+        const i = document.getElementById('chat-input'); 
+        if(!i.value.trim()) return; 
+        await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
+        i.value = ''; 
+    },
+    
+    async sendSubComment() { 
+        const i = document.getElementById('sub-chat-input'); 
+        if(!i || !i.value.trim()) return; 
+        await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
+        i.value = ''; 
+    },
+    
+    showToast(m, t='success') { 
+        const c = document.getElementById('toast-container'); 
+        const toast = document.createElement('div'); 
+        toast.className = `toast ${t} shadow-xl border dark:border-white/5`; 
+        toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; 
+        c.appendChild(toast); 
+        setTimeout(() => { 
+            toast.style.animation = 'fadeOut 0.3s forwards'; 
+            setTimeout(() => toast.remove(), 300); 
+        }, 3000); 
+    }
 };
 
 window.app = app;
