@@ -58,21 +58,15 @@ const app = {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     },
 
-    getUidByAssignee(assigneeStr) {
-        if (!assigneeStr) return '';
-        if (app.userMap[assigneeStr]) return assigneeStr;
-        let exactUser = Object.values(app.userMap).find(u => u.nome === assigneeStr);
-        if (exactUser) return exactUser.uid;
-        let looseUser = Object.values(app.userMap).find(u => 
-            u.nome.toLowerCase().includes(assigneeStr.toLowerCase()) || 
-            assigneeStr.toLowerCase().includes(u.nome.toLowerCase())
-        );
-        if (looseUser) return looseUser.uid;
-        return assigneeStr;
+    // Função salva-vidas para achar as informações cruzadas e retrocompatíveis
+    getUserData(val) {
+        let u = app.userMap[val];
+        if (!u) u = Object.values(app.userMap).find(x => x.nome === val);
+        return u || { nome: val, foto: null, uid: val };
     },
 
     navigate(pageId, params = null) {
-        this.cleanup();
+        app.cleanup();
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
@@ -179,6 +173,19 @@ const app = {
         }); 
     },
 
+    updateAvatar(u, fotoDb, name) { 
+        const av = document.getElementById('header-avatar'); 
+        const fotoReal = fotoDb || u.photoURL;
+        const nomeReal = name || u.displayName || u.email;
+        if(fotoReal) { 
+            av.innerText = ''; 
+            av.style.backgroundImage = `url('${fotoReal}')`; 
+        } else { 
+            av.innerText = nomeReal.substring(0,2).toUpperCase(); 
+            av.style.backgroundImage = 'none';
+        } 
+    },
+
     async addLog(msg) { 
         try { 
             await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
@@ -255,7 +262,7 @@ const app = {
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
+            const c = document.getElementById('taskTableBody'); if(!c) return;
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
@@ -272,7 +279,7 @@ const app = {
                 const matchSearch = (t.title || '').toLowerCase().includes(app.filters.search.toLowerCase());
                 
                 const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => {
-                    return app.filters.assignees.includes(app.getUidByAssignee(a));
+                    return app.filters.assignees.includes(app.getUserData(a).uid);
                 }));
                 
                 const matchPriority = app.filters.priorities.length === 0 || app.filters.priorities.includes(t.priority || 'Média');
@@ -332,15 +339,11 @@ const app = {
                 
                 let avatarsHtml = '';
                 (t.assignees || []).forEach(assigneeStr => {
-                    const uid = app.getUidByAssignee(assigneeStr);
-                    const uData = app.userMap[uid];
-                    const dispName = uData ? uData.nome : assigneeStr;
-                    const foto = uData ? uData.foto : null;
-
-                    if(foto) {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${foto}')" title="${dispName}"></div>`;
+                    const uData = app.getUserData(assigneeStr);
+                    if(uData.foto) {
+                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${uData.nome}"></div>`;
                     } else {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${dispName}">${dispName.substring(0,2).toUpperCase()}</div>`;
+                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${uData.nome}">${uData.nome.substring(0,2).toUpperCase()}</div>`;
                     }
                 });
 
@@ -418,6 +421,18 @@ const app = {
 
     applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
+    async criarTarefa() {
+        try {
+            const title = document.getElementById('nova-titulo').value; 
+            if(!title) { app.showToast("Título obrigatório", "error"); return; }
+            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
+            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
+            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
+            app.navigate('dashboard');
+            app.showToast("Tarefa distribuída com sucesso!");
+        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
+    },
+
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
         if(!container) return;
@@ -447,13 +462,9 @@ const app = {
 
             let avatarsHtml = '';
             (t.assignees || []).forEach(assigneeStr => {
-                const uid = app.getUidByAssignee(assigneeStr);
-                const uData = app.userMap[uid];
-                const dispName = uData ? uData.nome : assigneeStr;
-                const foto = uData ? uData.foto : null;
-
-                if(foto) avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm -ml-2 first:ml-0" style="background-image:url('${foto}')" title="${dispName}"></div>`;
-                else avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm -ml-2 first:ml-0" title="${dispName}">${dispName.substring(0,2).toUpperCase()}</div>`;
+                const uData = app.getUserData(assigneeStr);
+                if(uData.foto) avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm -ml-2 first:ml-0" style="background-image:url('${uData.foto}')" title="${uData.nome}"></div>`;
+                else avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm -ml-2 first:ml-0" title="${uData.nome}">${uData.nome.substring(0,2).toUpperCase()}</div>`;
             });
 
             const ha = document.getElementById('detail-header-actions');
@@ -582,17 +593,21 @@ const app = {
     },
 
     listenToReminders() {
-        if (app.reminderUnsub) app.reminderUnsub();
+        if(app.reminderUnsub) return;
         app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
+        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
         const rc = document.getElementById('remindersContainer'); if(!rc) return;
         const targetDate = app.currentReminderDate || app.getTodayStr();
-        const filtered = app.allReminders.filter(l => l.dueDate === targetDate).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        
+        const filtered = app.allReminders
+            .filter(l => l.dueDate === targetDate)
+            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
         if (filtered.length === 0) {
             rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete para esta data.</p>';
@@ -682,6 +697,15 @@ const app = {
         } 
     },
 
+    async updateTaskStatus(id, newStatus) { 
+        let realStatus = newStatus;
+        if(newStatus === 'Concluídas') realStatus = 'Concluída';
+        if(newStatus === 'Canceladas') realStatus = 'Cancelada';
+        await updateDoc(doc(db, "tarefas", id), { status: realStatus }); 
+        const d = await getDoc(doc(db,"tarefas",id));
+        await app.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
+    },
+    
     async openSubtaskView(sid) {
         try {
             app.activeSid = sid; 
@@ -694,14 +718,14 @@ const app = {
             const cont = document.getElementById('subtask-view-content');
             
             const assigneeNames = (d.assignees || []).map(assigneeStr => {
-                const uid = app.getUidByAssignee(assigneeStr);
-                return app.userMap[uid] ? app.userMap[uid].nome : assigneeStr;
+                const uData = app.getUserData(assigneeStr);
+                return uData.nome;
             }).join(', ') || 'Não definido';
             
             cont.innerHTML = `
                 <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
                     <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
-                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
+                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title || 'Sem título'}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
                     <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${assigneeNames}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
                     <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
                     <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
@@ -720,6 +744,7 @@ const app = {
             
             if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
             app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
+            app.unsubs.push(app.chatUnsub);
             
         } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
     },
@@ -735,7 +760,7 @@ const app = {
             document.getElementById('edit-task-date').value = t.dueDate || ""; 
             
             document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => {
-                cb.checked = t.assignees?.some(a => app.getUidByAssignee(a) === cb.value);
+                cb.checked = t.assignees?.some(a => app.getUserData(a).uid === cb.value);
             }); 
             
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
@@ -768,7 +793,7 @@ const app = {
                 document.getElementById('sub-priority-inp').value = s.priority || "Média"; 
                 document.getElementById('sub-date-inp').value = s.dueDate || ""; 
                 document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => {
-                    cb.checked = s.assignees?.some(a => app.getUidByAssignee(a) === cb.value);
+                    cb.checked = s.assignees?.some(a => app.getUserData(a).uid === cb.value);
                 }); 
             }); 
         } else { 
@@ -817,6 +842,9 @@ const app = {
                     </label>
                 `).join('');
             }
+            
+            app.renderDashboard();
+            app.renderRanking();
         }); 
     },
     
@@ -828,8 +856,8 @@ const app = {
         app.allTasks.forEach(t => { 
             if(t.status === "Concluída" || t.status === "Concluídas") {
                 (t.assignees || []).forEach(assigneeStr => {
-                    const uid = app.getUidByAssignee(assigneeStr);
-                    pts[uid] = (pts[uid] || 0) + 1; 
+                    const uData = app.getUserData(assigneeStr);
+                    pts[uData.uid] = (pts[uData.uid] || 0) + 1; 
                 });
             }
         }); 
@@ -838,8 +866,8 @@ const app = {
         rc.innerHTML = sorted.length ? sorted.map((r, i) => {
             const key = r[0];
             const score = r[1];
-            let dispName = key;
-            if(app.userMap[key]) dispName = app.userMap[key].nome;
+            const uData = app.getUserData(key);
+            const dispName = uData.nome;
 
             let crown = ''; 
             const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
@@ -866,7 +894,6 @@ const app = {
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
         if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
-        if (app.reminderUnsub) { app.reminderUnsub(); app.reminderUnsub = null; }
     },
     
     closeModal() { 
@@ -896,6 +923,7 @@ const app = {
         if(em) em.value = ''; 
         if(ps) ps.value = ''; 
         app.cleanup();
+        if (app.reminderUnsub) { app.reminderUnsub(); app.reminderUnsub = null; }
         signOut(auth); 
     },
     
@@ -904,7 +932,7 @@ const app = {
             const d = await getDoc(doc(db,"tarefas",id)); 
             const title = d.exists() ? d.data().title : 'Tarefa';
             await deleteDoc(doc(db,"tarefas",id)); 
-            app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
+            await app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
             app.navigate('dashboard'); 
         } 
     },
@@ -950,17 +978,38 @@ const app = {
     
     async handleSaveProfile() { 
         try { 
-            await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); 
+            const oldName = document.getElementById('user-display-name').innerText;
+            const newName = document.getElementById('profile-name-input').value;
+            const uid = auth.currentUser.uid;
+
+            await updateProfile(auth.currentUser, { displayName: newName }); 
             const novaFoto = app.tempPhotoBase64; 
             const updateObj = { 
-                nome: document.getElementById('profile-name-input').value, 
+                nome: newName, 
                 cargo: document.getElementById('profile-role-input').value, 
                 bio: document.getElementById('profile-bio-input').value 
             }; 
             if (novaFoto !== null) updateObj.foto = novaFoto; 
-            await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); 
+            await setDoc(doc(db,"usuarios", uid), updateObj, {merge:true}); 
+
+            if (oldName && oldName !== newName) {
+                app.allTasks.forEach(async t => {
+                    if (t.assignees && t.assignees.includes(oldName)) {
+                        const newAssignees = t.assignees.map(a => a === oldName ? uid : a);
+                        await updateDoc(doc(db, "tarefas", t.id), { assignees: newAssignees });
+                    }
+                    const subSnap = await getDocs(collection(db, "tarefas", t.id, "subtarefas"));
+                    subSnap.forEach(async sub => {
+                        const sData = sub.data();
+                        if(sData.assignees && sData.assignees.includes(oldName)) {
+                            const newSubA = sData.assignees.map(a => a === oldName ? uid : a);
+                            await updateDoc(doc(db, "tarefas", t.id, "subtarefas", sub.id), { assignees: newSubA });
+                        }
+                    });
+                });
+            }
             
-            document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; 
+            document.getElementById('user-display-name').innerText = newName; 
             document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; 
             
             const avH = document.getElementById('header-avatar'); 
@@ -971,9 +1020,9 @@ const app = {
                 avH.style.backgroundImage = 'none'; 
                 avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); 
             } 
-            app.showToast("Perfil atualizado!"); 
+            app.showToast("Perfil corporativo atualizado!"); 
             app.navigate('dashboard'); 
-        } catch(e) { app.showToast("Erro ao salvar", "error"); } 
+        } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); } 
     },
     
     async removeProfilePhoto() { 
@@ -1040,6 +1089,31 @@ const app = {
         const i = document.getElementById('chat-input'); 
         if(!i.value.trim()) return; 
         await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
+        i.value = ''; 
+    },
+    
+    listenToSubChat(sid) { 
+        if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
+        app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
+            const c = document.getElementById('sub-chat-messages'); 
+            if(c) { 
+                const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
+                c.innerHTML = msgs.map(d => `
+                    <div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}">
+                        <span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span>
+                        <div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div>
+                    </div>
+                `).join(''); 
+                c.scrollTop = c.scrollHeight; 
+            } 
+        }); 
+        app.unsubs.push(app.chatUnsub); 
+    },
+    
+    async sendSubComment() { 
+        const i = document.getElementById('sub-chat-input'); 
+        if(!i || !i.value.trim()) return; 
+        await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
         i.value = ''; 
     },
     
