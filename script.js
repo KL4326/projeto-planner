@@ -58,8 +58,8 @@ const app = {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     },
 
-    // Função salva-vidas para achar as informações cruzadas e retrocompatíveis
     getUserData(val) {
+        if (!val) return { nome: 'Desconhecido', foto: null, uid: '' };
         let u = app.userMap[val];
         if (!u) u = Object.values(app.userMap).find(x => x.nome === val);
         return u || { nome: val, foto: null, uid: val };
@@ -85,7 +85,7 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.listenToReminders(); }
+        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.renderReminders(); }
         if(pageId === 'calendario') app.renderCalendar();
         if(pageId === 'configuracoes') app.showConfigTab('profile');
         if(pageId === 'detalhes' && params) { app.renderDetails(params); }
@@ -256,7 +256,6 @@ const app = {
         document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
         const dateInp = document.getElementById('dashboard-date-filter');
         if(dateInp) dateInp.value = '';
-        
         app.applyFilters();
     },
 
@@ -319,7 +318,6 @@ const app = {
                 const pLabel = t.priority || 'Média';
                 const title = t.title || 'Sem título';
                 const statusName = t.status || 'Em aberto';
-                
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
                 const statusColors = {
@@ -555,6 +553,7 @@ const app = {
     showConfigTab(tabId) {
         document.querySelectorAll('.config-subtab').forEach(el => el.classList.add('hidden'));
         document.getElementById(`config-tab-${tabId}`).classList.remove('hidden');
+        if(tabId === 'profile') app.loadProfileData();
         if(tabId === 'users') app.renderUsersDirectory();
     },
     
@@ -598,7 +597,6 @@ const app = {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
-        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
@@ -744,7 +742,6 @@ const app = {
             
             if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
             app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
-            app.unsubs.push(app.chatUnsub);
             
         } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
     },
@@ -842,9 +839,6 @@ const app = {
                     </label>
                 `).join('');
             }
-            
-            app.renderDashboard();
-            app.renderRanking();
         }); 
     },
     
@@ -963,25 +957,30 @@ const app = {
         if(!u) return; 
         const d = await getDoc(doc(db, "usuarios", u.uid)); 
         const dt = d.data() || {}; 
-        document.getElementById('profile-name-input').value = u.displayName || ""; 
-        document.getElementById('profile-role-input').value = dt.cargo || ""; 
-        document.getElementById('profile-bio-input').value = dt.bio || ""; 
+        
+        const nameInp = document.getElementById('profile-name-input');
+        const roleInp = document.getElementById('profile-role-input');
+        const bioInp = document.getElementById('profile-bio-input');
         const av = document.getElementById('profile-page-avatar'); 
-        if(dt.foto || u.photoURL) { 
-            av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; 
-            av.innerText = ''; 
-        } else { 
-            av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); 
-            av.style.backgroundImage = 'none'; 
-        } 
+
+        if (nameInp) nameInp.value = u.displayName || dt.nome || ""; 
+        if (roleInp) roleInp.value = dt.cargo || ""; 
+        if (bioInp) bioInp.value = dt.bio || ""; 
+        
+        if (av) {
+            if(dt.foto || u.photoURL) { 
+                av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; 
+                av.innerText = ''; 
+            } else { 
+                av.innerText = (dt.nome || u.displayName || u.email || 'U').substring(0,2).toUpperCase(); 
+                av.style.backgroundImage = 'none'; 
+            }
+        }
     },
     
     async handleSaveProfile() { 
         try { 
-            const oldName = document.getElementById('user-display-name').innerText;
             const newName = document.getElementById('profile-name-input').value;
-            const uid = auth.currentUser.uid;
-
             await updateProfile(auth.currentUser, { displayName: newName }); 
             const novaFoto = app.tempPhotoBase64; 
             const updateObj = { 
@@ -990,24 +989,7 @@ const app = {
                 bio: document.getElementById('profile-bio-input').value 
             }; 
             if (novaFoto !== null) updateObj.foto = novaFoto; 
-            await setDoc(doc(db,"usuarios", uid), updateObj, {merge:true}); 
-
-            if (oldName && oldName !== newName) {
-                app.allTasks.forEach(async t => {
-                    if (t.assignees && t.assignees.includes(oldName)) {
-                        const newAssignees = t.assignees.map(a => a === oldName ? uid : a);
-                        await updateDoc(doc(db, "tarefas", t.id), { assignees: newAssignees });
-                    }
-                    const subSnap = await getDocs(collection(db, "tarefas", t.id, "subtarefas"));
-                    subSnap.forEach(async sub => {
-                        const sData = sub.data();
-                        if(sData.assignees && sData.assignees.includes(oldName)) {
-                            const newSubA = sData.assignees.map(a => a === oldName ? uid : a);
-                            await updateDoc(doc(db, "tarefas", t.id, "subtarefas", sub.id), { assignees: newSubA });
-                        }
-                    });
-                });
-            }
+            await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); 
             
             document.getElementById('user-display-name').innerText = newName; 
             document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; 
@@ -1022,7 +1004,7 @@ const app = {
             } 
             app.showToast("Perfil corporativo atualizado!"); 
             app.navigate('dashboard'); 
-        } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); } 
+        } catch(e) { app.showToast("Erro ao salvar", "error"); } 
     },
     
     async removeProfilePhoto() { 
