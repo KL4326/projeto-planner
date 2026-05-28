@@ -15,10 +15,6 @@ const fb = initializeApp(firebaseConfig);
 const db = getFirestore(fb);
 const auth = getAuth(fb);
 
-const CONFIG = {
-    prioridades: { 'Alta': { label: 'Alta', bg: 'bg-rose-600' }, 'Média': { label: 'Média', bg: 'bg-orange-500' }, 'Baixa': { label: 'Baixa', bg: 'bg-emerald-500' } }
-};
-
 const app = {
     currentTaskId: null, activeSid: null, editSubId: null, editReminderId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
@@ -28,6 +24,7 @@ const app = {
     userMap: {},
     allReminders: [],
     currentReminderDate: '',
+    reminderUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -70,7 +67,7 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); }
+        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.renderReminders(); }
         if(pageId === 'calendario') app.renderCalendar();
         if(pageId === 'configuracoes') app.showConfigTab('profile');
         if(pageId === 'detalhes' && params) { app.renderDetails(params); }
@@ -556,11 +553,11 @@ const app = {
     },
 
     listenToReminders() {
-        const unsub = onSnapshot(collection(db, "lembretes"), s => {
+        if(app.reminderUnsub) return;
+        app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
-        app.unsubs.push(unsub);
     },
 
     renderReminders() {
@@ -804,7 +801,7 @@ const app = {
         }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
     },
     
-    cleanup() { app.unsubs.forEach(f => f()); app.unsubs = []; },
+    cleanup() { app.unsubs.forEach(f => { if(typeof f === 'function') f(); }); app.unsubs = []; app.subtaskUnsub = null; app.chatUnsub = null; },
     
     closeModal() { 
         document.getElementById('modal-backdrop').classList.add('hidden'); 
