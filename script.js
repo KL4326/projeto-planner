@@ -22,8 +22,11 @@ const app = {
     currentYear: new Date().getFullYear(),
     currentMonth: new Date().getMonth(),
     userMap: {},
+    allReminders: [],
+    currentReminderDate: '',
 
     init() { 
+        this.currentReminderDate = this.getTodayStr();
         this.bindEvents(); 
         this.checkAuth(); 
         this.initTheme(); 
@@ -143,6 +146,10 @@ const app = {
                 app.listenToReminders(); 
                 app.loadUsers(); 
                 app.listenToNotifications();
+                
+                const rFilter = document.getElementById('reminder-date-filter');
+                if(rFilter) rFilter.value = app.currentReminderDate;
+                
                 app.navigate('dashboard'); 
             } else { 
                 if(h) h.classList.add('hidden'); 
@@ -192,8 +199,8 @@ const app = {
     markNotifsRead() { 
         const badge = document.getElementById('notif-badge');
         if(badge && !badge.classList.contains('hidden')) {
-            this.lastLogCount += (parseInt(badge.innerText) || 0);
-            localStorage.setItem('lastLogCount', this.lastLogCount);
+            app.lastLogCount += (parseInt(badge.innerText) || 0);
+            localStorage.setItem('lastLogCount', app.lastLogCount);
             badge.classList.add('hidden');
         }
     },
@@ -208,21 +215,26 @@ const app = {
 
     applyFilters() {
         const eqCheckboxes = document.querySelectorAll('#assignee-filter-list input:checked');
-        this.filters.assignees = Array.from(eqCheckboxes).map(cb => cb.value);
+        app.filters.assignees = Array.from(eqCheckboxes).map(cb => cb.value);
         
         const prioCheckboxes = document.querySelectorAll('#priority-filter-menu input:checked');
-        this.filters.priorities = Array.from(prioCheckboxes).map(cb => cb.value);
+        app.filters.priorities = Array.from(prioCheckboxes).map(cb => cb.value);
         
         const dateInput = document.getElementById('dashboard-date-filter');
-        this.filters.dueDate = dateInput ? dateInput.value : '';
+        app.filters.dueDate = dateInput ? dateInput.value : '';
 
-        const countEq = this.filters.assignees.length;
-        document.getElementById('assignee-filter-count').innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
+        const countEq = app.filters.assignees.length;
+        const eqEl = document.getElementById('assignee-filter-count');
+        if(eqEl) eqEl.innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
+        
+        const countPrio = app.filters.priorities.length;
+        const prioEl = document.getElementById('priority-filter-count');
+        if(prioEl) prioEl.innerText = countPrio > 0 ? `Prioridade (${countPrio})` : 'Prioridade';
         
         const labelDate = document.getElementById('date-filter-label');
-        if(labelDate) labelDate.innerText = this.filters.dueDate ? this.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
+        if(labelDate) labelDate.innerText = app.filters.dueDate ? app.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
 
-        this.renderDashboard();
+        app.renderDashboard();
     },
 
     clearFilters() {
@@ -231,7 +243,7 @@ const app = {
         const dateInp = document.getElementById('dashboard-date-filter');
         if(dateInp) dateInp.value = '';
         
-        this.applyFilters();
+        app.applyFilters();
     },
 
     renderDashboard() {
@@ -239,21 +251,21 @@ const app = {
             const c = document.getElementById('taskTableBody'); if(!c) return;
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
-                if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0 || this.filters.dueDate !== "") {
+                if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
                     clearBtn.classList.remove('hidden'); clearBtn.classList.add('flex');
                 } else {
                     clearBtn.classList.add('hidden'); clearBtn.classList.remove('flex');
                 }
             }
 
-            const sorted = [...this.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
-            const hoje = this.getTodayStr();
+            const sorted = [...app.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
+            const hoje = app.getTodayStr();
             
             let baseFiltered = sorted.filter(t => { 
-                const matchSearch = (t.title || '').toLowerCase().includes(this.filters.search.toLowerCase());
-                const matchAssignee = this.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => this.filters.assignees.includes(a)));
-                const matchPriority = this.filters.priorities.length === 0 || this.filters.priorities.includes(t.priority || 'Média');
-                const matchDate = !this.filters.dueDate || t.dueDate === this.filters.dueDate;
+                const matchSearch = (t.title || '').toLowerCase().includes(app.filters.search.toLowerCase());
+                const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => app.filters.assignees.includes(a)));
+                const matchPriority = app.filters.priorities.length === 0 || app.filters.priorities.includes(t.priority || 'Média');
+                const matchDate = !app.filters.dueDate || t.dueDate === app.filters.dueDate;
                 return matchSearch && matchAssignee && matchPriority && matchDate; 
             });
 
@@ -268,7 +280,7 @@ const app = {
                     else if (stats[sReal] !== undefined) stats[sReal]++;
                 }
             });
-            this.renderStats(stats, baseFiltered.length);
+            app.renderStats(stats, baseFiltered.length);
 
             let finalFiltered = baseFiltered.filter(t => {
                 const statusStr = t.status || 'Em aberto';
@@ -277,10 +289,11 @@ const app = {
                 if (isOverdue) computedCategory = 'Atrasadas';
                 else if (statusStr === 'Concluída') computedCategory = 'Concluídas';
                 else if (statusStr === 'Cancelada') computedCategory = 'Canceladas';
-                return this.filters.status === "Todas" || computedCategory === this.filters.status;
+                return app.filters.status === "Todas" || computedCategory === app.filters.status;
             });
             
-            document.getElementById('taskCount').innerText = `(${finalFiltered.length})`;
+            const tc = document.getElementById('taskCount');
+            if(tc) tc.innerText = `(${finalFiltered.length})`;
             
             let htmlStr = '';
             finalFiltered.forEach(t => {
@@ -308,7 +321,7 @@ const app = {
                 
                 let avatarsHtml = '';
                 (t.assignees || []).forEach(name => {
-                    const uData = Object.values(this.userMap).find(u => u.nome === name);
+                    const uData = Object.values(app.userMap).find(u => u.nome === name);
                     if(uData && uData.foto) {
                         avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
                     } else {
@@ -345,7 +358,7 @@ const app = {
                 `;
             });
             c.innerHTML = htmlStr;
-            finalFiltered.forEach(t => this.calculateTaskProgress(t.id));
+            finalFiltered.forEach(t => app.calculateTaskProgress(t.id));
         } catch (e) { console.error("Erro na renderização", e) }
     },
 
@@ -372,7 +385,7 @@ const app = {
             {label: 'Canceladas', val: s['Canceladas'], color: 'text-slate-400 dark:text-slate-500', icon: 'cancel'} 
         ];
         container.innerHTML = cards.map(c => `
-            <div onclick="app.applyStatFilter('${c.label}')" class="glass-panel rounded-2xl p-5 flex flex-col justify-between h-[104px] hover:-translate-y-1 transition-all cursor-pointer border ${this.filters.status===c.label?'ring-2 ring-primary border-transparent':'border-gray-200 dark:border-white/5'} shadow-sm relative overflow-hidden bento-highlight dark:bg-[#151c2c]">
+            <div onclick="app.applyStatFilter('${c.label}')" class="glass-panel rounded-2xl p-5 flex flex-col justify-between h-[104px] hover:-translate-y-1 transition-all cursor-pointer border ${app.filters.status===c.label?'ring-2 ring-primary border-transparent':'border-gray-200 dark:border-white/5'} shadow-sm relative overflow-hidden bento-highlight dark:bg-[#151c2c]">
                 <div class="flex justify-between items-start">
                     <span class="material-symbols-outlined ${c.color} text-[22px] drop-shadow-sm">${c.icon}</span>
                     <h3 class="text-2xl font-display font-black leading-none dark:text-white">${c.val}</h3>
@@ -382,25 +395,25 @@ const app = {
         `).join('');
     },
 
-    applyStatFilter(label) { this.filters.status = label; this.renderDashboard(); },
+    applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
     async criarTarefa() {
         try {
             const title = document.getElementById('nova-titulo').value; 
-            if(!title) { this.showToast("Título obrigatório", "error"); return; }
+            if(!title) { app.showToast("Título obrigatório", "error"); return; }
             const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
             await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
-            await this.addLog(`➕ Adicionou a tarefa: "${title}"`); 
-            this.navigate('dashboard');
-            this.showToast("Tarefa distribuída com sucesso!");
-        } catch(e) { console.error(e); this.showToast("Erro ao criar.", "error"); }
+            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
+            app.navigate('dashboard');
+            app.showToast("Tarefa distribuída com sucesso!");
+        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
     },
 
     renderDetails(id) {
-        this.currentTaskId = id; const container = document.getElementById('details-view-content');
-        this.unsubs.push(onSnapshot(doc(db, "tarefas", id), (d) => {
+        app.currentTaskId = id; const container = document.getElementById('details-view-content');
+        app.unsubs.push(onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
-            const t = d.data(); this.activeTaskData = t;
+            const t = d.data(); app.activeTaskData = t;
             const statusSafe = t.status || 'Em aberto';
             const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
@@ -410,7 +423,7 @@ const app = {
 
             let avatarsHtml = '';
             (t.assignees || []).forEach(name => {
-                const uData = Object.values(this.userMap).find(u => u.nome === name);
+                const uData = Object.values(app.userMap).find(u => u.nome === name);
                 if(uData && uData.foto) {
                     avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
                 } else {
@@ -443,15 +456,15 @@ const app = {
             `;
             const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
             
-            if (this.subtaskUnsub) { this.subtaskUnsub(); }
-            if (this.chatUnsub) { this.chatUnsub(); }
-            this.listenToSubtasks(id); 
-            this.listenToChat(id);
+            if (app.subtaskUnsub) { app.subtaskUnsub(); }
+            if (app.chatUnsub) { app.chatUnsub(); }
+            app.listenToSubtasks(id); 
+            app.listenToChat(id);
         }));
     },
 
     listenToSubtasks(tid) {
-        this.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
+        app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
             l.innerHTML = sts.length ? sts.map(st => {
@@ -459,7 +472,7 @@ const app = {
                 return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
-        this.unsubs.push(this.subtaskUnsub);
+        app.unsubs.push(app.subtaskUnsub);
     },
 
     renderCalendar() {
@@ -469,24 +482,24 @@ const app = {
         grid.innerHTML = '';
 
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        const currentMonthPrefix = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
-        const totalTarefasMes = this.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
+        const currentMonthPrefix = `${app.currentYear}-${String(app.currentMonth + 1).padStart(2, '0')}`;
+        const totalTarefasMes = app.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
         
-        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest bg-surface-container dark:bg-white/5 px-3 py-1.5 rounded-xl ml-3">(${totalTarefasMes} Demandas)</span>`;
+        monthYearLabel.innerHTML = `${meses[app.currentMonth]} de ${app.currentYear} <span class="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest bg-surface-container dark:bg-white/5 px-3 py-1.5 rounded-xl ml-3">(${totalTarefasMes} Demandas)</span>`;
 
-        const primeiroDiaSemana = new Date(this.currentYear, this.currentMonth, 1).getDay();
-        const totalDiasMes = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        const primeiroDiaSemana = new Date(app.currentYear, app.currentMonth, 1).getDay();
+        const totalDiasMes = new Date(app.currentYear, app.currentMonth + 1, 0).getDate();
 
         for(let i = 0; i < primeiroDiaSemana; i++) {
             grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`;
         }
 
         for(let dia = 1; dia <= totalDiasMes; dia++) {
-            const mFormat = String(this.currentMonth + 1).padStart(2, '0');
+            const mFormat = String(app.currentMonth + 1).padStart(2, '0');
             const dFormat = String(dia).padStart(2, '0');
-            const dateStr = `${this.currentYear}-${mFormat}-${dFormat}`;
+            const dateStr = `${app.currentYear}-${mFormat}-${dFormat}`;
 
-            const tarefasDoDia = this.allTasks.filter(t => t.dueDate === dateStr);
+            const tarefasDoDia = app.allTasks.filter(t => t.dueDate === dateStr);
             let indicatorsHtml = '';
             tarefasDoDia.forEach(t => {
                 indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`;
@@ -500,23 +513,23 @@ const app = {
             `;
         }
     },
-
+    
     changeMonth(dir) {
-        this.currentMonth += dir;
-        if(this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
-        if(this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
-        this.renderCalendar();
+        app.currentMonth += dir;
+        if(app.currentMonth < 0) { app.currentMonth = 11; app.currentYear--; }
+        if(app.currentMonth > 11) { app.currentMonth = 0; app.currentYear++; }
+        app.renderCalendar();
     },
 
     showConfigTab(tabId) {
         document.querySelectorAll('.config-subtab').forEach(el => el.classList.add('hidden'));
         document.getElementById(`config-tab-${tabId}`).classList.remove('hidden');
-        if(tabId === 'users') this.renderUsersDirectory();
+        if(tabId === 'users') app.renderUsersDirectory();
     },
-
+    
     renderUsersDirectory() {
         const container = document.getElementById('config-users-list'); if(!container) return;
-        container.innerHTML = Object.values(this.userMap).map(u => `
+        container.innerHTML = Object.values(app.userMap).map(u => `
             <div onclick="app.showUserModal('${u.uid}')" class="flex items-center gap-4 p-4 bg-white dark:bg-[#151c2c] border dark:border-white/5 rounded-2xl cursor-pointer hover:shadow-lg transition-all bento-highlight">
                 <div class="w-12 h-12 rounded-full bg-cover bg-center shadow bg-primary text-white flex items-center justify-center font-bold text-lg" style="${u.foto?`background-image:url('${u.foto}')`:''}">
                     ${u.foto ? '' : u.nome.substring(0,2).toUpperCase()}
@@ -528,9 +541,9 @@ const app = {
             </div>
         `).join('');
     },
-
+    
     showUserModal(uid) {
-        const u = this.userMap[uid]; if(!u) return;
+        const u = app.userMap[uid]; if(!u) return;
         const av = document.getElementById('modal-user-avatar');
         if(u.foto) { av.innerText = ''; av.style.backgroundImage = `url('${u.foto}')`; }
         else { av.innerText = u.nome.substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; }
@@ -543,47 +556,66 @@ const app = {
         document.getElementById('modal-user-detail').classList.remove('hidden');
     },
 
+    filterReminders(dateStr) {
+        app.currentReminderDate = dateStr;
+        app.renderReminders();
+    },
+
     listenToReminders() {
-        if(this.reminderUnsub) return;
-        this.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
-            const rc = document.getElementById('remindersContainer'); if(!rc) return;
-            const hoje = this.getTodayStr();
-            
-            const lembretesHoje = s.docs
-                .map(d => ({id: d.id, ...d.data()}))
-                .filter(l => l.dueDate === hoje)
-                .sort((a, b) => (b.ts || 0) - (a.ts || 0));
-
-            if (lembretesHoje.length === 0) {
-                rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete rápido para hoje.</p>';
-                return;
-            }
-
-            rc.innerHTML = lembretesHoje.map(l => `
-                <div class="flex items-start gap-3 p-3 rounded-2xl hover:bg-surface-container dark:hover:bg-white/5 transition-all group">
-                    <input type="checkbox" ${l.completed ? 'checked' : ''} onchange="app.toggleReminder('${l.id}', this.checked)" class="mt-1 rounded text-primary focus:ring-0 w-4 h-4 cursor-pointer">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-black ${l.completed ? 'line-through text-on-surface-variant/40 dark:text-gray-600' : 'dark:text-white'}">${l.title}</p>
-                        ${l.description ? `<p class="text-[10px] font-medium text-on-surface-variant/70 dark:text-gray-400 mt-1 truncate ${l.completed ? 'opacity-40' : ''}">${l.description}</p>` : ''}
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <button onclick="app.openEditReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-amber-500 hover:text-amber-600 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                        <button onclick="app.deleteReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">delete</span></button>
-                    </div>
-                </div>
-            `).join('');
+        if(app.reminderUnsub) return;
+        app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
+            app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
+            app.renderReminders();
         });
-        this.unsubs.push(this.reminderUnsub);
+        app.unsubs.push(app.reminderUnsub);
+    },
+
+    renderReminders() {
+        const rc = document.getElementById('remindersContainer'); if(!rc) return;
+        const targetDate = app.currentReminderDate || app.getTodayStr();
+        
+        const filtered = app.allReminders
+            .filter(l => l.dueDate === targetDate)
+            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+        if (filtered.length === 0) {
+            rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete para esta data.</p>';
+            return;
+        }
+
+        rc.innerHTML = filtered.map(l => `
+            <div class="flex items-start gap-3 p-3 rounded-2xl hover:bg-surface-container dark:hover:bg-white/5 transition-all group">
+                <input type="checkbox" ${l.completed ? 'checked' : ''} onchange="app.toggleReminder('${l.id}', this.checked)" class="mt-1 rounded text-primary focus:ring-0 w-4 h-4 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <p class="text-[13px] font-black ${l.completed ? 'line-through text-on-surface-variant/40 dark:text-gray-600' : 'dark:text-white'}">${l.title}</p>
+                    ${l.description ? `<p class="text-[10px] font-medium text-on-surface-variant/70 dark:text-gray-400 mt-1 truncate ${l.completed ? 'opacity-40' : ''}">${l.description}</p>` : ''}
+                </div>
+                <div class="flex items-center gap-1">
+                    <button onclick="app.openEditReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-amber-500 hover:text-amber-600 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                    <button onclick="app.deleteReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    openLembreteForm() {
+        document.getElementById('lembrete-title-inp').value = '';
+        document.getElementById('lembrete-desc-inp').value = '';
+        document.getElementById('lembrete-date-inp').value = app.currentReminderDate || app.getTodayStr();
+        app.editReminderId = null;
+        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
+        document.getElementById('modal-lembrete-form').classList.remove('hidden');
     },
 
     async openEditReminder(id) {
-        this.editReminderId = id;
+        app.editReminderId = id;
         try {
             const d = await getDoc(doc(db, "lembretes", id));
             if (d.exists()) {
                 const l = d.data();
                 document.getElementById('lembrete-title-inp').value = l.title || '';
                 document.getElementById('lembrete-desc-inp').value = l.description || '';
+                document.getElementById('lembrete-date-inp').value = l.dueDate || app.getTodayStr();
                 document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
                 document.getElementById('modal-lembrete-form').classList.remove('hidden');
             }
@@ -594,22 +626,27 @@ const app = {
         try {
             const titleInp = document.getElementById('lembrete-title-inp');
             const descInp = document.getElementById('lembrete-desc-inp');
+            const dateInp = document.getElementById('lembrete-date-inp');
             const title = titleInp.value; 
             if(!title) { app.showToast("Título obrigatório", "error"); return; }
             const desc = descInp.value;
-            const hoje = app.getTodayStr();
+            const targetDate = dateInp.value || app.getTodayStr();
 
             if (app.editReminderId) {
-                await updateDoc(doc(db, "lembretes", app.editReminderId), { title, description: desc });
+                await updateDoc(doc(db, "lembretes", app.editReminderId), { title, description: desc, dueDate: targetDate });
                 await app.addLog(`✏️ Alterou lembrete para: "${title}"`);
                 app.showToast("Lembrete atualizado!");
                 app.editReminderId = null;
             } else {
-                await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: hoje, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
+                await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: targetDate, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
                 await app.addLog(`➕ Criou lembrete: "${title}"`);
                 app.showToast("Lembrete criado com sucesso!");
             }
             titleInp.value = ''; descInp.value = '';
+            app.currentReminderDate = targetDate;
+            const rFilter = document.getElementById('reminder-date-filter');
+            if(rFilter) rFilter.value = targetDate;
+            app.renderReminders();
             app.closeModal();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
     },
@@ -629,10 +666,19 @@ const app = {
         } 
     },
 
+    async updateTaskStatus(id, newStatus) { 
+        let realStatus = newStatus;
+        if(newStatus === 'Concluídas') realStatus = 'Concluída';
+        if(newStatus === 'Canceladas') realStatus = 'Cancelada';
+        await updateDoc(doc(db, "tarefas", id), { status: realStatus }); 
+        const d = await getDoc(doc(db,"tarefas",id));
+        await app.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
+    },
+
     async openEditModal() { 
         try {
-            const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); 
-            if(!d.exists()) return this.showToast("Tarefa não encontrada.", "error");
+            const d = await getDoc(doc(db,"tarefas",app.currentTaskId)); 
+            if(!d.exists()) return app.showToast("Tarefa não encontrada.", "error");
             const t = d.data(); 
             document.getElementById('edit-task-title').value = t.title || ""; 
             document.getElementById('edit-task-desc').value = t.description || ""; 
@@ -641,28 +687,28 @@ const app = {
             document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); 
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
             document.getElementById('modal-edit-task').classList.remove('hidden'); 
-        } catch(e) { console.error(e); this.showToast("Erro ao abrir edição", "error"); }
+        } catch(e) { console.error(e); app.showToast("Erro ao abrir edição", "error"); }
     },
 
     async handleUpdateTask() { 
         try {
             const title = document.getElementById('edit-task-title').value; 
             const resps = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value); 
-            await updateDoc(doc(db, "tarefas", this.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); 
-            await this.addLog(`✏️ Editou a tarefa: "${title}"`); 
-            this.closeModal(); 
-            this.showToast("Tarefa atualizada!");
-        } catch(e) { console.error(e); this.showToast("Erro ao atualizar", "error"); }
+            await updateDoc(doc(db, "tarefas", app.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); 
+            await app.addLog(`✏️ Editou a tarefa: "${title}"`); 
+            app.closeModal(); 
+            app.showToast("Tarefa atualizada!");
+        } catch(e) { console.error(e); app.showToast("Erro ao atualizar", "error"); }
     },
 
     openSubtaskForm(sid = null) { 
-        this.editSubId = sid; 
-        this.closeModal(); 
+        app.editSubId = sid; 
+        app.closeModal(); 
         document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
         document.getElementById('modal-subtask-form').classList.remove('hidden'); 
         
         if(sid) { 
-            getDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)).then(d => { 
+            getDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid)).then(d => { 
                 const s = d.data(); 
                 document.getElementById('sub-title-inp').value = s.title || ""; 
                 document.getElementById('sub-desc-inp').value = s.description || ""; 
@@ -684,16 +730,16 @@ const app = {
             const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); 
             const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; 
             
-            if (this.editSubId) { 
-                await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); 
+            if (app.editSubId) { 
+                await updateDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", app.editSubId), data); 
                 await app.addLog(`✏️ Editou a subtarefa: "${t}"`);
             } else { 
-                await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); 
+                await addDoc(collection(db, "tarefas", app.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); 
                 await app.addLog(`➕ Criou subtarefa: "${t}"`);
             } 
-            this.closeModal(); 
-            this.showToast("Subtarefa gravada!");
-        } catch(e) { console.error(e); this.showToast("Erro ao gravar", "error"); }
+            app.closeModal(); 
+            app.showToast("Subtarefa gravada!");
+        } catch(e) { console.error(e); app.showToast("Erro ao gravar", "error"); }
     },
 
     loadUsers() { 
@@ -719,7 +765,7 @@ const app = {
 
     renderRanking() { 
         const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
-        this.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
+        app.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
         rc.innerHTML = sorted.length ? sorted.map((r, i) => {
             let crown = ''; const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
@@ -728,7 +774,7 @@ const app = {
         }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
     },
 
-    cleanup() { this.unsubs.forEach(f => f()); this.unsubs = []; },
+    cleanup() { app.unsubs.forEach(f => f()); app.unsubs = []; },
     
     closeModal() { 
         document.getElementById('modal-backdrop').classList.add('hidden'); 
@@ -736,13 +782,13 @@ const app = {
         document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); 
     },
     
-    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); },
+    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid), {completed: val}); app.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); },
     
     async deleteSub(sid) { 
         if(confirm("Remover subtarefa?")) { 
-            const d = await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid));
+            const d = await getDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", sid));
             const subTitle = d.exists() ? d.data().title : 'Subtarefa';
-            await deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); 
+            await deleteDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid)); 
             app.addLog(`🗑️ Excluiu a subtarefa: "${subTitle}"`);
             app.closeModal(); 
         } 
@@ -766,25 +812,25 @@ const app = {
         } 
     },
 
-    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",this.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); app.showToast("Anexo salvo!"); }; r.readAsDataURL(f); }; inp.click(); },
+    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",app.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); app.showToast("Anexo salvo!"); }; r.readAsDataURL(f); }; inp.click(); },
     
     async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(dt.foto || u.photoURL) { av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; av.innerText = ''; } else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; } },
     
-    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); const novaFoto = this.tempPhotoBase64; const updateObj = { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value }; if (novaFoto !== null) updateObj.foto = novaFoto; await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; const avH = document.getElementById('header-avatar'); if (novaFoto) { avH.style.backgroundImage = `url('${novaFoto}')`; avH.innerText = ''; } else if (novaFoto === "") { avH.style.backgroundImage = 'none'; avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); } app.showToast("Perfil corporativo atualizado!"); app.navigate('dashboard'); } catch(e) { app.showToast("Erro ao salvar", "error"); } },
+    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); const novaFoto = app.tempPhotoBase64; const updateObj = { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value }; if (novaFoto !== null) updateObj.foto = novaFoto; await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; const avH = document.getElementById('header-avatar'); if (novaFoto) { avH.style.backgroundImage = `url('${novaFoto}')`; avH.innerText = ''; } else if (novaFoto === "") { avH.style.backgroundImage = 'none'; avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); } app.showToast("Perfil corporativo atualizado!"); app.navigate('dashboard'); } catch(e) { app.showToast("Erro ao salvar", "error"); } },
     
-    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); this.tempPhotoBase64 = ""; } },
+    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); app.tempPhotoBase64 = ""; } },
     
     async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return app.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); app.showToast("Senha alterada!"); app.navigate('dashboard'); } catch(e) { app.showToast("Senha atual incorreta.", "error"); } },
     
     compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
     
-    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    listenToChat(tid) { app.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     
-    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
+    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     
-    listenToSubChat(sid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    listenToSubChat(sid) { app.unsubs.push(onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     
-    async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
+    async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
 };
