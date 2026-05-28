@@ -32,14 +32,8 @@ const app = {
         this.initTheme(); 
     },
     
-    initTheme() { 
-        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
-    },
-    
-    toggleTheme() { 
-        document.documentElement.classList.toggle('dark'); 
-        localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); 
-    },
+    initTheme() { if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); },
+    toggleTheme() { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); },
 
     getTodayStr() {
         const d = new Date();
@@ -71,8 +65,7 @@ const app = {
         if(pageId === 'configuracoes') this.showConfigTab('profile');
         if(pageId === 'detalhes' && params) { this.renderDetails(params); }
         
-        this.closeModal(); 
-        window.scrollTo(0,0);
+        this.closeModal(); window.scrollTo(0,0);
     },
 
     async handleLogin(e) {
@@ -103,14 +96,9 @@ const app = {
             const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
         });
         
-        const st = document.getElementById('submit-edit-task');
-        if(st) st.onclick = () => app.handleUpdateTask();
-        
-        const ss = document.getElementById('submit-subtask-form');
-        if(ss) ss.onclick = () => app.handleSaveSubtask();
-        
-        const pu = document.getElementById('profile-upload');
-        if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) app.compressImage(f, (b64) => { app.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
+        const st = document.getElementById('submit-edit-task'); if(st) st.onclick = () => app.handleUpdateTask();
+        const ss = document.getElementById('submit-subtask-form'); if(ss) ss.onclick = () => app.handleSaveSubtask();
+        const pu = document.getElementById('profile-upload'); if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) app.compressImage(f, (b64) => { app.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
     },
 
     checkAuth() { 
@@ -120,20 +108,17 @@ const app = {
             if(u){ 
                 if(h) h.classList.replace('hidden', 'flex'); 
                 if(b) b.classList.replace('hidden', 'flex'); 
-                
                 try {
                     const ud = await getDoc(doc(db, "usuarios", u.uid));
                     let userName = u.displayName || u.email;
                     let userRole = "Colaborador";
                     let userFoto = u.photoURL;
-
                     if(ud.exists()) {
                         const data = ud.data();
                         if(data.nome) userName = data.nome;
                         if(data.cargo) userRole = data.cargo;
                         if(data.foto) userFoto = data.foto; 
                     }
-                    
                     document.getElementById('user-display-name').innerText = userName;
                     document.getElementById('user-display-role').innerText = userRole;
                     const bv = document.getElementById('boas-vindas-texto');
@@ -163,31 +148,17 @@ const app = {
         const av = document.getElementById('header-avatar'); 
         const fotoReal = fotoDb || u.photoURL;
         const nomeReal = name || u.displayName || u.email;
-        if(fotoReal) { 
-            av.innerText = ''; 
-            av.style.backgroundImage = `url('${fotoReal}')`; 
-        } else { 
-            av.innerText = nomeReal.substring(0,2).toUpperCase(); 
-            av.style.backgroundImage = 'none';
-        } 
+        if(fotoReal) { av.innerText = ''; av.style.backgroundImage = `url('${fotoReal}')`; } 
+        else { av.innerText = nomeReal.substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; } 
     },
 
-    async addLog(msg) { 
-        try { 
-            await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
-        } catch(e) { console.error(e); } 
-    },
+    async addLog(msg) { try { await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); } catch(e) { console.error(e); } },
     
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
             const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
-            if (snap.size > app.lastLogCount) { 
-                badge.innerText = snap.size - app.lastLogCount; 
-                badge.classList.remove('hidden'); 
-            } else { 
-                badge.classList.add('hidden'); 
-            }
+            if (snap.size > app.lastLogCount) { badge.innerText = snap.size - app.lastLogCount; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
             list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Sem registros.</p>';
             logs.slice(0, 15).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
@@ -216,10 +187,8 @@ const app = {
     applyFilters() {
         const eqCheckboxes = document.querySelectorAll('#assignee-filter-list input:checked');
         app.filters.assignees = Array.from(eqCheckboxes).map(cb => cb.value);
-        
         const prioCheckboxes = document.querySelectorAll('#priority-filter-menu input:checked');
         app.filters.priorities = Array.from(prioCheckboxes).map(cb => cb.value);
-        
         const dateInput = document.getElementById('dashboard-date-filter');
         app.filters.dueDate = dateInput ? dateInput.value : '';
 
@@ -238,7 +207,6 @@ const app = {
         document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
         const dateInp = document.getElementById('dashboard-date-filter');
         if(dateInp) dateInp.value = '';
-        
         app.applyFilters();
     },
 
@@ -297,20 +265,10 @@ const app = {
                 const pLabel = t.priority || 'Média';
                 const title = t.title || 'Sem título';
                 const statusName = t.status || 'Em aberto';
-                
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
-                const statusColors = {
-                    'Em aberto': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                    'Em andamento': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-                    'Concluída': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-                    'Cancelada': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                };
-                const prioColors = {
-                    'Alta': 'text-red-600 dark:text-red-400',
-                    'Média': 'text-amber-600 dark:text-amber-400',
-                    'Baixa': 'text-emerald-600 dark:text-emerald-400'
-                };
+                const statusColors = { 'Em aberto': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', 'Em andamento': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', 'Concluída': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', 'Cancelada': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' };
+                const prioColors = { 'Alta': 'text-red-600 dark:text-red-400', 'Média': 'text-amber-600 dark:text-amber-400', 'Baixa': 'text-emerald-600 dark:text-emerald-400' };
 
                 const sColor = statusColors[statusName] || statusColors['Em aberto'];
                 const pColor = prioColors[pLabel] || prioColors['Média'];
@@ -318,11 +276,8 @@ const app = {
                 let avatarsHtml = '';
                 (t.assignees || []).forEach(name => {
                     const uData = Object.values(app.userMap).find(u => u.nome === name);
-                    if(uData && uData.foto) {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
-                    } else {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
-                    }
+                    if(uData && uData.foto) avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
+                    else avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
                 });
 
                 const borderClass = isAtrasada ? 'border-red-500' : 'border-transparent dark:border-white/5';
@@ -410,7 +365,6 @@ const app = {
         app.unsubs.push(onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
             const t = d.data(); app.activeTaskData = t;
-            const statusSafe = t.status || 'Em aberto';
             const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
             let btns = t.status === 'Concluída' || t.status === 'Cancelada' || t.status === 'Concluídas' || t.status === 'Canceladas'
@@ -420,11 +374,8 @@ const app = {
             let avatarsHtml = '';
             (t.assignees || []).forEach(name => {
                 const uData = Object.values(app.userMap).find(u => u.nome === name);
-                if(uData && uData.foto) {
-                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
-                } else {
-                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
-                }
+                if(uData && uData.foto) avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
+                else avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
             });
 
             container.innerHTML = `
@@ -471,7 +422,6 @@ const app = {
         app.unsubs.push(app.subtaskUnsub);
     },
 
-    // --- CALENDÁRIO CORPORATIVO ---
     renderCalendar() {
         const grid = document.getElementById('calendar-grid');
         const monthYearLabel = document.getElementById('calendar-month-year');
@@ -487,9 +437,7 @@ const app = {
         const primeiroDiaSemana = new Date(app.currentYear, app.currentMonth, 1).getDay();
         const totalDiasMes = new Date(app.currentYear, app.currentMonth + 1, 0).getDate();
 
-        for(let i = 0; i < primeiroDiaSemana; i++) {
-            grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`;
-        }
+        for(let i = 0; i < primeiroDiaSemana; i++) { grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`; }
 
         for(let dia = 1; dia <= totalDiasMes; dia++) {
             const mFormat = String(app.currentMonth + 1).padStart(2, '0');
@@ -498,9 +446,7 @@ const app = {
 
             const tarefasDoDia = app.allTasks.filter(t => t.dueDate === dateStr);
             let indicatorsHtml = '';
-            tarefasDoDia.forEach(t => {
-                indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`;
-            });
+            tarefasDoDia.forEach(t => { indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`; });
 
             grid.innerHTML += `
                 <div class="p-3 bg-white dark:bg-[#151c2c] rounded-2xl min-h-[140px] border border-gray-100 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -510,6 +456,7 @@ const app = {
             `;
         }
     },
+
     changeMonth(dir) {
         app.currentMonth += dir;
         if(app.currentMonth < 0) { app.currentMonth = 11; app.currentYear--; }
@@ -517,12 +464,12 @@ const app = {
         app.renderCalendar();
     },
 
-    // --- CONFIGURAÇÕES & USUÁRIOS ---
     showConfigTab(tabId) {
         document.querySelectorAll('.config-subtab').forEach(el => el.classList.add('hidden'));
         document.getElementById(`config-tab-${tabId}`).classList.remove('hidden');
         if(tabId === 'users') app.renderUsersDirectory();
     },
+
     renderUsersDirectory() {
         const container = document.getElementById('config-users-list'); if(!container) return;
         container.innerHTML = Object.values(app.userMap).map(u => `
@@ -537,21 +484,19 @@ const app = {
             </div>
         `).join('');
     },
+
     showUserModal(uid) {
         const u = app.userMap[uid]; if(!u) return;
         const av = document.getElementById('modal-user-avatar');
         if(u.foto) { av.innerText = ''; av.style.backgroundImage = `url('${u.foto}')`; }
         else { av.innerText = u.nome.substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; }
-        
         document.getElementById('modal-user-name').innerText = u.nome;
         document.getElementById('modal-user-role').innerText = u.cargo || 'Membro da Equipe';
         document.getElementById('modal-user-bio').innerText = u.bio || 'Nenhuma biografia cadastrada.';
-        
         document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
         document.getElementById('modal-user-detail').classList.remove('hidden');
     },
 
-    // --- LEMBRETES DIÁRIOS ---
     filterReminders(dateStr) {
         app.currentReminderDate = dateStr;
         app.renderReminders();
@@ -569,10 +514,7 @@ const app = {
     renderReminders() {
         const rc = document.getElementById('remindersContainer'); if(!rc) return;
         const targetDate = app.currentReminderDate || app.getTodayStr();
-        
-        const filtered = app.allReminders
-            .filter(l => l.dueDate === targetDate)
-            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        const filtered = app.allReminders.filter(l => l.dueDate === targetDate).sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
         if (filtered.length === 0) {
             rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete para esta data.</p>';
@@ -623,7 +565,6 @@ const app = {
             const titleInp = document.getElementById('lembrete-title-inp');
             const descInp = document.getElementById('lembrete-desc-inp');
             const dateInp = document.getElementById('lembrete-date-inp');
-            
             const title = titleInp.value; 
             if(!title) { app.showToast("Título obrigatório", "error"); return; }
             const desc = descInp.value;
@@ -640,11 +581,9 @@ const app = {
                 app.showToast("Lembrete criado com sucesso!");
             }
             titleInp.value = ''; descInp.value = '';
-            
             app.currentReminderDate = targetDate;
             const rFilter = document.getElementById('reminder-date-filter');
             if(rFilter) rFilter.value = targetDate;
-            
             app.renderReminders();
             app.closeModal();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
@@ -665,7 +604,6 @@ const app = {
         } 
     },
 
-    // --- REUTILIZÁVEIS E GLOBAIS ---
     async updateTaskStatus(id, newStatus) { 
         let realStatus = newStatus;
         if(newStatus === 'Concluídas') realStatus = 'Concluída';
@@ -727,6 +665,7 @@ const app = {
             document.getElementById('modal-edit-task').classList.remove('hidden'); 
         } catch(e) { console.error(e); app.showToast("Erro ao abrir edição", "error"); }
     },
+    
     async handleUpdateTask() { 
         try {
             const title = document.getElementById('edit-task-title').value; 
@@ -737,6 +676,7 @@ const app = {
             app.showToast("Tarefa atualizada!");
         } catch(e) { console.error(e); app.showToast("Erro ao atualizar", "error"); }
     },
+    
     openSubtaskForm(sid = null) { 
         app.editSubId = sid; 
         app.closeModal(); 
@@ -758,6 +698,7 @@ const app = {
             document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); 
         } 
     },
+    
     async handleSaveSubtask() { 
         try {
             const t = document.getElementById('sub-title-inp').value; 
@@ -776,6 +717,100 @@ const app = {
             app.showToast("Subtarefa gravada!");
         } catch(e) { console.error(e); app.showToast("Erro ao gravar", "error"); }
     },
+    
+    loadUsers() { 
+        onSnapshot(collection(db, "usuarios"), (snap) => { 
+            app.userMap = {};
+            snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
+            const opts = snap.docs.map(d => d.data().nome); 
+            ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
+                const el = document.getElementById(cid); 
+                if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${n}</span></label>`).join(''); 
+            }); 
+            const filterEl = document.getElementById('assignee-filter-list');
+            if(filterEl) {
+                filterEl.innerHTML = opts.map(n => `
+                    <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
+                        <input type="checkbox" value="${n}" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4" ${app.filters.assignees.includes(n) ? 'checked' : ''}>
+                        <span class="text-xs font-medium dark:text-white">${n}</span>
+                    </label>
+                `).join('');
+            }
+        }); 
+    },
+    
+    renderRanking() { 
+        const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
+        app.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
+        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
+        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
+            let crown = ''; const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svgIcon}</span>`; else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svgIcon}</span>`;
+            return `<div class="flex items-center gap-4"><div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div><div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="font-black text-right dark:text-white text-lg">${r[1]}</div></div>`;
+        }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
+    },
+    
+    cleanup() { app.unsubs.forEach(f => f()); app.unsubs = []; },
+    
+    closeModal() { 
+        document.getElementById('modal-backdrop').classList.add('hidden'); 
+        document.getElementById('modal-backdrop').classList.remove('flex'); 
+        document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); 
+    },
+    
+    async toggleSub(sid, val) { 
+        await updateDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid), {completed: val}); 
+        await app.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); 
+    },
+    
+    async deleteSub(sid) { 
+        if(confirm("Remover subtarefa?")) { 
+            const d = await getDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", sid));
+            const subTitle = d.exists() ? d.data().title : 'Subtarefa';
+            await deleteDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid)); 
+            await app.addLog(`🗑️ Excluiu a subtarefa: "${subTitle}"`);
+            app.closeModal(); 
+        } 
+    },
+    
+    signOut() { 
+        const em = document.getElementById('login-email'); 
+        const ps = document.getElementById('login-password'); 
+        if(em) em.value = ''; 
+        if(ps) ps.value = ''; 
+        signOut(auth); 
+    },
+    
+    async handleDeleteTask(id) { 
+        if(confirm("Excluir tarefa?")) { 
+            const d = await getDoc(doc(db,"tarefas",id)); 
+            const title = d.exists() ? d.data().title : 'Tarefa';
+            await deleteDoc(doc(db,"tarefas",id)); 
+            await app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
+            app.navigate('dashboard'); 
+        } 
+    },
+
+    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",app.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); await app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); app.showToast("Anexo salvo!"); }; r.readAsDataURL(f); }; inp.click(); },
+    
+    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(dt.foto || u.photoURL) { av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; av.innerText = ''; } else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; } },
+    
+    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); const novaFoto = app.tempPhotoBase64; const updateObj = { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value }; if (novaFoto !== null) updateObj.foto = novaFoto; await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; const avH = document.getElementById('header-avatar'); if (novaFoto) { avH.style.backgroundImage = `url('${novaFoto}')`; avH.innerText = ''; } else if (novaFoto === "") { avH.style.backgroundImage = 'none'; avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); } app.showToast("Perfil corporativo atualizado!"); app.navigate('dashboard'); } catch(e) { app.showToast("Erro ao salvar", "error"); } },
+    
+    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); app.tempPhotoBase64 = ""; } },
+    
+    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return app.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); app.showToast("Senha alterada!"); app.navigate('dashboard'); } catch(e) { app.showToast("Senha atual incorreta.", "error"); } },
+    
+    compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
+    
+    listenToChat(tid) { app.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    
+    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
+    
+    listenToSubChat(sid) { app.unsubs.push(onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    
+    async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
+    
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
 };
 
