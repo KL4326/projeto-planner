@@ -24,6 +24,10 @@ const app = {
     userMap: {},
     allReminders: [],
     currentReminderDate: '',
+    reminderUnsub: null,
+    subtaskUnsub: null,
+    chatUnsub: null,
+    taskUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -54,8 +58,21 @@ const app = {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     },
 
+    getUidByAssignee(assigneeStr) {
+        if (!assigneeStr) return '';
+        if (app.userMap[assigneeStr]) return assigneeStr;
+        let exactUser = Object.values(app.userMap).find(u => u.nome === assigneeStr);
+        if (exactUser) return exactUser.uid;
+        let looseUser = Object.values(app.userMap).find(u => 
+            u.nome.toLowerCase().includes(assigneeStr.toLowerCase()) || 
+            assigneeStr.toLowerCase().includes(u.nome.toLowerCase())
+        );
+        if (looseUser) return looseUser.uid;
+        return assigneeStr;
+    },
+
     navigate(pageId, params = null) {
-        app.cleanup();
+        this.cleanup();
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
@@ -74,7 +91,7 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); }
+        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.listenToReminders(); }
         if(pageId === 'calendario') app.renderCalendar();
         if(pageId === 'configuracoes') app.showConfigTab('profile');
         if(pageId === 'detalhes' && params) { app.renderDetails(params); }
@@ -162,19 +179,6 @@ const app = {
         }); 
     },
 
-    updateAvatar(u, fotoDb, name) { 
-        const av = document.getElementById('header-avatar'); 
-        const fotoReal = fotoDb || u.photoURL;
-        const nomeReal = name || u.displayName || u.email;
-        if(fotoReal) { 
-            av.innerText = ''; 
-            av.style.backgroundImage = `url('${fotoReal}')`; 
-        } else { 
-            av.innerText = nomeReal.substring(0,2).toUpperCase(); 
-            av.style.backgroundImage = 'none';
-        } 
-    },
-
     async addLog(msg) { 
         try { 
             await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
@@ -230,6 +234,10 @@ const app = {
         const eqEl = document.getElementById('assignee-filter-count');
         if(eqEl) eqEl.innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
         
+        const countPrio = app.filters.priorities.length;
+        const prioEl = document.getElementById('priority-filter-count');
+        if(prioEl) prioEl.innerText = countPrio > 0 ? `Prioridade (${countPrio})` : 'Prioridade';
+        
         const labelDate = document.getElementById('date-filter-label');
         if(labelDate) labelDate.innerText = app.filters.dueDate ? app.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
 
@@ -247,7 +255,7 @@ const app = {
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return;
+            const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
@@ -264,10 +272,7 @@ const app = {
                 const matchSearch = (t.title || '').toLowerCase().includes(app.filters.search.toLowerCase());
                 
                 const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => {
-                    if(app.filters.assignees.includes(a)) return true;
-                    let uData = Object.values(app.userMap).find(u => u.nome === a);
-                    if(uData && app.filters.assignees.includes(uData.uid)) return true;
-                    return false;
+                    return app.filters.assignees.includes(app.getUidByAssignee(a));
                 }));
                 
                 const matchPriority = app.filters.priorities.length === 0 || app.filters.priorities.includes(t.priority || 'Média');
@@ -327,9 +332,8 @@ const app = {
                 
                 let avatarsHtml = '';
                 (t.assignees || []).forEach(assigneeStr => {
-                    let uData = app.userMap[assigneeStr];
-                    if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
-                    
+                    const uid = app.getUidByAssignee(assigneeStr);
+                    const uData = app.userMap[uid];
                     const dispName = uData ? uData.nome : assigneeStr;
                     const foto = uData ? uData.foto : null;
 
@@ -414,26 +418,27 @@ const app = {
 
     applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
-    async criarTarefa() {
-        try {
-            const title = document.getElementById('nova-titulo').value; 
-            if(!title) { app.showToast("Título obrigatório", "error"); return; }
-            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
-            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
-            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
-            app.navigate('dashboard');
-            app.showToast("Tarefa distribuída com sucesso!");
-        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
-    },
-
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
-        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
-        
+        if(!container) return;
+
+        container.innerHTML = `
+            <div id="detail-header-actions" class="flex items-center justify-between mb-4"></div>
+            <div id="detail-main-card" class="glass-panel p-8 rounded-3xl border dark:border-white/5 shadow-xl flex flex-col md:flex-row justify-between gap-8 bento-highlight dark:bg-[#151c2c] mb-6 text-left"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="flex flex-col gap-4 text-left"><div class="flex items-center justify-between p-1 font-black text-[11px] uppercase tracking-wider text-on-surface-variant/70">Subtarefas Conectadas<button onclick="app.openSubtaskForm()" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[10px] font-bold shadow hover:opacity-90 transition-all flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">add</span> Nova</button></div><div id="subtasks-list" class="glass-panel dark:bg-[#151c2c] rounded-3xl border dark:border-white/5 divide-y border-gray-100 dark:divide-white/5 shadow-sm overflow-hidden"></div></div>
+                <div class="flex flex-col gap-4 text-left"><h2 class="font-black text-[11px] uppercase tracking-wider text-on-surface-variant/70 p-1">Painel de Discussão</h2><div class="glass-panel dark:bg-[#151c2c] rounded-3xl border dark:border-white/5 flex flex-col h-[400px] shadow-sm overflow-hidden"><div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div><div class="p-4 border-t border-gray-100 dark:border-white/5 flex gap-2 bg-surface-container-low dark:bg-transparent"><input id="chat-input" onkeydown="if(event.key==='Enter')app.sendChatMessage()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem corporativa..."><button onclick="app.sendChatMessage()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow hover:opacity-90 transition-all"><span class="material-symbols-outlined text-[18px]">send</span></button></div></div></div>
+            </div>
+            <div id="detail-footer-actions" class="flex gap-4 mt-6"></div>
+        `;
+
+        app.listenToSubtasks(id); 
+        app.listenToChat(id);
+
+        if(app.taskUnsub) app.taskUnsub();
         app.taskUnsub = onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
-            const t = d.data(); app.activeTaskData = t;
-            const statusSafe = t.status || 'Em aberto';
+            const t = d.data();
             const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
             let btns = t.status === 'Concluída' || t.status === 'Cancelada' || t.status === 'Concluídas' || t.status === 'Canceladas'
@@ -442,8 +447,8 @@ const app = {
 
             let avatarsHtml = '';
             (t.assignees || []).forEach(assigneeStr => {
-                let uData = app.userMap[assigneeStr];
-                if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
+                const uid = app.getUidByAssignee(assigneeStr);
+                const uData = app.userMap[uid];
                 const dispName = uData ? uData.nome : assigneeStr;
                 const foto = uData ? uData.foto : null;
 
@@ -451,39 +456,38 @@ const app = {
                 else avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm -ml-2 first:ml-0" title="${dispName}">${dispName.substring(0,2).toUpperCase()}</div>`;
             });
 
-            container.innerHTML = `
-                <div class="flex items-center justify-between"><button onclick="app.navigate('dashboard')" class="bg-white dark:bg-[#151c2c] p-2.5 rounded-xl shadow-sm border dark:border-white/5 hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><div class="flex items-center gap-2">${btns}</div></div>
-                <div class="glass-panel p-8 rounded-3xl border dark:border-white/5 shadow-xl flex flex-col md:flex-row justify-between gap-8 bento-highlight dark:bg-[#151c2c]">
-                    <div class="flex-1 text-left">
-                        <div class="flex items-center gap-3 mb-2"><h1 class="text-3xl font-display font-black text-primary dark:text-white">${t.title || 'Sem título'}</h1></div>
-                        <div class="inline-flex px-2.5 py-0.5 bg-surface-container dark:bg-white/5 rounded-md text-[10px] font-bold uppercase tracking-widest text-on-surface-variant dark:text-gray-300 mb-6">${t.status || 'Em aberto'} • ${t.priority || 'Média'}</div>
-                        <p class="text-on-surface-variant/90 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed mb-6 font-medium">${t.description || 'Sem descrição.'}</p>
-                        <div class="grid grid-cols-2 gap-6 border-t border-gray-200 dark:border-white/5 pt-5 text-sm">
-                            <div><span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60">Fim do Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div>
-                            <div><span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60">Anexos de Suporte</span><div id="task-att-list" class="flex flex-wrap gap-2 mt-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase tracking-wider text-primary dark:text-blue-400 flex items-center gap-1 hover:opacity-80 transition-all"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR ARQUIVO</button></div>
-                        </div>
-                    </div>
-                    <div class="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/5 pt-6 md:pt-0 md:pl-8 text-left flex flex-col">
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60 mb-3">Equipe Executora</span>
-                        <div class="flex flex-wrap gap-1">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
+            const ha = document.getElementById('detail-header-actions');
+            if(ha) ha.innerHTML = `<button onclick="app.navigate('dashboard')" class="bg-white dark:bg-[#151c2c] p-2.5 rounded-xl shadow-sm border dark:border-white/5 hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><div class="flex items-center gap-2">${btns}</div>`;
+
+            const mc = document.getElementById('detail-main-card');
+            if(mc) mc.innerHTML = `
+                <div class="flex-1 text-left">
+                    <div class="flex items-center gap-3 mb-2"><h1 class="text-3xl font-display font-black text-primary dark:text-white">${t.title || 'Sem título'}</h1></div>
+                    <div class="inline-flex px-2.5 py-0.5 bg-surface-container dark:bg-white/5 rounded-md text-[10px] font-bold uppercase tracking-widest text-on-surface-variant dark:text-gray-300 mb-6">${t.status || 'Em aberto'} • ${t.priority || 'Média'}</div>
+                    <p class="text-on-surface-variant/90 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed mb-6 font-medium">${t.description || 'Sem descrição.'}</p>
+                    <div class="grid grid-cols-2 gap-6 border-t border-gray-200 dark:border-white/5 pt-5 text-sm">
+                        <div><span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60">Fim do Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div>
+                        <div><span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60">Anexos de Suporte</span><div id="task-att-list" class="flex flex-wrap gap-2 mt-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase tracking-wider text-primary dark:text-blue-400 flex items-center gap-1 hover:opacity-80 transition-all"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR ARQUIVO</button></div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="flex flex-col gap-4 text-left"><div class="flex items-center justify-between p-1 font-black text-[11px] uppercase tracking-wider text-on-surface-variant/70">Subtarefas Conectadas<button onclick="app.openSubtaskForm()" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[10px] font-bold shadow hover:opacity-90 transition-all flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">add</span> Nova</button></div><div id="subtasks-list" class="glass-panel dark:bg-[#151c2c] rounded-3xl border dark:border-white/5 divide-y border-gray-100 dark:divide-white/5 shadow-sm overflow-hidden"></div></div>
-                    <div class="flex flex-col gap-4 text-left"><h2 class="font-black text-[11px] uppercase tracking-wider text-on-surface-variant/70 p-1">Painel de Discussão</h2><div class="glass-panel dark:bg-[#151c2c] rounded-3xl border dark:border-white/5 flex flex-col h-[400px] shadow-sm overflow-hidden"><div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div><div class="p-4 border-t border-gray-100 dark:border-white/5 flex gap-2 bg-surface-container-low dark:bg-transparent"><input id="chat-input" onkeydown="if(event.key==='Enter')app.sendChatMessage()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem corporativa..."><button onclick="app.sendChatMessage()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow hover:opacity-90 transition-all"><span class="material-symbols-outlined text-[18px]">send</span></button></div></div></div>
+                <div class="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/5 pt-6 md:pt-0 md:pl-8 text-left flex flex-col">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60 mb-3">Equipe Executora</span>
+                    <div class="flex flex-wrap gap-2">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
                 </div>
-                <div class="flex gap-4 mt-6"><button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button></div>
             `;
-            const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
-            
-            app.listenToSubtasks(id); 
-            app.listenToChat(id);
+            const al = document.getElementById('task-att-list'); 
+            if(al) {
+                (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
+            }
+
+            const fa = document.getElementById('detail-footer-actions');
+            if(fa) fa.innerHTML = `<button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button>`;
         });
         app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
-        if(app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
+        if(app.subtaskUnsub) app.subtaskUnsub();
         app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
@@ -510,9 +514,7 @@ const app = {
         const primeiroDiaSemana = new Date(app.currentYear, app.currentMonth, 1).getDay();
         const totalDiasMes = new Date(app.currentYear, app.currentMonth + 1, 0).getDate();
 
-        for(let i = 0; i < primeiroDiaSemana; i++) {
-            grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`;
-        }
+        for(let i = 0; i < primeiroDiaSemana; i++) { grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`; }
 
         for(let dia = 1; dia <= totalDiasMes; dia++) {
             const mFormat = String(app.currentMonth + 1).padStart(2, '0');
@@ -521,9 +523,7 @@ const app = {
 
             const tarefasDoDia = app.allTasks.filter(t => t.dueDate === dateStr);
             let indicatorsHtml = '';
-            tarefasDoDia.forEach(t => {
-                indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`;
-            });
+            tarefasDoDia.forEach(t => { indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`; });
 
             grid.innerHTML += `
                 <div class="p-3 bg-white dark:bg-[#151c2c] rounded-2xl min-h-[140px] border border-gray-100 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -582,21 +582,17 @@ const app = {
     },
 
     listenToReminders() {
-        if(app.reminderUnsub) return;
+        if (app.reminderUnsub) app.reminderUnsub();
         app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
-        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
         const rc = document.getElementById('remindersContainer'); if(!rc) return;
         const targetDate = app.currentReminderDate || app.getTodayStr();
-        
-        const filtered = app.allReminders
-            .filter(l => l.dueDate === targetDate)
-            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        const filtered = app.allReminders.filter(l => l.dueDate === targetDate).sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
         if (filtered.length === 0) {
             rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete para esta data.</p>';
@@ -686,15 +682,6 @@ const app = {
         } 
     },
 
-    async updateTaskStatus(id, newStatus) { 
-        let realStatus = newStatus;
-        if(newStatus === 'Concluídas') realStatus = 'Concluída';
-        if(newStatus === 'Canceladas') realStatus = 'Cancelada';
-        await updateDoc(doc(db, "tarefas", id), { status: realStatus }); 
-        const d = await getDoc(doc(db,"tarefas",id));
-        await app.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
-    },
-    
     async openSubtaskView(sid) {
         try {
             app.activeSid = sid; 
@@ -707,9 +694,8 @@ const app = {
             const cont = document.getElementById('subtask-view-content');
             
             const assigneeNames = (d.assignees || []).map(assigneeStr => {
-                let uData = app.userMap[assigneeStr];
-                if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
-                return uData ? uData.nome : assigneeStr;
+                const uid = app.getUidByAssignee(assigneeStr);
+                return app.userMap[uid] ? app.userMap[uid].nome : assigneeStr;
             }).join(', ') || 'Não definido';
             
             cont.innerHTML = `
@@ -734,7 +720,6 @@ const app = {
             
             if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
             app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
-            app.unsubs.push(app.chatUnsub);
             
         } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
     },
@@ -750,7 +735,7 @@ const app = {
             document.getElementById('edit-task-date').value = t.dueDate || ""; 
             
             document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => {
-                cb.checked = t.assignees?.includes(cb.value) || t.assignees?.includes(Object.values(app.userMap).find(u => u.uid === cb.value)?.nome);
+                cb.checked = t.assignees?.some(a => app.getUidByAssignee(a) === cb.value);
             }); 
             
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
@@ -783,7 +768,7 @@ const app = {
                 document.getElementById('sub-priority-inp').value = s.priority || "Média"; 
                 document.getElementById('sub-date-inp').value = s.dueDate || ""; 
                 document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => {
-                    cb.checked = s.assignees?.includes(cb.value) || s.assignees?.includes(Object.values(app.userMap).find(u => u.uid === cb.value)?.nome);
+                    cb.checked = s.assignees?.some(a => app.getUidByAssignee(a) === cb.value);
                 }); 
             }); 
         } else { 
@@ -843,10 +828,8 @@ const app = {
         app.allTasks.forEach(t => { 
             if(t.status === "Concluída" || t.status === "Concluídas") {
                 (t.assignees || []).forEach(assigneeStr => {
-                    let uData = app.userMap[assigneeStr];
-                    if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
-                    const key = uData ? uData.uid : assigneeStr;
-                    pts[key] = (pts[key] || 0) + 1; 
+                    const uid = app.getUidByAssignee(assigneeStr);
+                    pts[uid] = (pts[uid] || 0) + 1; 
                 });
             }
         }); 
@@ -921,7 +904,7 @@ const app = {
             const d = await getDoc(doc(db,"tarefas",id)); 
             const title = d.exists() ? d.data().title : 'Tarefa';
             await deleteDoc(doc(db,"tarefas",id)); 
-            await app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
+            app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
             app.navigate('dashboard'); 
         } 
     },
@@ -1057,13 +1040,6 @@ const app = {
         const i = document.getElementById('chat-input'); 
         if(!i.value.trim()) return; 
         await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
-        i.value = ''; 
-    },
-    
-    async sendSubComment() { 
-        const i = document.getElementById('sub-chat-input'); 
-        if(!i || !i.value.trim()) return; 
-        await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
         i.value = ''; 
     },
     
