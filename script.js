@@ -66,39 +66,37 @@ const app = {
         if(pageId === 'dashboard') { this.renderDashboard(); this.renderRanking(); }
         if(pageId === 'calendario') this.renderCalendar();
         if(pageId === 'configuracoes') this.showConfigTab('profile');
-        if(pageId === 'detalhes' && params) this.renderDetails(params);
+        if(pageId === 'detalhes' && params) { this.renderDetails(params); }
         
         this.closeModal(); window.scrollTo(0,0);
     },
 
-    // Blindagem de Eventos Nativos
+    // Ações de evento direto para evitar falhas de DOM Async
+    async handleLogin(e) {
+        e.preventDefault();
+        try {
+            await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+        } catch(err) {
+            this.showToast("Email ou senha incorretos", "error");
+        }
+    },
+
     bindEvents() {
-        const lf = document.getElementById('login-form');
-        if(lf) lf.addEventListener('submit', async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } catch(err) { this.showToast("Erro no login.", "error"); } });
-        
-        const si = document.getElementById('search-input');
-        if(si) si.oninput = (e) => { this.filters.search = e.target.value; this.renderDashboard(); };
-        
-        const nb = document.getElementById('notif-btn');
-        if(nb) nb.onclick = (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); };
-        
-        const pt = document.getElementById('profile-trigger');
-        if(pt) pt.onclick = (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); };
+        document.getElementById('search-input')?.addEventListener('input', (e) => { this.filters.search = e.target.value; this.renderDashboard(); });
+        document.getElementById('notif-btn')?.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); this.markNotifsRead(); });
+        document.getElementById('profile-trigger')?.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); });
         
         document.addEventListener('click', () => { 
-            const nm = document.getElementById('notif-menu'); if(nm) nm.classList.add('hidden'); 
-            const pm = document.getElementById('profile-menu'); if(pm) pm.classList.add('hidden'); 
-            const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
+            document.getElementById('notif-menu')?.classList.add('hidden'); 
+            document.getElementById('profile-menu')?.classList.add('hidden'); 
+            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
+            document.getElementById('priority-filter-menu')?.classList.add('hidden');
+            document.getElementById('date-filter-menu')?.classList.add('hidden');
         });
         
-        const st = document.getElementById('submit-edit-task');
-        if(st) st.onclick = () => this.handleUpdateTask();
-        
-        const ss = document.getElementById('submit-subtask-form');
-        if(ss) ss.onclick = () => this.handleSaveSubtask();
-        
-        const pu = document.getElementById('profile-upload');
-        if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
+        const st = document.getElementById('submit-edit-task'); if(st) st.onclick = () => this.handleUpdateTask();
+        const ss = document.getElementById('submit-subtask-form'); if(ss) ss.onclick = () => this.handleSaveSubtask();
+        const pu = document.getElementById('profile-upload'); if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) this.compressImage(f, (b64) => { this.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
     },
 
     checkAuth() { 
@@ -373,18 +371,6 @@ const app = {
     },
     applyStatFilter(label) { this.filters.status = label; this.renderDashboard(); },
 
-    async criarTarefa() {
-        try {
-            const title = document.getElementById('nova-titulo').value; 
-            if(!title) { this.showToast("Título obrigatório", "error"); return; }
-            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
-            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
-            await this.addLog(`➕ Adicionou a tarefa: "${title}"`); 
-            this.navigate('dashboard');
-            this.showToast("Tarefa distribuída com sucesso!");
-        } catch(e) { console.error(e); this.showToast("Erro ao criar.", "error"); }
-    },
-
     renderDetails(id) {
         this.currentTaskId = id; const container = document.getElementById('details-view-content');
         this.unsubs.push(onSnapshot(doc(db, "tarefas", id), (d) => {
@@ -431,19 +417,25 @@ const app = {
                 <div class="flex gap-4 mt-6"><button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button></div>
             `;
             const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
-            this.listenToSubtasks(id); this.listenToChat(id);
+            
+            // Corrige o loop infinito chamando o listener apenas se ele for limpo antes
+            if (this.subtaskUnsub) { this.subtaskUnsub(); }
+            if (this.chatUnsub) { this.chatUnsub(); }
+            this.listenToSubtasks(id); 
+            this.listenToChat(id);
         }));
     },
 
     listenToSubtasks(tid) {
-        this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
+        this.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
             l.innerHTML = sts.length ? sts.map(st => {
                 const prioColor = st.priority === 'Alta' ? 'text-red-600 dark:text-red-400' : (st.priority === 'Baixa' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400');
                 return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
-        }));
+        });
+        this.unsubs.push(this.subtaskUnsub);
     },
 
     // --- CALENDÁRIO CORPORATIVO ---
@@ -528,7 +520,9 @@ const app = {
 
     // --- LEMBRETES DIÁRIOS ---
     listenToReminders() {
-        onSnapshot(collection(db, "lembretes"), s => {
+        // Blindagem para não duplicar o Snapshot Global de Lembretes
+        if(this.reminderUnsub) return;
+        this.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
             const rc = document.getElementById('remindersContainer'); if(!rc) return;
             const hoje = this.getTodayStr();
             
@@ -556,17 +550,20 @@ const app = {
                 </div>
             `).join('');
         });
+        this.unsubs.push(this.reminderUnsub);
     },
     async openEditReminder(id) {
         this.editReminderId = id;
-        const d = await getDoc(doc(db, "lembretes", id));
-        if (d.exists()) {
-            const l = d.data();
-            document.getElementById('lembrete-title-inp').value = l.title || '';
-            document.getElementById('lembrete-desc-inp').value = l.description || '';
-            document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
-            document.getElementById('modal-lembrete-form').classList.remove('hidden');
-        }
+        try {
+            const d = await getDoc(doc(db, "lembretes", id));
+            if (d.exists()) {
+                const l = d.data();
+                document.getElementById('lembrete-title-inp').value = l.title || '';
+                document.getElementById('lembrete-desc-inp').value = l.description || '';
+                document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
+                document.getElementById('modal-lembrete-form').classList.remove('hidden');
+            }
+        } catch(e) { console.error(e); }
     },
     async saveReminder() {
         try {
@@ -585,7 +582,7 @@ const app = {
             } else {
                 await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: hoje, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
                 await this.addLog(`➕ Criou lembrete: "${title}"`);
-                this.showToast("Lembrete criado!");
+                this.showToast("Lembrete criado com sucesso!");
             }
             titleInp.value = ''; descInp.value = '';
             this.closeModal();
@@ -635,8 +632,12 @@ const app = {
         `;
         const sl = document.getElementById('sub-att-list'); (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
         document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-view').classList.remove('hidden');
-        this.listenToSubChat(sid);
+        
+        if(this.chatUnsub) this.chatUnsub();
+        this.chatUnsub = onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
+        this.unsubs.push(this.chatUnsub);
     },
+    
     async openEditModal() { 
         try {
             const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); 
@@ -664,7 +665,7 @@ const app = {
     openSubtaskForm(sid = null) { this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden'); if(sid) { getDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title || ""; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "Média"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); }); } else { document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } },
     async handleSaveSubtask() { 
         try {
-            const t = document.getElementById('sub-title-inp').value; if(!t) return; 
+            const t = document.getElementById('sub-title-inp').value; if(!t) { this.showToast("Título obrigatório", "error"); return; }
             const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); 
             const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; 
             if (this.editSubId) { 
@@ -676,7 +677,7 @@ const app = {
             } 
             this.closeModal(); 
             this.showToast("Subtarefa gravada!");
-        } catch(e) { console.error(e); this.showToast("Erro", "error"); }
+        } catch(e) { console.error(e); this.showToast("Erro ao gravar", "error"); }
     },
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
 };
