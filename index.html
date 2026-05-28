@@ -16,7 +16,7 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#124343",
+                        "primary": "var(--color-primary, #124343)",
                         "secondary": "#994529",
                         "surface": "#fbf9f6",
                         "surface-container": "#efeeeb",
@@ -73,6 +73,10 @@
             <div id="profile-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#151c2c] border dark:border-white/10 rounded-2xl shadow-2xl z-50 p-4 text-left">
                 <p id="user-display-name" class="text-sm font-bold text-on-surface dark:text-white truncate">...</p>
                 <p id="user-display-role" class="text-xs text-on-surface-variant/80 dark:text-gray-400 truncate mt-0.5">Colaborador</p>
+                <div class="mt-4 pt-4 border-t dark:border-white/5 flex flex-col gap-1">
+                    <button onclick="app.navigate('configuracoes')" class="w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 transition-all flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">settings</span> Configurações</button>
+                    <button onclick="app.signOut()" class="w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">logout</span> Sair</button>
+                </div>
             </div>
         </div>
     </div>
@@ -83,10 +87,10 @@
         <div class="w-full max-w-md bg-white dark:bg-[#151c2c] p-10 rounded-3xl shadow-2xl border dark:border-white/5 text-center">
             <span class="material-symbols-outlined text-6xl text-primary dark:text-white font-bold mb-4">layers</span>
             <h2 class="text-2xl font-display font-bold mb-8 text-on-surface dark:text-white tracking-tight text-left">Acesso Restrito</h2>
-            <form id="login-form" class="flex flex-col gap-4 text-left" onsubmit="app.handleLogin(event)">
+            <form id="login-form" class="flex flex-col gap-4 text-left">
                 <input id="login-email" type="email" placeholder="E-mail corporativo" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
                 <input id="login-password" type="password" placeholder="Senha" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
-                <button type="submit" class="bg-primary dark:bg-white/10 text-white font-bold py-4 rounded-2xl hover:opacity-90 shadow-lg uppercase text-sm tracking-wider mt-2 transition-all">Entrar</button>
+                <button type="submit" class="bg-primary dark:bg-primary/90 text-white font-bold py-4 rounded-2xl hover:opacity-90 shadow-lg uppercase text-sm tracking-wider mt-2 transition-all">Entrar</button>
             </form>
         </div>
     </section>
@@ -121,13 +125,13 @@
                         <div>
                             <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="priority-filter-count">Prioridade</p>
                             <div id="priority-filter-menu" class="flex gap-2 flex-wrap">
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
+                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-primary/30 dark:has-[:checked]:text-primary">
                                     <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="hidden"> Alta
                                 </label>
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
+                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-primary/30 dark:has-[:checked]:text-primary">
                                     <input type="checkbox" value="Média" onchange="app.applyFilters()" class="hidden"> Média
                                 </label>
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
+                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-primary/30 dark:has-[:checked]:text-primary">
                                     <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="hidden"> Baixa
                                 </label>
                             </div>
@@ -161,8 +165,8 @@
                         <div class="flex items-center justify-between mb-4 border-b dark:border-white/5 pb-2">
                             <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400">Lembretes</h3>
                             <div class="flex items-center gap-2">
-                                <input type="date" id="reminder-date-filter" onchange="app.filterReminders(this.value)" class="text-[10px] p-1.5 font-bold rounded-lg border-none bg-surface-container dark:bg-white/5 dark:text-white cursor-pointer outline-none focus:ring-1 focus:ring-primary">
-                                <button onclick="app.openLembreteForm()" class="text-on-surface-variant dark:text-gray-400 hover:text-primary dark:hover:text-white transition-all flex items-center">
+                                <input type="date" id="reminder-date-filter" onchange="app.filterReminders(this.value)" class="text-[10px] p-1.5 font-bold rounded-lg border-none bg-surface-container dark:bg-white/5 dark:text-white cursor-pointer outline-none focus:ring-1 focus:ring-primary text-primary">
+                                <button onclick="app.openLembreteForm()" class="text-on-surface-variant dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-all flex items-center">
                                     <span class="material-symbols-outlined text-[20px]">add</span>
                                 </button>
                             </div>
@@ -193,16 +197,17 @@
     <section id="page-configuracoes" class="page-section max-w-5xl mx-auto text-left">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="glass-panel rounded-3xl p-5 border dark:border-white/5 flex flex-col gap-2 bento-highlight">
-                <button onclick="app.showConfigTab('profile')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm bg-surface-container dark:bg-white/5 text-primary dark:text-white transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">person</span>Perfil</button>
-                <button onclick="app.showConfigTab('users')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">group</span>Usuários</button>
-                <button onclick="app.toggleTheme()" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">dark_mode</span>Aparência</button>
-                <button onclick="app.showConfigTab('security')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">security</span>Segurança</button>
+                <button onclick="app.showConfigTab('profile')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">person</span>Perfil</button>
+                <button onclick="app.showConfigTab('users')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">group</span>Usuários</button>
+                <button onclick="app.showConfigTab('appearance')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">palette</span>Aparência</button>
+                <button onclick="app.showConfigTab('security')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">security</span>Segurança</button>
                 <div class="mt-auto pt-4 border-t dark:border-white/5">
                     <button onclick="app.signOut()" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">logout</span>Sair</button>
                 </div>
             </div>
             
             <div class="md:col-span-3 glass-panel rounded-3xl p-8 border dark:border-white/5 bento-highlight">
+                
                 <div id="config-tab-profile" class="config-subtab space-y-6">
                     <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Editar Perfil</h3>
                     <div class="flex items-center gap-6 mb-2">
@@ -214,22 +219,47 @@
                         <input type="file" id="profile-upload" class="hidden" accept="image/*">
                     </div>
                     <div class="flex flex-col gap-5">
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Nome Completo</label><input id="profile-name-input" type="text" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none text-sm dark:text-white"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Cargo / Função</label><input id="profile-role-input" type="text" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none text-sm dark:text-white"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Biografia</label><textarea id="profile-bio-input" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 h-28 outline-none text-sm dark:text-white"></textarea></div>
+                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Nome Completo</label><input id="profile-name-input" type="text" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none text-sm dark:text-white focus:ring-2 focus:ring-primary/50"></div>
+                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Cargo / Função</label><input id="profile-role-input" type="text" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none text-sm dark:text-white focus:ring-2 focus:ring-primary/50"></div>
+                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Biografia</label><textarea id="profile-bio-input" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 h-28 outline-none text-sm dark:text-white focus:ring-2 focus:ring-primary/50"></textarea></div>
                         <button onclick="app.handleSaveProfile()" class="bg-primary text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 w-48 shadow-md mt-2">Salvar Alterações</button>
                     </div>
                 </div>
+                
                 <div id="config-tab-users" class="config-subtab hidden space-y-6">
                     <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Diretório de Usuários</h3>
                     <div id="config-users-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2"></div>
                 </div>
+
+                <div id="config-tab-appearance" class="config-subtab hidden space-y-6">
+                    <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Personalizar Aparência</h3>
+                    <div class="flex flex-col gap-8">
+                        <div>
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-2 block">Tema do Sistema</label>
+                            <button onclick="app.toggleTheme()" class="bg-surface-container dark:bg-white/5 text-on-surface dark:text-white font-bold py-3.5 px-6 rounded-xl text-sm transition-all hover:opacity-80 flex items-center gap-2 shadow-sm border border-gray-200 dark:border-white/10">
+                                <span class="material-symbols-outlined text-[18px]">dark_mode</span> Alternar Modo Claro / Escuro
+                            </button>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-3 block">Cor de Destaque (Botões e Ações)</label>
+                            <div class="flex flex-wrap gap-4">
+                                <button onclick="app.changePrimaryColor('#124343')" class="w-12 h-12 rounded-full bg-[#124343] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#124343]" title="Verde Escuro Original"></button>
+                                <button onclick="app.changePrimaryColor('#059669')" class="w-12 h-12 rounded-full bg-[#059669] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#059669]" title="Esmeralda"></button>
+                                <button onclick="app.changePrimaryColor('#2563eb')" class="w-12 h-12 rounded-full bg-[#2563eb] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#2563eb]" title="Azul Royal"></button>
+                                <button onclick="app.changePrimaryColor('#7c3aed')" class="w-12 h-12 rounded-full bg-[#7c3aed] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#7c3aed]" title="Roxo"></button>
+                                <button onclick="app.changePrimaryColor('#e11d48')" class="w-12 h-12 rounded-full bg-[#e11d48] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#e11d48]" title="Carmesim"></button>
+                                <button onclick="app.changePrimaryColor('#ea580c')" class="w-12 h-12 rounded-full bg-[#ea580c] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#ea580c]" title="Laranja"></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="config-tab-security" class="config-subtab hidden space-y-6">
                     <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Segurança e Acesso</h3>
                     <div class="flex flex-col gap-5 max-w-md">
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Confirme a Senha</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white"></div>
+                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white focus:ring-2 focus:ring-primary/50"></div>
+                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white focus:ring-2 focus:ring-primary/50"></div>
+                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Confirme a Senha</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white focus:ring-2 focus:ring-primary/50"></div>
                         <button onclick="app.handlePasswordUpdate()" class="bg-primary text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 shadow-md mt-2">Atualizar Senha</button>
                     </div>
                 </div>
