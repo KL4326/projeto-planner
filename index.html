@@ -120,18 +120,15 @@
                         </div>
                         <div>
                             <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="priority-filter-count">Prioridade</p>
-                            <div id="priority-filter-menu" class="flex flex-col gap-1">
-                                <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                                    <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4">
-                                    <span class="text-xs font-medium dark:text-white">Alta</span>
+                            <div id="priority-filter-menu" class="flex gap-2 flex-wrap">
+                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
+                                    <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="hidden"> Alta
                                 </label>
-                                <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                                    <input type="checkbox" value="Média" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4">
-                                    <span class="text-xs font-medium dark:text-white">Média</span>
+                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
+                                    <input type="checkbox" value="Média" onchange="app.applyFilters()" class="hidden"> Média
                                 </label>
-                                <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                                    <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4">
-                                    <span class="text-xs font-medium dark:text-white">Baixa</span>
+                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
+                                    <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="hidden"> Baixa
                                 </label>
                             </div>
                         </div>
@@ -175,7 +172,7 @@
     </section>
 
     <section id="page-calendario" class="page-section">
-        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-[1200px] mx-auto bento-highlight">
+        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-[1400px] mx-auto bento-highlight">
             <div class="flex items-center justify-between mb-8">
                 <h2 id="calendar-month-year" class="font-display text-2xl font-bold text-primary dark:text-white capitalize flex items-center gap-3">...</h2>
                 <div class="flex gap-2">
@@ -309,11 +306,11 @@
     </div>
 
     <div id="modal-lembrete-form" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-md rounded-3xl p-8 text-left border dark:border-white/5 shadow-2xl">
-        <h3 class="font-display text-xl font-bold text-primary dark:text-white mb-6 border-b dark:border-white/5 pb-3">Novo Lembrete para Hoje</h3>
+        <h3 class="font-display text-xl font-bold text-primary dark:text-white mb-6 border-b dark:border-white/5 pb-3">Lembrete para Hoje</h3>
         <div class="flex flex-col gap-5">
             <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Anotação rápida</label><input id="lembrete-title-inp" type="text" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Ex: Fazer backup às 15h"></div>
             <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Contexto (Opcional)</label><textarea id="lembrete-desc-inp" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm min-h-[80px] outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></textarea></div>
-            <div class="flex justify-end gap-3 mt-4 pt-4 border-t dark:border-white/5"><button onclick="app.closeModal()" class="px-6 py-2.5 font-bold text-on-surface-variant text-sm hover:bg-surface-container dark:hover:bg-white/5 rounded-xl transition-all">Cancelar</button><button onclick="app.saveReminder()" class="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-md text-sm hover:opacity-90 transition-all">Criar</button></div>
+            <div class="flex justify-end gap-3 mt-4 pt-4 border-t dark:border-white/5"><button onclick="app.closeModal()" class="px-6 py-2.5 font-bold text-on-surface-variant text-sm hover:bg-surface-container dark:hover:bg-white/5 rounded-xl transition-all">Cancelar</button><button onclick="app.saveReminder()" class="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-md text-sm hover:opacity-90 transition-all">Salvar</button></div>
         </div>
     </div>
 
