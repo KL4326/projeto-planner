@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, doc, getDoc, deleteDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, doc, getDoc, getDocs, deleteDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -16,7 +16,7 @@ const db = getFirestore(fb);
 const auth = getAuth(fb);
 
 const CONFIG = {
-    prioridades: { 'Alta': { label: 'Alta', bg: 'bg-rose-600' }, 'Média': { label: 'Média', bg: 'bg-orange-500' }, 'Baixa': { label: 'Baixa', bg: 'bg-emerald-500' } }
+    prioridades: { 'Alta': { label: 'Alta', bg: 'bg-red-600' }, 'Média': { label: 'Média', bg: 'bg-amber-500' }, 'Baixa': { label: 'Baixa', bg: 'bg-emerald-500' } }
 };
 
 const app = {
@@ -49,7 +49,7 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
         
-        document.querySelectorAll('#bottom-nav b').forEach(b => {
+        document.querySelectorAll('#bottom-nav button').forEach(b => {
             b.className = "flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:text-gray-400 dark:hover:text-white transition-all font-display text-[11px] font-semibold w-24 h-14 rounded-full";
         });
         const activeNavBtn = document.getElementById(`nav-btn-${pageId === 'dashboard' ? 'dashboard' : pageId}`);
@@ -80,6 +80,9 @@ const app = {
         document.addEventListener('click', () => { 
             document.getElementById('notif-menu')?.classList.add('hidden'); 
             document.getElementById('profile-menu')?.classList.add('hidden'); 
+            document.getElementById('assignee-filter-menu')?.classList.add('hidden');
+            document.getElementById('priority-filter-menu')?.classList.add('hidden');
+            document.getElementById('date-filter-menu')?.classList.add('hidden');
         });
         
         document.getElementById('submit-edit-task').onclick = () => this.handleUpdateTask();
@@ -212,7 +215,8 @@ const app = {
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
+            const c = document.getElementById('taskTableBody'); if(!c) return;
+            
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (this.filters.assignees.length > 0 || this.filters.priorities.length > 0 || this.filters.dueDate !== "") {
@@ -258,6 +262,7 @@ const app = {
             
             document.getElementById('taskCount').innerText = `(${finalFiltered.length})`;
             
+            let htmlStr = '';
             finalFiltered.forEach(t => {
                 const prazo = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
                 const pLabel = t.priority || 'Média';
@@ -273,9 +278,9 @@ const app = {
                     'Cancelada': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                 };
                 const prioColors = {
-                    'Alta': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-                    'Média': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-                    'Baixa': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    'Alta': 'text-red-600 dark:text-red-400',
+                    'Média': 'text-amber-600 dark:text-amber-400',
+                    'Baixa': 'text-emerald-600 dark:text-emerald-400'
                 };
 
                 const sColor = statusColors[statusName] || statusColors['Em aberto'];
@@ -294,17 +299,17 @@ const app = {
                 const borderClass = isAtrasada ? 'border-red-500' : 'border-transparent dark:border-white/5';
                 const rowId = `task-row-${t.id}`;
                 
-                c.innerHTML += `
+                htmlStr += `
                     <div id="${rowId}" class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cubic-bezier bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-wrap items-center gap-3 mb-1.5">
+                                <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
                                 <h4 class="font-display font-bold text-primary dark:text-white truncate text-lg ${statusName==='Concluída'?'line-through opacity-50':''}">${title}</h4>
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
                             </div>
-                            <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${pColor} flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">flag</span>${pLabel}</span>
-                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium mt-2">
                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
+                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+                                <span class="flex items-center gap-1 font-bold ${pColor} uppercase tracking-wider text-[10px]"><span class="material-symbols-outlined text-[12px]">flag</span>${pLabel}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0 pt-3 md:pt-0 border-t dark:border-white/5 md:border-none">
@@ -318,9 +323,22 @@ const app = {
                         </div>
                     </div>
                 `;
-                this.calculateTaskProgress(t.id);
             });
+            c.innerHTML = htmlStr;
+            finalFiltered.forEach(t => this.calculateTaskProgress(t.id));
         } catch (e) {}
+    },
+
+    calculateTaskProgress(tid) {
+        getDocs(collection(db, "tarefas", tid, "subtarefas")).then(s => {
+            const total = s.size;
+            const completed = s.docs.filter(d => d.data().completed === true).length;
+            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const bar = document.getElementById(`progress-bar-${tid}`);
+            const txt = document.getElementById(`progress-text-${tid}`);
+            if(bar) bar.style.width = `${pct}%`;
+            if(txt) txt.innerText = `${pct}%`;
+        }).catch(e => console.error(e));
     },
 
     renderStats(s, total) {
@@ -407,8 +425,8 @@ const app = {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
             l.innerHTML = sts.length ? sts.map(st => {
-                const prioColor = st.priority === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : (st.priority === 'Baixa' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400');
-                return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
+                const prioColor = st.priority === 'Alta' ? 'text-red-600 dark:text-red-400' : (st.priority === 'Baixa' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400');
+                return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         }));
     },
@@ -425,7 +443,7 @@ const app = {
         const currentMonthPrefix = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
         const totalTarefasMes = this.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
         
-        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest bg-surface-container dark:bg-white/5 px-3 py-1.5 rounded-xl">(${totalTarefasMes} Demandas)</span>`;
+        monthYearLabel.innerHTML = `${meses[this.currentMonth]} de ${this.currentYear} <span class="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest bg-surface-container dark:bg-white/5 px-3 py-1.5 rounded-xl ml-3">(${totalTarefasMes} Demandas)</span>`;
 
         const primeiroDiaSemana = new Date(this.currentYear, this.currentMonth, 1).getDay();
         const totalDiasMes = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
@@ -496,7 +514,7 @@ const app = {
 
     // --- LEMBRETES DIÁRIOS ---
     listenToReminders() {
-        this.unsubs.push(onSnapshot(collection(db, "lembretes"), s => {
+        onSnapshot(collection(db, "lembretes"), s => {
             const rc = document.getElementById('remindersContainer'); if(!rc) return;
             const hoje = this.getTodayStr();
             
@@ -520,7 +538,7 @@ const app = {
                     <button onclick="app.deleteReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                 </div>
             `).join('');
-        }));
+        });
     },
     async saveReminder() {
         try {
@@ -605,10 +623,12 @@ const app = {
     closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); document.getElementById('modal-backdrop').classList.remove('flex'); document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); },
     
     toggleSub(sid, val) { updateDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid), {completed: val}); this.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); },
-    deleteSub(sid) { 
+    async deleteSub(sid) { 
         if(confirm("Remover subtarefa?")) { 
-            deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); 
-            this.addLog("🗑️ Excluiu uma subtarefa");
+            const d = await getDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", sid));
+            const subTitle = d.exists() ? d.data().title : 'Subtarefa';
+            await deleteDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)); 
+            this.addLog(`🗑️ Excluiu a subtarefa: "${subTitle}"`);
             this.closeModal(); 
         } 
     },
@@ -654,12 +674,13 @@ const app = {
     
     compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
     
-    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-3 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
+    listenToChat(tid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     listenToSubChat(sid) { this.unsubs.push(onSnapshot(collection(db,"tarefas",this.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
     async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",this.currentTaskId,"subtarefas",this.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     
-    async onEditModal() { const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); const t = d.data(); document.getElementById('edit-task-title').value = t.title || ""; document.getElementById('edit-task-desc').value = t.description || ""; document.getElementById('edit-task-priority').value = t.priority || "Média"; document.getElementById('edit-task-date').value = t.dueDate || ""; document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-edit-task').classList.remove('hidden'); },
+    async openEditModal() { const d = await getDoc(doc(db,"tarefas",this.currentTaskId)); const t = d.data(); document.getElementById('edit-task-title').value = t.title || ""; document.getElementById('edit-task-desc').value = t.description || ""; document.getElementById('edit-task-priority').value = t.priority || "Média"; document.getElementById('edit-task-date').value = t.dueDate || ""; document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-edit-task').classList.remove('hidden'); },
+    async handleUpdateTask() { const title = document.getElementById('edit-task-title').value; const resps = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value); await updateDoc(doc(db, "tarefas", this.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); await this.addLog(`✏️ Editou a tarefa: "${title}"`); this.closeModal(); },
     openSubtaskForm(sid = null) { this.editSubId = sid; this.closeModal(); document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); document.getElementById('modal-subtask-form').classList.remove('hidden'); if(sid) { getDoc(doc(db,"tarefas",this.currentTaskId,"subtarefas",sid)).then(d => { const s = d.data(); document.getElementById('sub-title-inp').value = s.title || ""; document.getElementById('sub-desc-inp').value = s.description || ""; document.getElementById('sub-priority-inp').value = s.priority || "Média"; document.getElementById('sub-date-inp').value = s.dueDate || ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); }); } else { document.getElementById('sub-title-inp').value = ""; document.getElementById('sub-desc-inp').value = ""; document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); } },
     async handleSaveSubtask() { const t = document.getElementById('sub-title-inp').value; if(!t) return; const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; if (this.editSubId) { await updateDoc(doc(db, "tarefas", this.currentTaskId, "subtarefas", this.editSubId), data); } else { await addDoc(collection(db, "tarefas", this.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); } this.closeModal(); },
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
