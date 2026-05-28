@@ -83,7 +83,7 @@
         <div class="w-full max-w-md bg-white dark:bg-[#151c2c] p-10 rounded-3xl shadow-2xl border dark:border-white/5 text-center">
             <span class="material-symbols-outlined text-6xl text-primary dark:text-white font-bold mb-4">layers</span>
             <h2 class="text-2xl font-display font-bold mb-8 text-on-surface dark:text-white tracking-tight text-left">Acesso Restrito</h2>
-            <form id="login-form" class="flex flex-col gap-4 text-left" onsubmit="app.handleLogin(event)">
+            <form id="login-form" class="flex flex-col gap-4 text-left">
                 <input id="login-email" type="email" placeholder="E-mail corporativo" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
                 <input id="login-password" type="password" placeholder="Senha" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
                 <button type="submit" class="bg-primary dark:bg-white/10 text-white font-bold py-4 rounded-2xl hover:opacity-90 shadow-lg uppercase text-sm tracking-wider mt-2 transition-all">Entrar</button>
@@ -120,15 +120,18 @@
                         </div>
                         <div>
                             <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="priority-filter-count">Prioridade</p>
-                            <div id="priority-filter-menu" class="flex gap-2 flex-wrap">
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
-                                    <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="hidden"> Alta
+                            <div id="priority-filter-menu" class="flex flex-col gap-1">
+                                <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
+                                    <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4">
+                                    <span class="text-xs font-medium dark:text-white">Alta</span>
                                 </label>
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
-                                    <input type="checkbox" value="Média" onchange="app.applyFilters()" class="hidden"> Média
+                                <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
+                                    <input type="checkbox" value="Média" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4">
+                                    <span class="text-xs font-medium dark:text-white">Média</span>
                                 </label>
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-blue-900/30 dark:has-[:checked]:text-blue-400">
-                                    <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="hidden"> Baixa
+                                <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
+                                    <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4">
+                                    <span class="text-xs font-medium dark:text-white">Baixa</span>
                                 </label>
                             </div>
                         </div>
