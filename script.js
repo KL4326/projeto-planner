@@ -16,13 +16,7 @@ const db = getFirestore(fb);
 const auth = getAuth(fb);
 
 const app = {
-    currentTaskId: null, 
-    activeSid: null, 
-    editSubId: null, 
-    editReminderId: null, 
-    allTasks: [], 
-    unsubs: [], 
-    tempPhotoBase64: null,
+    currentTaskId: null, activeSid: null, editSubId: null, editReminderId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
     lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
     filters: { status: "Todas", search: "", assignees: [], priorities: [], dueDate: "" },
     currentYear: new Date().getFullYear(),
@@ -30,10 +24,6 @@ const app = {
     userMap: {},
     allReminders: [],
     currentReminderDate: '',
-    reminderUnsub: null,
-    subtaskUnsub: null,
-    chatUnsub: null,
-    taskUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -65,7 +55,7 @@ const app = {
     },
 
     navigate(pageId, params = null) {
-        this.cleanup();
+        app.cleanup();
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
@@ -84,12 +74,12 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { this.renderDashboard(); this.renderRanking(); }
-        if(pageId === 'calendario') this.renderCalendar();
-        if(pageId === 'configuracoes') this.showConfigTab('profile');
-        if(pageId === 'detalhes' && params) { this.renderDetails(params); }
+        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); }
+        if(pageId === 'calendario') app.renderCalendar();
+        if(pageId === 'configuracoes') app.showConfigTab('profile');
+        if(pageId === 'detalhes' && params) { app.renderDetails(params); }
         
-        this.closeModal(); 
+        app.closeModal(); 
         window.scrollTo(0,0);
     },
 
@@ -121,23 +111,9 @@ const app = {
             const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
         });
         
-        const st = document.getElementById('submit-edit-task'); 
-        if(st) st.onclick = () => app.handleUpdateTask();
-        
-        const ss = document.getElementById('submit-subtask-form'); 
-        if(ss) ss.onclick = () => app.handleSaveSubtask();
-        
-        const pu = document.getElementById('profile-upload'); 
-        if(pu) pu.addEventListener('change', (e) => { 
-            const f = e.target.files[0]; 
-            if(f) {
-                app.compressImage(f, (b64) => { 
-                    app.tempPhotoBase64 = b64; 
-                    document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; 
-                    document.getElementById('profile-page-avatar').innerText = ''; 
-                }); 
-            }
-        });
+        const st = document.getElementById('submit-edit-task'); if(st) st.onclick = () => app.handleUpdateTask();
+        const ss = document.getElementById('submit-subtask-form'); if(ss) ss.onclick = () => app.handleSaveSubtask();
+        const pu = document.getElementById('profile-upload'); if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) app.compressImage(f, (b64) => { app.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
     },
 
     checkAuth() { 
@@ -207,10 +183,7 @@ const app = {
     
     listenToNotifications() {
         onSnapshot(collection(db, "notificacoes"), snap => {
-            const list = document.getElementById('notif-list'); 
-            const badge = document.getElementById('notif-badge'); 
-            if(!list) return;
-            
+            const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
             if (snap.size > app.lastLogCount) { 
                 badge.innerText = snap.size - app.lastLogCount; 
@@ -218,7 +191,6 @@ const app = {
             } else { 
                 badge.classList.add('hidden'); 
             }
-            
             list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Sem registros.</p>';
             logs.slice(0, 15).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
@@ -275,9 +247,7 @@ const app = {
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); 
-            if(!c) return;
-            
+            const c = document.getElementById('taskTableBody'); if(!c) return;
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
@@ -292,7 +262,14 @@ const app = {
             
             let baseFiltered = sorted.filter(t => { 
                 const matchSearch = (t.title || '').toLowerCase().includes(app.filters.search.toLowerCase());
-                const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => app.filters.assignees.includes(a)));
+                
+                const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => {
+                    if(app.filters.assignees.includes(a)) return true;
+                    let uData = Object.values(app.userMap).find(u => u.nome === a);
+                    if(uData && app.filters.assignees.includes(uData.uid)) return true;
+                    return false;
+                }));
+                
                 const matchPriority = app.filters.priorities.length === 0 || app.filters.priorities.includes(t.priority || 'Média');
                 const matchDate = !app.filters.dueDate || t.dueDate === app.filters.dueDate;
                 return matchSearch && matchAssignee && matchPriority && matchDate; 
@@ -330,6 +307,7 @@ const app = {
                 const pLabel = t.priority || 'Média';
                 const title = t.title || 'Sem título';
                 const statusName = t.status || 'Em aberto';
+                
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
                 const statusColors = {
@@ -348,12 +326,17 @@ const app = {
                 const pColor = prioColors[pLabel] || prioColors['Média'];
                 
                 let avatarsHtml = '';
-                (t.assignees || []).forEach(name => {
-                    const uData = Object.values(app.userMap).find(u => u.nome === name);
-                    if(uData && uData.foto) {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
+                (t.assignees || []).forEach(assigneeStr => {
+                    let uData = app.userMap[assigneeStr];
+                    if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
+                    
+                    const dispName = uData ? uData.nome : assigneeStr;
+                    const foto = uData ? uData.foto : null;
+
+                    if(foto) {
+                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${foto}')" title="${dispName}"></div>`;
                     } else {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
+                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${dispName}">${dispName.substring(0,2).toUpperCase()}</div>`;
                     }
                 });
 
@@ -410,7 +393,6 @@ const app = {
     renderStats(s, total) {
         const container = document.getElementById('statsContainer');
         if(!container) return;
-        
         const cards = [ 
             {label: 'Todas', val: total, color: 'text-gray-500 dark:text-gray-400', icon: 'list'}, 
             {label: 'Em aberto', val: s['Em aberto'], color: 'text-blue-600 dark:text-blue-400', icon: 'pending_actions'}, 
@@ -419,7 +401,6 @@ const app = {
             {label: 'Concluídas', val: s['Concluídas'], color: 'text-emerald-600 dark:text-emerald-400', icon: 'verified'}, 
             {label: 'Canceladas', val: s['Canceladas'], color: 'text-slate-400 dark:text-slate-500', icon: 'cancel'} 
         ];
-        
         container.innerHTML = cards.map(c => `
             <div onclick="app.applyStatFilter('${c.label}')" class="glass-panel rounded-2xl p-5 flex flex-col justify-between h-[104px] hover:-translate-y-1 transition-all cursor-pointer border ${app.filters.status===c.label?'ring-2 ring-primary border-transparent':'border-gray-200 dark:border-white/5'} shadow-sm relative overflow-hidden bento-highlight dark:bg-[#151c2c]">
                 <div class="flex justify-between items-start">
@@ -431,10 +412,7 @@ const app = {
         `).join('');
     },
 
-    applyStatFilter(label) { 
-        app.filters.status = label; 
-        app.renderDashboard(); 
-    },
+    applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
     async criarTarefa() {
         try {
@@ -449,19 +427,12 @@ const app = {
     },
 
     renderDetails(id) {
-        app.currentTaskId = id; 
-        const container = document.getElementById('details-view-content');
-        
-        if (app.taskUnsub) { 
-            app.taskUnsub(); 
-            app.taskUnsub = null; 
-        }
+        app.currentTaskId = id; const container = document.getElementById('details-view-content');
+        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
         
         app.taskUnsub = onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
-            const t = d.data(); 
-            app.activeTaskData = t;
-            
+            const t = d.data(); app.activeTaskData = t;
             const statusSafe = t.status || 'Em aberto';
             const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
@@ -470,13 +441,14 @@ const app = {
                 : `<button onclick="app.updateTaskStatus('${id}', 'Em andamento')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Iniciar</button><button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Concluir</button><button onclick="app.updateTaskStatus('${id}', 'Cancelada')" class="bg-red-500 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Cancelar</button>`;
 
             let avatarsHtml = '';
-            (t.assignees || []).forEach(name => {
-                const uData = Object.values(app.userMap).find(u => u.nome === name);
-                if(uData && uData.foto) {
-                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
-                } else {
-                    avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
-                }
+            (t.assignees || []).forEach(assigneeStr => {
+                let uData = app.userMap[assigneeStr];
+                if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
+                const dispName = uData ? uData.nome : assigneeStr;
+                const foto = uData ? uData.foto : null;
+
+                if(foto) avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm -ml-2 first:ml-0" style="background-image:url('${foto}')" title="${dispName}"></div>`;
+                else avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm -ml-2 first:ml-0" title="${dispName}">${dispName.substring(0,2).toUpperCase()}</div>`;
             });
 
             container.innerHTML = `
@@ -493,7 +465,7 @@ const app = {
                     </div>
                     <div class="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/5 pt-6 md:pt-0 md:pl-8 text-left flex flex-col">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60 mb-3">Equipe Executora</span>
-                        <div class="flex flex-wrap gap-2">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
+                        <div class="flex flex-wrap gap-1">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -502,43 +474,22 @@ const app = {
                 </div>
                 <div class="flex gap-4 mt-6"><button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button></div>
             `;
-            
-            const al = document.getElementById('task-att-list'); 
-            (t.anexos || []).forEach(a => { 
-                al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; 
-            });
+            const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
             
             app.listenToSubtasks(id); 
             app.listenToChat(id);
         });
-        
         app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
-        if(app.subtaskUnsub) { 
-            app.subtaskUnsub(); 
-            app.subtaskUnsub = null; 
-        }
-        
+        if(app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
         app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
-            const l = document.getElementById('subtasks-list'); 
-            if(!l) return;
-            
+            const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
-            
             l.innerHTML = sts.length ? sts.map(st => {
                 const prioColor = st.priority === 'Alta' ? 'text-red-600 dark:text-red-400' : (st.priority === 'Baixa' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400');
-                return `
-                    <div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')">
-                        <input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer">
-                        <div class="flex-1 flex flex-wrap items-center justify-between gap-2">
-                            <span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span>
-                            <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span>
-                        </div>
-                        <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span>
-                    </div>
-                `;
+                return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
         app.unsubs.push(app.subtaskUnsub);
@@ -697,7 +648,6 @@ const app = {
             const descInp = document.getElementById('lembrete-desc-inp');
             const dateInp = document.getElementById('lembrete-date-inp');
             const title = titleInp.value; 
-            
             if(!title) { app.showToast("Título obrigatório", "error"); return; }
             const desc = descInp.value;
             const targetDate = (dateInp && dateInp.value) ? dateInp.value : app.getTodayStr();
@@ -712,13 +662,10 @@ const app = {
                 await app.addLog(`➕ Criou lembrete: "${title}"`);
                 app.showToast("Lembrete criado com sucesso!");
             }
-            
-            titleInp.value = ''; 
-            descInp.value = '';
+            titleInp.value = ''; descInp.value = '';
             app.currentReminderDate = targetDate;
             const rFilter = document.getElementById('reminder-date-filter');
             if(rFilter) rFilter.value = targetDate;
-            
             app.renderReminders();
             app.closeModal();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
@@ -759,65 +706,34 @@ const app = {
             const prazoSafe = d.dueDate ? d.dueDate.split('-').reverse().join('/') : '---';
             const cont = document.getElementById('subtask-view-content');
             
+            const assigneeNames = (d.assignees || []).map(assigneeStr => {
+                let uData = app.userMap[assigneeStr];
+                if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
+                return uData ? uData.nome : assigneeStr;
+            }).join(', ') || 'Não definido';
+            
             cont.innerHTML = `
                 <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
                     <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
-                    <div>
-                        <div class="flex items-center gap-3 mb-2">
-                            <h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title || 'Sem título'}</h3>
-                            <span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span>
-                        </div>
-                        <div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs">
-                        <div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div>
-                        <div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div>
-                    </div>
-                    <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left">
-                        <span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span>
-                        <div id="sub-att-list" class="flex flex-wrap gap-2"></div>
-                        <button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button>
-                    </div>
-                    <div class="flex gap-3 mt-auto pt-8">
-                        <button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button>
-                        <button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button>
-                    </div>
+                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
+                    <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${assigneeNames}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
+                    <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
+                    <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
                 </div>
                 <div class="flex-1 flex flex-col bg-surface-container dark:bg-transparent text-left">
                     <div class="p-5 border-b border-gray-200 dark:border-white/5 font-black text-[10px] uppercase text-on-surface-variant/70 tracking-wider">Chat da Subtarefa</div>
                     <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                    <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2">
-                        <input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem...">
-                        <button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button>
-                    </div>
+                    <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem..."><button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button></div>
                 </div>
             `;
             const sl = document.getElementById('sub-att-list'); 
-            (d.anexos || []).forEach(a => { 
-                sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; 
-            });
+            (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
             
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
             document.getElementById('modal-subtask-view').classList.remove('hidden');
             
-            if(app.chatUnsub) {
-                app.chatUnsub();
-                app.chatUnsub = null;
-            }
-            
-            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
-                const c = document.getElementById('sub-chat-messages'); 
-                if(c) { 
-                    const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
-                    c.innerHTML = msgs.map(d => `
-                        <div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}">
-                            <span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span>
-                            <div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div>
-                        </div>
-                    `).join(''); 
-                    c.scrollTop = c.scrollHeight; 
-                } 
-            });
+            if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
+            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
             app.unsubs.push(app.chatUnsub);
             
         } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
@@ -832,7 +748,11 @@ const app = {
             document.getElementById('edit-task-desc').value = t.description || ""; 
             document.getElementById('edit-task-priority').value = t.priority || "Média"; 
             document.getElementById('edit-task-date').value = t.dueDate || ""; 
-            document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => cb.checked = t.assignees?.includes(cb.value)); 
+            
+            document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => {
+                cb.checked = t.assignees?.includes(cb.value) || t.assignees?.includes(Object.values(app.userMap).find(u => u.uid === cb.value)?.nome);
+            }); 
+            
             document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
             document.getElementById('modal-edit-task').classList.remove('hidden'); 
         } catch(e) { console.error(e); app.showToast("Erro ao abrir edição", "error"); }
@@ -862,7 +782,9 @@ const app = {
                 document.getElementById('sub-desc-inp').value = s.description || ""; 
                 document.getElementById('sub-priority-inp').value = s.priority || "Média"; 
                 document.getElementById('sub-date-inp').value = s.dueDate || ""; 
-                document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = s.assignees?.includes(cb.value)); 
+                document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => {
+                    cb.checked = s.assignees?.includes(cb.value) || s.assignees?.includes(Object.values(app.userMap).find(u => u.uid === cb.value)?.nome);
+                }); 
             }); 
         } else { 
             document.getElementById('sub-title-inp').value = ""; 
@@ -894,19 +816,19 @@ const app = {
         onSnapshot(collection(db, "usuarios"), (snap) => { 
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
-            const opts = snap.docs.map(d => d.data().nome); 
+            const opts = Object.values(app.userMap); 
             
             ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
                 const el = document.getElementById(cid); 
-                if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${n}</span></label>`).join(''); 
+                if (el) el.innerHTML = opts.map(u => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${u.uid}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${u.nome}</span></label>`).join(''); 
             }); 
             
             const filterEl = document.getElementById('assignee-filter-list');
             if(filterEl) {
-                filterEl.innerHTML = opts.map(n => `
+                filterEl.innerHTML = opts.map(u => `
                     <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                        <input type="checkbox" value="${n}" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4" ${app.filters.assignees.includes(n) ? 'checked' : ''}>
-                        <span class="text-xs font-medium dark:text-white">${n}</span>
+                        <input type="checkbox" value="${u.uid}" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4" ${app.filters.assignees.includes(u.uid) ? 'checked' : ''}>
+                        <span class="text-xs font-medium dark:text-white">${u.nome}</span>
                     </label>
                 `).join('');
             }
@@ -920,12 +842,22 @@ const app = {
         const pts = {}; 
         app.allTasks.forEach(t => { 
             if(t.status === "Concluída" || t.status === "Concluídas") {
-                (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); 
+                (t.assignees || []).forEach(assigneeStr => {
+                    let uData = app.userMap[assigneeStr];
+                    if(!uData) uData = Object.values(app.userMap).find(u => u.nome === assigneeStr);
+                    const key = uData ? uData.uid : assigneeStr;
+                    pts[key] = (pts[key] || 0) + 1; 
+                });
             }
         }); 
         
         const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
         rc.innerHTML = sorted.length ? sorted.map((r, i) => {
+            const key = r[0];
+            const score = r[1];
+            let dispName = key;
+            if(app.userMap[key]) dispName = app.userMap[key].nome;
+
             let crown = ''; 
             const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
             if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; 
@@ -936,10 +868,10 @@ const app = {
                 <div class="flex items-center gap-4">
                     <div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div>
                     <div class="flex-1">
-                        <div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div>
-                        <div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div>
+                        <div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${dispName}</span>${crown}</div>
+                        <div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(score/sorted[0][1])*100}%"></div></div>
                     </div>
-                    <div class="font-black text-right dark:text-white text-lg">${r[1]}</div>
+                    <div class="font-black text-right dark:text-white text-lg">${score}</div>
                 </div>
             `;
         }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
@@ -980,6 +912,7 @@ const app = {
         const ps = document.getElementById('login-password'); 
         if(em) em.value = ''; 
         if(ps) ps.value = ''; 
+        app.cleanup();
         signOut(auth); 
     },
     
