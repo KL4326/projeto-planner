@@ -24,6 +24,10 @@ const app = {
     userMap: {},
     allReminders: [],
     currentReminderDate: '',
+    reminderUnsub: null,
+    subtaskUnsub: null,
+    chatUnsub: null,
+    taskUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -35,9 +39,7 @@ const app = {
     initTheme() { 
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
         const savedColor = localStorage.getItem('primaryColor');
-        if (savedColor) {
-            document.documentElement.style.setProperty('--color-primary', savedColor);
-        }
+        if (savedColor) document.documentElement.style.setProperty('--color-primary', savedColor);
     },
     
     toggleTheme() { 
@@ -243,7 +245,6 @@ const app = {
         document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
         const dateInp = document.getElementById('dashboard-date-filter');
         if(dateInp) dateInp.value = '';
-        
         app.applyFilters();
     },
 
@@ -302,20 +303,10 @@ const app = {
                 const pLabel = t.priority || 'Média';
                 const title = t.title || 'Sem título';
                 const statusName = t.status || 'Em aberto';
-                
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
-                const statusColors = {
-                    'Em aberto': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                    'Em andamento': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-                    'Concluída': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-                    'Cancelada': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                };
-                const prioColors = {
-                    'Alta': 'text-red-600 dark:text-red-400',
-                    'Média': 'text-amber-600 dark:text-amber-400',
-                    'Baixa': 'text-emerald-600 dark:text-emerald-400'
-                };
+                const statusColors = { 'Em aberto': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', 'Em andamento': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', 'Concluída': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', 'Cancelada': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' };
+                const prioColors = { 'Alta': 'text-red-600 dark:text-red-400', 'Média': 'text-amber-600 dark:text-amber-400', 'Baixa': 'text-emerald-600 dark:text-emerald-400' };
 
                 const sColor = statusColors[statusName] || statusColors['Em aberto'];
                 const pColor = prioColors[pLabel] || prioColors['Média'];
@@ -323,11 +314,8 @@ const app = {
                 let avatarsHtml = '';
                 (t.assignees || []).forEach(name => {
                     const uData = Object.values(app.userMap).find(u => u.nome === name);
-                    if(uData && uData.foto) {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
-                    } else {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
-                    }
+                    if(uData && uData.foto) avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${name}"></div>`;
+                    else avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${name}">${name.substring(0,2).toUpperCase()}</div>`;
                 });
 
                 const borderClass = isAtrasada ? 'border-red-500' : 'border-transparent dark:border-white/5';
@@ -360,21 +348,19 @@ const app = {
             });
             c.innerHTML = htmlStr;
             finalFiltered.forEach(t => app.calculateTaskProgress(t.id, t.status));
-        } catch (e) { console.error("Erro na renderização", e); }
+        } catch (e) { console.error("Erro na renderização", e) }
     },
 
     calculateTaskProgress(tid, status) {
         getDocs(collection(db, "tarefas", tid, "subtarefas")).then(s => {
             const total = s.size;
             let pct = 0;
-            
             if (total > 0) {
                 const completed = s.docs.filter(d => d.data().completed === true).length;
                 pct = Math.round((completed / total) * 100);
             } else if (status === 'Concluída' || status === 'Concluídas') {
                 pct = 100;
             }
-            
             const bar = document.getElementById(`progress-bar-${tid}`);
             const txt = document.getElementById(`progress-text-${tid}`);
             if(bar) bar.style.width = `${pct}%`;
@@ -420,7 +406,9 @@ const app = {
 
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
-        app.unsubs.push(onSnapshot(doc(db, "tarefas", id), (d) => {
+        if(app.taskUnsub) app.taskUnsub();
+        
+        app.taskUnsub = onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
             const t = d.data(); app.activeTaskData = t;
             const statusSafe = t.status || 'Em aberto';
@@ -465,14 +453,14 @@ const app = {
             `;
             const al = document.getElementById('task-att-list'); (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
             
-            if (app.subtaskUnsub) { app.subtaskUnsub(); }
-            if (app.chatUnsub) { app.chatUnsub(); }
             app.listenToSubtasks(id); 
             app.listenToChat(id);
-        }));
+        });
+        app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
+        if(app.subtaskUnsub) app.subtaskUnsub();
         app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
@@ -698,7 +686,7 @@ const app = {
             cont.innerHTML = `
                 <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
                     <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
-                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
+                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title || 'Sem título'}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
                     <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
                     <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
                     <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
@@ -821,7 +809,13 @@ const app = {
         }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
     },
     
-    cleanup() { app.unsubs.forEach(f => { if(typeof f === 'function') f(); }); app.unsubs = []; app.subtaskUnsub = null; app.chatUnsub = null; },
+    cleanup() { 
+        app.unsubs.forEach(f => { if(typeof f === 'function') f(); }); 
+        app.unsubs = []; 
+        if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
+        if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
+        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
+    },
     
     closeModal() { 
         document.getElementById('modal-backdrop').classList.add('hidden'); 
@@ -874,11 +868,11 @@ const app = {
     
     compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
     
-    listenToChat(tid) { const unsub = onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } }); app.unsubs.push(unsub); },
+    listenToChat(tid) { if(app.chatUnsub) app.chatUnsub(); app.chatUnsub = onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } }); app.unsubs.push(app.chatUnsub); },
     
     async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     
-    listenToSubChat(sid) { const unsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } }); app.unsubs.push(unsub); },
+    listenToSubChat(sid) { if(app.chatUnsub) app.chatUnsub(); app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } }); app.unsubs.push(app.chatUnsub); },
     
     async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
     
