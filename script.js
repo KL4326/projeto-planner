@@ -227,10 +227,6 @@ const app = {
         const eqEl = document.getElementById('assignee-filter-count');
         if(eqEl) eqEl.innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
         
-        const countPrio = app.filters.priorities.length;
-        const prioEl = document.getElementById('priority-filter-count');
-        if(prioEl) prioEl.innerText = countPrio > 0 ? `Prioridade (${countPrio})` : 'Prioridade';
-        
         const labelDate = document.getElementById('date-filter-label');
         if(labelDate) labelDate.innerText = app.filters.dueDate ? app.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
 
@@ -475,6 +471,7 @@ const app = {
         app.unsubs.push(app.subtaskUnsub);
     },
 
+    // --- CALENDÁRIO CORPORATIVO ---
     renderCalendar() {
         const grid = document.getElementById('calendar-grid');
         const monthYearLabel = document.getElementById('calendar-month-year');
@@ -513,7 +510,6 @@ const app = {
             `;
         }
     },
-    
     changeMonth(dir) {
         app.currentMonth += dir;
         if(app.currentMonth < 0) { app.currentMonth = 11; app.currentYear--; }
@@ -521,12 +517,12 @@ const app = {
         app.renderCalendar();
     },
 
+    // --- CONFIGURAÇÕES & USUÁRIOS ---
     showConfigTab(tabId) {
         document.querySelectorAll('.config-subtab').forEach(el => el.classList.add('hidden'));
         document.getElementById(`config-tab-${tabId}`).classList.remove('hidden');
         if(tabId === 'users') app.renderUsersDirectory();
     },
-    
     renderUsersDirectory() {
         const container = document.getElementById('config-users-list'); if(!container) return;
         container.innerHTML = Object.values(app.userMap).map(u => `
@@ -541,7 +537,6 @@ const app = {
             </div>
         `).join('');
     },
-    
     showUserModal(uid) {
         const u = app.userMap[uid]; if(!u) return;
         const av = document.getElementById('modal-user-avatar');
@@ -556,6 +551,7 @@ const app = {
         document.getElementById('modal-user-detail').classList.remove('hidden');
     },
 
+    // --- LEMBRETES DIÁRIOS ---
     filterReminders(dateStr) {
         app.currentReminderDate = dateStr;
         app.renderReminders();
@@ -627,10 +623,11 @@ const app = {
             const titleInp = document.getElementById('lembrete-title-inp');
             const descInp = document.getElementById('lembrete-desc-inp');
             const dateInp = document.getElementById('lembrete-date-inp');
+            
             const title = titleInp.value; 
             if(!title) { app.showToast("Título obrigatório", "error"); return; }
             const desc = descInp.value;
-            const targetDate = dateInp.value || app.getTodayStr();
+            const targetDate = (dateInp && dateInp.value) ? dateInp.value : app.getTodayStr();
 
             if (app.editReminderId) {
                 await updateDoc(doc(db, "lembretes", app.editReminderId), { title, description: desc, dueDate: targetDate });
@@ -643,9 +640,11 @@ const app = {
                 app.showToast("Lembrete criado com sucesso!");
             }
             titleInp.value = ''; descInp.value = '';
+            
             app.currentReminderDate = targetDate;
             const rFilter = document.getElementById('reminder-date-filter');
             if(rFilter) rFilter.value = targetDate;
+            
             app.renderReminders();
             app.closeModal();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
@@ -666,6 +665,7 @@ const app = {
         } 
     },
 
+    // --- REUTILIZÁVEIS E GLOBAIS ---
     async updateTaskStatus(id, newStatus) { 
         let realStatus = newStatus;
         if(newStatus === 'Concluídas') realStatus = 'Concluída';
@@ -674,7 +674,45 @@ const app = {
         const d = await getDoc(doc(db,"tarefas",id));
         await app.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
     },
-
+    
+    async openSubtaskView(sid) {
+        try {
+            app.activeSid = sid; 
+            const docSnap = await getDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", sid));
+            if (!docSnap.exists()) return app.showToast("Subtarefa não encontrada.", "error");
+            const d = docSnap.data();
+            
+            const prioColor = d.priority === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : (d.priority === 'Baixa' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400');
+            const prazoSafe = d.dueDate ? d.dueDate.split('-').reverse().join('/') : '---';
+            const cont = document.getElementById('subtask-view-content');
+            
+            cont.innerHTML = `
+                <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
+                    <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
+                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
+                    <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${d.assignees?.join(', ') || 'Não definido'}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
+                    <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
+                    <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
+                </div>
+                <div class="flex-1 flex flex-col bg-surface-container dark:bg-transparent text-left">
+                    <div class="p-5 border-b border-gray-200 dark:border-white/5 font-black text-[10px] uppercase text-on-surface-variant/70 tracking-wider">Chat da Subtarefa</div>
+                    <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
+                    <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem..."><button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button></div>
+                </div>
+            `;
+            const sl = document.getElementById('sub-att-list'); 
+            (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
+            
+            document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
+            document.getElementById('modal-subtask-view').classList.remove('hidden');
+            
+            if(app.chatUnsub) app.chatUnsub();
+            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
+            app.unsubs.push(app.chatUnsub);
+            
+        } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
+    },
+    
     async openEditModal() { 
         try {
             const d = await getDoc(doc(db,"tarefas",app.currentTaskId)); 
@@ -689,7 +727,6 @@ const app = {
             document.getElementById('modal-edit-task').classList.remove('hidden'); 
         } catch(e) { console.error(e); app.showToast("Erro ao abrir edição", "error"); }
     },
-
     async handleUpdateTask() { 
         try {
             const title = document.getElementById('edit-task-title').value; 
@@ -700,7 +737,6 @@ const app = {
             app.showToast("Tarefa atualizada!");
         } catch(e) { console.error(e); app.showToast("Erro ao atualizar", "error"); }
     },
-
     openSubtaskForm(sid = null) { 
         app.editSubId = sid; 
         app.closeModal(); 
@@ -722,7 +758,6 @@ const app = {
             document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); 
         } 
     },
-
     async handleSaveSubtask() { 
         try {
             const t = document.getElementById('sub-title-inp').value; 
@@ -741,97 +776,6 @@ const app = {
             app.showToast("Subtarefa gravada!");
         } catch(e) { console.error(e); app.showToast("Erro ao gravar", "error"); }
     },
-
-    loadUsers() { 
-        onSnapshot(collection(db, "usuarios"), (snap) => { 
-            app.userMap = {};
-            snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
-            const opts = snap.docs.map(d => d.data().nome); 
-            ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
-                const el = document.getElementById(cid); 
-                if (el) el.innerHTML = opts.map(n => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${n}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${n}</span></label>`).join(''); 
-            }); 
-            const filterEl = document.getElementById('assignee-filter-list');
-            if(filterEl) {
-                filterEl.innerHTML = opts.map(n => `
-                    <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                        <input type="checkbox" value="${n}" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4" ${app.filters.assignees.includes(n) ? 'checked' : ''}>
-                        <span class="text-xs font-medium dark:text-white">${n}</span>
-                    </label>
-                `).join('');
-            }
-        }); 
-    },
-
-    renderRanking() { 
-        const rc = document.getElementById('rankingContainer'); if(!rc) return; const pts = {}; 
-        app.allTasks.forEach(t => { if(t.status === "Concluída" || t.status === "Concluídas") (t.assignees || ["Equipe"]).forEach(p => pts[p] = (pts[p] || 0) + 1); }); 
-        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
-        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
-            let crown = ''; const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
-            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svgIcon}</span>`; else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svgIcon}</span>`;
-            return `<div class="flex items-center gap-4"><div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div><div class="flex-1"><div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${r[0]}</span>${crown}</div><div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(r[1]/sorted[0][1])*100}%"></div></div></div><div class="font-black text-right dark:text-white text-lg">${r[1]}</div></div>`;
-        }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
-    },
-
-    cleanup() { app.unsubs.forEach(f => f()); app.unsubs = []; },
-    
-    closeModal() { 
-        document.getElementById('modal-backdrop').classList.add('hidden'); 
-        document.getElementById('modal-backdrop').classList.remove('flex'); 
-        document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); 
-    },
-    
-    toggleSub(sid, val) { updateDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid), {completed: val}); app.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); },
-    
-    async deleteSub(sid) { 
-        if(confirm("Remover subtarefa?")) { 
-            const d = await getDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", sid));
-            const subTitle = d.exists() ? d.data().title : 'Subtarefa';
-            await deleteDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid)); 
-            app.addLog(`🗑️ Excluiu a subtarefa: "${subTitle}"`);
-            app.closeModal(); 
-        } 
-    },
-    
-    signOut() { 
-        const em = document.getElementById('login-email'); 
-        const ps = document.getElementById('login-password'); 
-        if(em) em.value = ''; 
-        if(ps) ps.value = ''; 
-        signOut(auth); 
-    },
-    
-    async handleDeleteTask(id) { 
-        if(confirm("Excluir tarefa?")) { 
-            const d = await getDoc(doc(db,"tarefas",id)); 
-            const title = d.exists() ? d.data().title : 'Tarefa';
-            await deleteDoc(doc(db,"tarefas",id)); 
-            app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
-            app.navigate('dashboard'); 
-        } 
-    },
-
-    async handleFileUpload(type, id) { const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { const f = e.target.files[0]; if(!f || f.size > 800000) return alert("< 800KB"); const r = new FileReader(); r.onload = async (ev) => { const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",app.currentTaskId,"subtarefas",id); const d = await getDoc(path); const anexos = d.data().anexos || []; anexos.push({ name: f.name, data: ev.target.result }); await updateDoc(path, { anexos }); app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); app.showToast("Anexo salvo!"); }; r.readAsDataURL(f); }; inp.click(); },
-    
-    async loadProfileData() { const u = auth.currentUser; if(!u) return; const d = await getDoc(doc(db, "usuarios", u.uid)); const dt = d.data() || {}; document.getElementById('profile-name-input').value = u.displayName || ""; document.getElementById('profile-role-input').value = dt.cargo || ""; document.getElementById('profile-bio-input').value = dt.bio || ""; const av = document.getElementById('profile-page-avatar'); if(dt.foto || u.photoURL) { av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; av.innerText = ''; } else { av.innerText = (u.displayName || u.email).substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; } },
-    
-    async handleSaveProfile() { try { await updateProfile(auth.currentUser, { displayName: document.getElementById('profile-name-input').value }); const novaFoto = app.tempPhotoBase64; const updateObj = { nome: document.getElementById('profile-name-input').value, cargo: document.getElementById('profile-role-input').value, bio: document.getElementById('profile-bio-input').value }; if (novaFoto !== null) updateObj.foto = novaFoto; await setDoc(doc(db,"usuarios",auth.currentUser.uid), updateObj, {merge:true}); document.getElementById('user-display-name').innerText = document.getElementById('profile-name-input').value; document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; const avH = document.getElementById('header-avatar'); if (novaFoto) { avH.style.backgroundImage = `url('${novaFoto}')`; avH.innerText = ''; } else if (novaFoto === "") { avH.style.backgroundImage = 'none'; avH.innerText = auth.currentUser.displayName.substring(0,2).toUpperCase(); } app.showToast("Perfil corporativo atualizado!"); app.navigate('dashboard'); } catch(e) { app.showToast("Erro ao salvar", "error"); } },
-    
-    async removeProfilePhoto() { if(confirm("Remover foto?")) { const av = document.getElementById('profile-page-avatar'); av.style.backgroundImage = 'none'; av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); app.tempPhotoBase64 = ""; } },
-    
-    async handlePasswordUpdate() { const u = auth.currentUser; const cur = document.getElementById('current-password-input').value; const n1 = document.getElementById('new-password-input').value; const n2 = document.getElementById('confirm-password-input').value; if(n1 !== n2) return app.showToast("Senhas não coincidem.", "error"); try { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, n1); app.showToast("Senha alterada!"); app.navigate('dashboard'); } catch(e) { app.showToast("Senha atual incorreta.", "error"); } },
-    
-    compressImage(f, cb) { const r = new FileReader(); r.readAsDataURL(f); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 300; canvas.width = MAX; canvas.height = img.height * (MAX/img.width); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); cb(canvas.toDataURL('image/jpeg', 0.7)); }; }; },
-    
-    listenToChat(tid) { app.unsubs.push(onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { const c = document.getElementById('chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
-    
-    async sendChatMessage() { const i = document.getElementById('chat-input'); if(!i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
-    
-    listenToSubChat(sid) { app.unsubs.push(onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } })); },
-    
-    async sendSubComment() { const i = document.getElementById('sub-chat-input'); if(!i || !i.value.trim()) return; await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); i.value = ''; },
-    
     showToast(m, t='success') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${t} shadow-xl border dark:border-white/5`; toast.innerHTML = `<span class="material-symbols-outlined">${t==='success'?'check_circle':'error'}</span> <span class="font-bold text-sm">${m}</span>`; c.appendChild(toast); setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000); }
 };
 
