@@ -41,7 +41,6 @@ const app = {
         const savedColor = localStorage.getItem('primaryColor');
         if (savedColor) document.documentElement.style.setProperty('--color-primary', savedColor);
         
-        // Correção das opções de select no tema escuro
         if(!document.getElementById('dark-select-fix')) {
             const style = document.createElement('style');
             style.id = 'dark-select-fix';
@@ -74,7 +73,7 @@ const app = {
     },
 
     navigate(pageId, params = null) {
-        app.cleanup();
+        this.cleanup();
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
@@ -93,7 +92,7 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.listenToReminders(); }
+        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.renderReminders(); }
         if(pageId === 'calendario') app.renderCalendar();
         if(pageId === 'configuracoes') app.showConfigTab('profile');
         if(pageId === 'detalhes' && params) { app.renderDetails(params); }
@@ -285,9 +284,11 @@ const app = {
             
             let baseFiltered = sorted.filter(t => { 
                 const matchSearch = (t.title || '').toLowerCase().includes(app.filters.search.toLowerCase());
+                
                 const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => {
                     return app.filters.assignees.includes(app.getUserData(a).uid);
                 }));
+                
                 const matchPriority = app.filters.priorities.length === 0 || app.filters.priorities.includes(t.priority || 'Média');
                 const matchDate = !app.filters.dueDate || t.dueDate === app.filters.dueDate;
                 return matchSearch && matchAssignee && matchPriority && matchDate; 
@@ -325,6 +326,7 @@ const app = {
                 const pLabel = t.priority || 'Média';
                 const title = t.title || 'Sem título';
                 const statusName = t.status || 'Em aberto';
+                
                 const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
                 
                 const statusColors = {
@@ -426,18 +428,6 @@ const app = {
 
     applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
-    async criarTarefa() {
-        try {
-            const title = document.getElementById('nova-titulo').value; 
-            if(!title) { app.showToast("Título obrigatório", "error"); return; }
-            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
-            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
-            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
-            app.navigate('dashboard');
-            app.showToast("Tarefa distribuída com sucesso!");
-        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
-    },
-
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
         if(!container) return;
@@ -499,7 +489,6 @@ const app = {
             const fa = document.getElementById('detail-footer-actions');
             if(fa) fa.innerHTML = `<button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button>`;
         });
-        app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
@@ -512,7 +501,6 @@ const app = {
                 return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
-        app.unsubs.push(app.subtaskUnsub);
     },
 
     renderCalendar() {
@@ -604,7 +592,6 @@ const app = {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
-        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
@@ -895,7 +882,7 @@ const app = {
         app.unsubs = []; 
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
-        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
+        if (app.taskDetailUnsub) { app.taskDetailUnsub(); app.taskDetailUnsub = null; }
     },
     
     closeModal() { 
@@ -1092,7 +1079,6 @@ const app = {
                 c.scrollTop = c.scrollHeight; 
             } 
         }); 
-        app.unsubs.push(app.chatUnsub); 
     },
     
     async sendChatMessage() { 
@@ -1117,7 +1103,6 @@ const app = {
                 c.scrollTop = c.scrollHeight; 
             } 
         }); 
-        app.unsubs.push(app.chatUnsub); 
     },
     
     async sendSubComment() { 
