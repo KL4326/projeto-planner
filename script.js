@@ -28,6 +28,9 @@ const app = {
     subtaskUnsub: null,
     chatUnsub: null,
     taskUnsub: null,
+    globalTasksUnsub: null,
+    globalNotifsUnsub: null,
+    globalUsersUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -92,12 +95,12 @@ const app = {
             document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
         }
 
-        if(pageId === 'dashboard') { app.renderDashboard(); app.renderRanking(); app.renderReminders(); }
-        if(pageId === 'calendario') app.renderCalendar();
-        if(pageId === 'configuracoes') app.showConfigTab('profile');
-        if(pageId === 'detalhes' && params) { app.renderDetails(params); }
+        if(pageId === 'dashboard') { this.renderDashboard(); this.renderRanking(); this.renderReminders(); }
+        if(pageId === 'calendario') this.renderCalendar();
+        if(pageId === 'configuracoes') this.showConfigTab('profile');
+        if(pageId === 'detalhes' && params) { this.renderDetails(params); }
         
-        app.closeModal(); 
+        this.closeModal(); 
         window.scrollTo(0,0);
     },
 
@@ -200,7 +203,8 @@ const app = {
     },
     
     listenToNotifications() {
-        onSnapshot(collection(db, "notificacoes"), snap => {
+        if (app.globalNotifsUnsub) return;
+        app.globalNotifsUnsub = onSnapshot(collection(db, "notificacoes"), snap => {
             const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
             if (snap.size > app.lastLogCount) { 
@@ -227,7 +231,8 @@ const app = {
     },
 
     listenToTasks() { 
-        onSnapshot(collection(db, "tarefas"), snap => { 
+        if (app.globalTasksUnsub) return;
+        app.globalTasksUnsub = onSnapshot(collection(db, "tarefas"), snap => { 
             app.allTasks = snap.docs.map(d => ({id: d.id, ...d.data()})); 
             app.renderDashboard(); 
             app.renderRanking(); 
@@ -263,13 +268,12 @@ const app = {
         document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
         const dateInp = document.getElementById('dashboard-date-filter');
         if(dateInp) dateInp.value = '';
-        
         app.applyFilters();
     },
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return;
+            const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
             const clearBtn = document.getElementById('clear-filters-btn');
             if (clearBtn) {
                 if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
@@ -428,6 +432,18 @@ const app = {
 
     applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
+    async criarTarefa() {
+        try {
+            const title = document.getElementById('nova-titulo').value; 
+            if(!title) { app.showToast("Título obrigatório", "error"); return; }
+            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
+            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
+            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
+            app.navigate('dashboard');
+            app.showToast("Tarefa distribuída com sucesso!");
+        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
+    },
+
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
         if(!container) return;
@@ -489,6 +505,7 @@ const app = {
             const fa = document.getElementById('detail-footer-actions');
             if(fa) fa.innerHTML = `<button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button>`;
         });
+        app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
@@ -501,6 +518,7 @@ const app = {
                 return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
+        app.unsubs.push(app.subtaskUnsub);
     },
 
     renderCalendar() {
@@ -587,8 +605,8 @@ const app = {
     },
 
     listenToReminders() {
-        if(app.reminderUnsub) return;
-        app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
+        if(app.globalRemindersUnsub) return;
+        app.globalRemindersUnsub = onSnapshot(collection(db, "lembretes"), s => {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
@@ -815,7 +833,8 @@ const app = {
     },
     
     loadUsers() { 
-        onSnapshot(collection(db, "usuarios"), (snap) => { 
+        if (app.globalUsersUnsub) return;
+        app.globalUsersUnsub = onSnapshot(collection(db, "usuarios"), (snap) => { 
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
             const opts = Object.values(app.userMap); 
@@ -834,6 +853,9 @@ const app = {
                     </label>
                 `).join('');
             }
+            
+            app.renderDashboard();
+            app.renderRanking();
         }); 
     },
     
@@ -882,7 +904,7 @@ const app = {
         app.unsubs = []; 
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
-        if (app.taskDetailUnsub) { app.taskDetailUnsub(); app.taskDetailUnsub = null; }
+        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
     },
     
     closeModal() { 
@@ -912,7 +934,10 @@ const app = {
         if(em) em.value = ''; 
         if(ps) ps.value = ''; 
         app.cleanup();
-        if (app.reminderUnsub) { app.reminderUnsub(); app.reminderUnsub = null; }
+        if (app.globalTasksUnsub) { app.globalTasksUnsub(); app.globalTasksUnsub = null; }
+        if (app.globalRemindersUnsub) { app.globalRemindersUnsub(); app.globalRemindersUnsub = null; }
+        if (app.globalNotifsUnsub) { app.globalNotifsUnsub(); app.globalNotifsUnsub = null; }
+        if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         signOut(auth); 
     },
     
@@ -1079,6 +1104,7 @@ const app = {
                 c.scrollTop = c.scrollHeight; 
             } 
         }); 
+        app.unsubs.push(app.chatUnsub); 
     },
     
     async sendChatMessage() { 
@@ -1103,6 +1129,7 @@ const app = {
                 c.scrollTop = c.scrollHeight; 
             } 
         }); 
+        app.unsubs.push(app.chatUnsub); 
     },
     
     async sendSubComment() { 
