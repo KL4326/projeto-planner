@@ -24,13 +24,17 @@ const app = {
     userMap: {},
     allReminders: [],
     currentReminderDate: '',
-    reminderUnsub: null,
-    subtaskUnsub: null,
-    chatUnsub: null,
-    taskUnsub: null,
+    
+    // Ouvintes Globais (Nunca são apagados na troca de abas)
     globalTasksUnsub: null,
     globalNotifsUnsub: null,
     globalUsersUnsub: null,
+    globalRemindersUnsub: null,
+    
+    // Ouvintes Locais (São apagados ao trocar de aba ou fechar modal)
+    subtaskUnsub: null,
+    chatUnsub: null,
+    taskUnsub: null,
 
     init() { 
         this.currentReminderDate = this.getTodayStr();
@@ -433,6 +437,18 @@ const app = {
 
     applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
+    async criarTarefa() {
+        try {
+            const title = document.getElementById('nova-titulo').value; 
+            if(!title) { app.showToast("Título obrigatório", "error"); return; }
+            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
+            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
+            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
+            app.navigate('dashboard');
+            app.showToast("Tarefa distribuída com sucesso!");
+        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
+    },
+
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
         if(!container) return;
@@ -450,7 +466,8 @@ const app = {
         app.listenToSubtasks(id); 
         app.listenToChat(id);
 
-        if(app.taskUnsub) app.taskUnsub();
+        if(app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
+        
         app.taskUnsub = onSnapshot(doc(db, "tarefas", id), (d) => {
             if(!d.exists()) return;
             const t = d.data();
@@ -498,11 +515,10 @@ const app = {
             const fa = document.getElementById('detail-footer-actions');
             if(fa) fa.innerHTML = `<button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button>`;
         });
-        app.unsubs.push(app.taskUnsub);
     },
 
     listenToSubtasks(tid) {
-        if(app.subtaskUnsub) app.subtaskUnsub();
+        if(app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
         app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
             const l = document.getElementById('subtasks-list'); if(!l) return;
             const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
@@ -511,7 +527,6 @@ const app = {
                 return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
             }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
         });
-        app.unsubs.push(app.subtaskUnsub);
     },
 
     renderCalendar() {
@@ -598,12 +613,11 @@ const app = {
     },
 
     listenToReminders() {
-        if(app.reminderUnsub) return;
-        app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
+        if(app.globalRemindersUnsub) return;
+        app.globalRemindersUnsub = onSnapshot(collection(db, "lembretes"), s => {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
-        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
@@ -894,8 +908,6 @@ const app = {
     },
     
     cleanup() { 
-        app.unsubs.forEach(f => { if(typeof f === 'function') f(); }); 
-        app.unsubs = []; 
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
         if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
