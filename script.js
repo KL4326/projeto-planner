@@ -268,6 +268,7 @@ const app = {
         document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
         const dateInp = document.getElementById('dashboard-date-filter');
         if(dateInp) dateInp.value = '';
+        
         app.applyFilters();
     },
 
@@ -432,18 +433,6 @@ const app = {
 
     applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
 
-    async criarTarefa() {
-        try {
-            const title = document.getElementById('nova-titulo').value; 
-            if(!title) { app.showToast("Título obrigatório", "error"); return; }
-            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
-            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
-            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
-            app.navigate('dashboard');
-            app.showToast("Tarefa distribuída com sucesso!");
-        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
-    },
-
     renderDetails(id) {
         app.currentTaskId = id; const container = document.getElementById('details-view-content');
         if(!container) return;
@@ -467,9 +456,13 @@ const app = {
             const t = d.data();
             const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
             
-            let btns = t.status === 'Concluída' || t.status === 'Cancelada' || t.status === 'Concluídas' || t.status === 'Canceladas'
-                ? `<button onclick="app.updateTaskStatus('${id}', 'Em aberto')" class="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow flex items-center gap-1 hover:opacity-90"><span class="material-symbols-outlined text-[14px]">refresh</span> Reabrir</button>`
-                : `<button onclick="app.updateTaskStatus('${id}', 'Em andamento')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Iniciar</button><button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Concluir</button><button onclick="app.updateTaskStatus('${id}', 'Cancelada')" class="bg-red-500 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Cancelar</button>`;
+            let btns = '';
+            if (t.status === 'Concluída' || t.status === 'Cancelada' || t.status === 'Concluídas' || t.status === 'Canceladas') {
+                btns = `<button onclick="app.updateTaskStatus('${id}', 'Em aberto')" class="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow flex items-center gap-1 hover:opacity-90"><span class="material-symbols-outlined text-[14px]">refresh</span> Reabrir</button>`;
+            } else {
+                btns = (t.status !== 'Em andamento' ? `<button onclick="app.updateTaskStatus('${id}', 'Em andamento')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Iniciar</button>` : '') + 
+                       `<button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Concluir</button><button onclick="app.updateTaskStatus('${id}', 'Cancelada')" class="bg-red-500 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Cancelar</button>`;
+            }
 
             let avatarsHtml = '';
             (t.assignees || []).forEach(assigneeStr => {
@@ -605,11 +598,12 @@ const app = {
     },
 
     listenToReminders() {
-        if(app.globalRemindersUnsub) return;
-        app.globalRemindersUnsub = onSnapshot(collection(db, "lembretes"), s => {
+        if(app.reminderUnsub) return;
+        app.reminderUnsub = onSnapshot(collection(db, "lembretes"), s => {
             app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
             app.renderReminders();
         });
+        app.unsubs.push(app.reminderUnsub);
     },
 
     renderReminders() {
@@ -1104,7 +1098,6 @@ const app = {
                 c.scrollTop = c.scrollHeight; 
             } 
         }); 
-        app.unsubs.push(app.chatUnsub); 
     },
     
     async sendChatMessage() { 
@@ -1129,7 +1122,6 @@ const app = {
                 c.scrollTop = c.scrollHeight; 
             } 
         }); 
-        app.unsubs.push(app.chatUnsub); 
     },
     
     async sendSubComment() { 
