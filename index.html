@@ -353,7 +353,7 @@
                             <p class="font-body-sm text-on-surface-variant mt-xs">Registro detalhado de operações e ocorrências</p>
                         </div>
                         <div class="flex items-center gap-md">
-                            <button onclick="document.getElementById('modal-log-form').classList.remove('hidden')" class="bg-primary-container text-on-primary-container font-code-data px-md py-sm rounded-lg flex items-center gap-xs hover:bg-primary transition-colors shadow-sm active:scale-95">
+                            <button onclick="app.openNewLogModal()" class="bg-primary-container text-on-primary-container font-code-data px-md py-sm rounded-lg flex items-center gap-xs hover:bg-primary transition-colors shadow-sm active:scale-95">
                                 <span class="material-symbols-outlined text-[18px]">add</span>
                                 Novo Registro
                             </button>
@@ -371,10 +371,11 @@
                             <span class="font-body-sm text-on-surface">Todos Operadores</span>
                         </div>
                         <div class="flex gap-sm ml-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                            <button class="px-sm py-1 rounded-full border border-primary text-primary bg-primary-container/10 font-label-caps whitespace-nowrap">Todos</button>
-                            <button class="px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Logistics</button>
-                            <button class="px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Maintenance</button>
-                            <button class="px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Incident</button>
+                            <button onclick="app.setLogFilter('Todos')" id="filter-Todos" class="log-filter-btn px-sm py-1 rounded-full border border-primary text-primary bg-primary-container/10 font-label-caps whitespace-nowrap">Todos</button>
+                            <button onclick="app.setLogFilter('Logística')" id="filter-Logística" class="log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Logística</button>
+                            <button onclick="app.setLogFilter('Manutenção')" id="filter-Manutenção" class="log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Manutenção</button>
+                            <button onclick="app.setLogFilter('Incidente')" id="filter-Incidente" class="log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Incidente</button>
+                            <button onclick="app.setLogFilter('Manuais')" id="filter-Manuais" class="log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Manuais</button>
                         </div>
                     </div>
                     
@@ -415,16 +416,17 @@
             <div id="modal-log-form" class="fixed inset-0 bg-[#000000cc] backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
                 <div class="bg-surface-container-low border border-outline-variant rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
                     <div class="h-14 px-6 border-b border-outline-variant flex items-center justify-between bg-surface-container">
-                        <h3 class="font-title-md text-on-surface">Novo Registro Manual</h3>
+                        <h3 class="font-title-md text-on-surface">Registro do Diário</h3>
                         <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">close</span></button>
                     </div>
                     <div class="p-6 space-y-4">
+                        <input type="hidden" id="edit-log-id" value="">
                         <div>
                             <label class="font-label-caps text-on-surface-variant">Categoria</label>
                             <select id="log-category-inp" class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
-                                <option value="Logistics">Logistics (Operação)</option>
-                                <option value="Maintenance">Maintenance (Manutenção)</option>
-                                <option value="Incident">Incident (Problema/Alerta)</option>
+                                <option value="Logística">Logística (Operação)</option>
+                                <option value="Manutenção">Manutenção</option>
+                                <option value="Incidente">Incidente (Problema/Alerta)</option>
                             </select>
                         </div>
                         <div>
