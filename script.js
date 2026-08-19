@@ -36,6 +36,11 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
 
+    taskFilterStatus: 'Todas',
+    taskFilterPriority: 'Todas',
+    taskFilterAssignee: 'Todos',
+    taskFilterDate: '',
+
     init() { 
         this.bindEvents(); 
         this.checkAuth(); 
@@ -83,11 +88,10 @@ const app = {
             activeBtn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all";
         }
         
-        // Renderiza os dados dependendo da tela aberta
         if(pageId === 'dashboard') { this.renderDashboard(); }
         if(pageId === 'armarios') { this.renderLockers(); }
         if(pageId === 'logbook') { this.renderLogbook(); }
-        
+        if(pageId === 'tarefas') { this.renderTasksPage(); }
         window.scrollTo(0,0);
     },
 
@@ -711,16 +715,135 @@ const app = {
         }); 
     },
 
+  /* =======================================
+       LISTA DE TAREFAS / PLANNER KANBAN
+    ======================================= */
+    listenToTasks() { 
+        if (app.globalTasksUnsub) return;
+        app.globalTasksUnsub = onSnapshot(collection(db, "tarefas"), snap => { 
+            app.allTasks = snap.docs.map(d => ({id: d.id, ...d.data()})); 
+            app.renderDashboard(); 
+            if(document.getElementById('page-tarefas').classList.contains('active')) {
+                app.renderTasksPage();
+            }
+        }); 
+    },
+
+    updateTaskFilters() {
+        this.taskFilterStatus = document.getElementById('task-filter-status').value;
+        this.taskFilterPriority = document.getElementById('task-filter-priority').value;
+        this.taskFilterAssignee = document.getElementById('task-filter-assignee').value;
+        this.taskFilterDate = document.getElementById('task-filter-date').value;
+        this.renderTasksPage();
+    },
+
+    renderTasksPage() {
+        const colAberto = document.getElementById('col-aberto');
+        const colProgresso = document.getElementById('col-progresso');
+        const colConcluido = document.getElementById('col-concluido');
+        const colCancelado = document.getElementById('col-cancelado');
+        if(!colAberto) return;
+
+        colAberto.innerHTML = '';
+        colProgresso.innerHTML = '';
+        colConcluido.innerHTML = '';
+        colCancelado.innerHTML = '';
+
+        let cAberto = 0, cProgresso = 0, cConcluido = 0, cCancelado = 0;
+        const hoje = app.getTodayStr();
+
+        // Aplicar Filtros
+        let filteredTasks = app.allTasks;
+        if(this.taskFilterStatus !== 'Todas') {
+            filteredTasks = filteredTasks.filter(t => t.status === this.taskFilterStatus);
+        }
+        if(this.taskFilterPriority !== 'Todas') {
+            filteredTasks = filteredTasks.filter(t => t.priority === this.taskFilterPriority);
+        }
+        if(this.taskFilterAssignee !== 'Todos') {
+            filteredTasks = filteredTasks.filter(t => t.assignees && t.assignees.includes(this.taskFilterAssignee));
+        }
+        if(this.taskFilterDate) {
+            filteredTasks = filteredTasks.filter(t => t.dueDate === this.taskFilterDate);
+        }
+
+        filteredTasks.forEach(t => {
+            const isAtrasada = t.dueDate && t.dueDate < hoje && t.status !== 'Concluídas' && t.status !== 'Canceladas';
+            let borderClass = 'border-outline-variant/30';
+            if (isAtrasada) borderClass = 'border-error/50';
+
+            let priorityBadge = '';
+            if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
+            if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
+
+            let assigneeHtml = '<div class="w-6 h-6 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant" title="Sem Responsável">?</div>';
+            if (t.assignees && t.assignees.length > 0) {
+                const u = app.getUserData(t.assignees[0]);
+                if (u.foto) {
+                    assigneeHtml = `<img src="${u.foto}" class="w-6 h-6 rounded-full border border-outline-variant object-cover" title="${u.nome}">`;
+                } else {
+                    assigneeHtml = `<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
+                }
+            }
+
+            // Gerar botões de movimentação rápida baseados no status atual
+            let moveBtns = '';
+            if(t.status === 'Em aberto') {
+                moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Mover para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_right</span></button>`;
+            } else if (t.status === 'Em andamento') {
+                moveBtns = `
+                    <button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00aaff]/20 hover:text-[#00aaff] hover:border-[#00aaff] transition-colors" title="Voltar para Aberto"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>
+                    <button onclick="app.changeTaskStatus('${t.id}', 'Concluídas')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors" title="Mover para Concluídas"><span class="material-symbols-outlined text-[14px]">check</span></button>
+                `;
+            } else if (t.status === 'Concluídas') {
+                moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Voltar para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>`;
+            } else if (t.status === 'Canceladas') {
+                moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-surface-variant hover:text-white transition-colors" title="Reabrir Tarefa"><span class="material-symbols-outlined text-[14px]">refresh</span></button>`;
+            }
+
+            const cardHtml = `
+                <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm" onclick="app.openTaskForm('${t.id}')">
+                    <div class="flex justify-between items-start mb-2">
+                        ${priorityBadge}
+                        <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+                    </div>
+                    <h4 class="font-bold text-sm text-on-surface mb-1">${t.title}</h4>
+                    <p class="text-[13px] text-on-surface-variant line-clamp-2 mb-4 opacity-90">${t.desc || ''}</p>
+                    
+                    <div class="flex items-center justify-between mt-auto pt-3 border-t border-outline-variant/30">
+                        <div class="flex items-center gap-2">
+                            ${assigneeHtml}
+                            ${t.dueDate ? `<span class="text-[10px] font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'}"><span class="material-symbols-outlined text-[12px] align-middle">calendar_today</span> ${t.dueDate.split('-').reverse().join('/')}</span>` : ''}
+                        </div>
+                        <div class="flex gap-1" onclick="event.stopPropagation()">
+                            ${moveBtns}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if(t.status === 'Em aberto') { colAberto.innerHTML += cardHtml; cAberto++; }
+            else if(t.status === 'Em andamento') { colProgresso.innerHTML += cardHtml; cProgresso++; }
+            else if(t.status === 'Concluídas') { colConcluido.innerHTML += cardHtml; cConcluido++; }
+            else if(t.status === 'Canceladas') { colCancelado.innerHTML += cardHtml; cCancelado++; }
+            else { colAberto.innerHTML += cardHtml; cAberto++; } // Fallback
+        });
+
+        document.getElementById('count-aberto').innerText = cAberto;
+        document.getElementById('count-progresso').innerText = cProgresso;
+        document.getElementById('count-concluido').innerText = cConcluido;
+        document.getElementById('count-cancelado').innerText = cCancelado;
+    },
+
     renderDashboard() {
         try {
             const c = document.getElementById('my-tasks-list'); if(!c) return; c.innerHTML = '';
-            
             const hoje = app.getTodayStr();
             const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
             let myTasks = app.allTasks.filter(t => { 
                 const matchAssignee = t.assignees && t.assignees.some(a => app.getUserData(a).uid === currentUid);
-                const notDone = t.status !== 'Concluída' && t.status !== 'Cancelada';
+                const notDone = t.status !== 'Concluídas' && t.status !== 'Canceladas';
                 return matchAssignee && notDone; 
             }).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
 
@@ -732,16 +855,13 @@ const app = {
             let htmlStr = '';
             myTasks.forEach(t => {
                 const isAtrasada = t.dueDate && t.dueDate < hoje;
-                const pLabel = t.priority || 'Média';
-                
                 let pTag = '';
-                if(pLabel === 'Alta') pTag = `<span class="px-1.5 py-0.5 bg-error-container/20 text-error font-label-caps text-[9px] rounded border border-error/20">URGENTE</span>`;
-                if(pLabel === 'Baixa') pTag = `<span class="px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary font-label-caps text-[9px] rounded border border-tertiary/20">BAIXA</span>`;
+                if(t.priority === 'Alta') pTag = `<span class="px-1.5 py-0.5 bg-error-container/20 text-error font-label-caps text-[9px] rounded border border-error/20">URGENTE</span>`;
+                if(t.priority === 'Baixa') pTag = `<span class="px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary font-label-caps text-[9px] rounded border border-tertiary/20">BAIXA</span>`;
                 
                 htmlStr += `
                     <li>
-                        <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task">
-                            <input type="checkbox" onclick="event.preventDefault();" class="mt-0.5 w-4 h-4 rounded bg-surface border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface-dim pointer-events-none">
+                        <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task" onclick="app.navigate('tarefas'); app.openTaskForm('${t.id}')">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title}</span>
@@ -757,12 +877,96 @@ const app = {
         } catch (e) { console.error("Erro na renderização dashboard", e); }
     },
 
+    openTaskForm(id = null) {
+        if (id) {
+            const t = app.allTasks.find(x => x.id === id);
+            if(!t) return;
+            document.getElementById('task-form-title').innerText = "Editar Tarefa";
+            document.getElementById('task-id').value = t.id;
+            document.getElementById('task-title').value = t.title || "";
+            document.getElementById('task-desc').value = t.desc || "";
+            document.getElementById('task-date').value = t.dueDate || "";
+            document.getElementById('task-priority').value = t.priority || "Média";
+            document.getElementById('task-status').value = t.status || "Em aberto";
+            document.getElementById('task-assignee').value = (t.assignees && t.assignees.length > 0) ? t.assignees[0] : "";
+        } else {
+            document.getElementById('task-form-title').innerText = "Nova Tarefa";
+            document.getElementById('task-id').value = "";
+            document.getElementById('task-title').value = "";
+            document.getElementById('task-desc').value = "";
+            document.getElementById('task-date').value = app.getTodayStr();
+            document.getElementById('task-priority').value = "Média";
+            document.getElementById('task-status').value = "Em aberto";
+            
+            const uid = auth.currentUser ? auth.currentUser.uid : "";
+            document.getElementById('task-assignee').value = uid;
+        }
+        document.getElementById('task-form-modal').classList.remove('hidden');
+    },
+
+    closeTaskForm() {
+        document.getElementById('task-form-modal').classList.add('hidden');
+    },
+
+    async saveTaskForm() {
+        const id = document.getElementById('task-id').value;
+        const title = document.getElementById('task-title').value;
+        const desc = document.getElementById('task-desc').value;
+        const dueDate = document.getElementById('task-date').value;
+        const priority = document.getElementById('task-priority').value;
+        const status = document.getElementById('task-status').value;
+        const assignee = document.getElementById('task-assignee').value;
+
+        if(!title) return app.showToast("O título é obrigatório.", "error");
+
+        const taskData = {
+            title, desc, dueDate, priority, status,
+            assignees: assignee ? [assignee] : [],
+            ts_manual: Date.now()
+        };
+
+        try {
+            if(id) {
+                await updateDoc(doc(db, "tarefas", id), taskData);
+                app.showToast("Tarefa atualizada!");
+            } else {
+                await addDoc(collection(db, "tarefas"), taskData);
+                app.showToast("Tarefa criada!");
+                app.addLog(`➕ Criou a tarefa: ${title}`, 'Logística');
+            }
+            app.closeTaskForm();
+            app.renderTasksPage(); 
+        } catch(e) { console.error(e); app.showToast("Erro ao salvar.", "error"); }
+    },
+
+    async deleteTask(id) {
+        if(confirm("Tem certeza que deseja excluir esta tarefa?")) {
+            try {
+                await deleteDoc(doc(db, "tarefas", id));
+                app.showToast("Tarefa excluída.");
+            } catch(e) { console.error(e); app.showToast("Erro ao excluir", "error"); }
+        }
+    },
+
+    async changeTaskStatus(id, newStatus) {
+        try {
+            await updateDoc(doc(db, "tarefas", id), { status: newStatus });
+            app.showToast(`Movido para ${newStatus}`);
+            
+            const t = app.allTasks.find(x => x.id === id);
+            if(newStatus === 'Concluídas' && t) {
+                app.addLog(`✅ Concluiu a tarefa: ${t.title}`, 'Logística');
+            }
+        } catch(e) { console.error(e); app.showToast("Erro", "error"); }
+    }
+
     loadUsers() { 
         if (app.globalUsersUnsub) return;
         app.globalUsersUnsub = onSnapshot(collection(db, "usuarios"), (snap) => { 
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
             
+            // Popula filtros do Diário de Bordo
             const opSelect = document.getElementById('log-operator-filter');
             if(opSelect) {
                 const currentOp = opSelect.value;
@@ -770,6 +974,22 @@ const app = {
                     Object.values(app.userMap).map(u => `<option value="${u.nome}">${u.nome}</option>`).join('');
                 opSelect.value = currentOp;
             }
+            
+            // Popula os Responsáveis do modal de Tarefas E Filtros
+            const assignFormSelect = document.getElementById('task-assignee');
+            const assignFilterSelect = document.getElementById('task-filter-assignee');
+            
+            if(assignFormSelect) {
+                assignFormSelect.innerHTML = '<option value="">Sem responsável</option>' +
+                    Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
+            }
+            if(assignFilterSelect) {
+                const curFilter = assignFilterSelect.value;
+                assignFilterSelect.innerHTML = '<option value="Todos">Todos</option>' +
+                    Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
+                assignFilterSelect.value = curFilter;
+            }
+
             app.renderDashboard();
         }); 
     },
