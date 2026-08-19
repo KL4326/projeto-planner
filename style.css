@@ -1,47 +1,40 @@
-/* Efeitos de Vidro (Glassmorphism) */
+<style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+        }
+        
+        .bg-level-0 { background-color: #1A1A1A; }
+        .bg-level-1 { background-color: #2D2D2D; border: 1px solid #3D3D3D; box-shadow: 0px 4px 12px rgba(0,0,0,0.4); }
+        .bg-level-2 { background-color: #333333; box-shadow: 0px 12px 32px rgba(0,0,0,0.6); }
+        
+        /* Estrutura de Navegação (Páginas Ocultas) */
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        
+        /* Efeitos de Vidro (Glassmorphism) do seu CSS */
+        .glass-panel { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); }
+        .dark .glass-panel { background: #1a1c22; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .status-strip { width: 4px; height: 100%; position: absolute; left: 0; top: 0; }
 
-.glass-panel { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); }
+        /* Cores de Status forçadas (!important) do seu CSS */
+        .text-Atrasado { color: #FF3D6F !important; } .bg-Atrasado { background-color: #FF3D6F !important; }
+        .text-Aberto { color: #00aaff !important; } .bg-Aberto { background-color: #00aaff !important; }
+        .text-Em-Progresso { color: #FFDD00 !important; } .bg-Em-Progresso { background-color: #FFDD00 !important; }
+        .text-Concluído { color: #00E676 !important; } .bg-Concluído { background-color: #00E676 !important; }
 
-.dark .glass-panel { background: #1a1c22; border: 1px solid rgba(255, 255, 255, 0.1); }
+        /* Barra de Rolagem Customizada Unificada */
+        ::-webkit-scrollbar, .chat-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track, .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb, .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb, .dark .chat-scroll::-webkit-scrollbar-thumb { background: #404752; }
 
-.status-strip { width: 4px; height: 100%; position: absolute; left: 0; top: 0; }
-
-
-
-/* Cores de Status forçadas (!important) */
-
-.text-Atrasado { color: #FF3D6F !important; } .bg-Atrasado { background-color: #FF3D6F !important; }
-
-.text-Aberto { color: #00aaff !important; } .bg-Aberto { background-color: #00aaff !important; }
-
-.text-Em-Progresso { color: #FFDD00 !important; } .bg-Em-Progresso { background-color: #FFDD00 !important; }
-
-.text-Concluído { color: #00E676 !important; } .bg-Concluído { background-color: #00E676 !important; }
-
-
-
-/* Barra de Rolagem Customizada */
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-
-.dark ::-webkit-scrollbar-thumb { background: #475569; }
-
-
-
-/* Estilo das Notificações (Toasts) */
-
-#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-
-.toast { min-width: 250px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; animation: slideIn 0.3s ease-out forwards; }
-
-.toast.success { background: #00E676; color: #000; }
-
-.toast.error { background: #FF3D6F; }
-
-.toast.info { background: #00aaff; }
-
-@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-@keyframes fadeOut { to { opacity: 0; } }
+        /* Estilo das Notificações (Toasts) do seu CSS */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { min-width: 250px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; animation: slideIn 0.3s ease-out forwards; }
+        .toast.success { background: #00E676; color: #000; }
+        .toast.error { background: #FF3D6F; }
+        .toast.info { background: #00aaff; }
+        
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; } }
+    </style>
