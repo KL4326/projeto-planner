@@ -41,6 +41,9 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
 
+    currentTaskId: null,
+    commentsUnsub: null,
+
     init() { 
         this.bindEvents(); 
         this.checkAuth(); 
@@ -710,11 +713,29 @@ const app = {
         }); 
     },
 
+    toggleFilter(menuId) {
+        document.querySelectorAll('.filter-dropdown-menu').forEach(m => {
+            if(m.id !== menuId) m.classList.add('hidden');
+        });
+        document.getElementById(menuId).classList.toggle('hidden');
+    },
+
     updateTaskFilters() {
-        this.taskFilterStatus = document.getElementById('task-filter-status').value;
-        this.taskFilterPriority = document.getElementById('task-filter-priority').value;
-        this.taskFilterAssignee = document.getElementById('task-filter-assignee').value;
+        const getChecked = (className) => Array.from(document.querySelectorAll(`.${className}:checked`)).map(cb => cb.value);
+        
+        const statusVals = getChecked('cb-status');
+        const prioVals = getChecked('cb-priority');
+        const assignVals = getChecked('cb-assignee');
+        
+        document.getElementById('label-status-menu').innerText = statusVals.length ? `${statusVals.length} selecionado(s)` : 'Todos';
+        document.getElementById('label-priority-menu').innerText = prioVals.length ? `${prioVals.length} selecionado(s)` : 'Todas';
+        document.getElementById('label-assignee-menu').innerText = assignVals.length ? `${assignVals.length} selecionado(s)` : 'Todos';
+
+        this.taskFilterStatus = statusVals;
+        this.taskFilterPriority = prioVals;
+        this.taskFilterAssignee = assignVals;
         this.taskFilterDate = document.getElementById('task-filter-date').value;
+        
         this.renderTasksPage();
     },
 
@@ -726,89 +747,89 @@ const app = {
         listContainer.innerHTML = '';
         const hoje = app.getTodayStr();
 
-        // Aplicar Filtros
         let filteredTasks = app.allTasks;
-        if(this.taskFilterStatus !== 'Todas') {
-            filteredTasks = filteredTasks.filter(t => t.status === this.taskFilterStatus);
+        
+        // Lógica de Filtragem com suporte aos nomes antigos
+        if(this.taskFilterStatus && this.taskFilterStatus.length > 0) {
+            filteredTasks = filteredTasks.filter(t => {
+                let s = t.status || 'Em aberto';
+                if(s === 'Aberto') s = 'Em aberto';
+                if(s === 'Em Progresso') s = 'Em andamento';
+                if(s === 'Concluído') s = 'Concluídas';
+                if(s === 'Cancelado') s = 'Canceladas';
+                return this.taskFilterStatus.includes(s);
+            });
         }
-        if(this.taskFilterPriority !== 'Todas') {
-            filteredTasks = filteredTasks.filter(t => t.priority === this.taskFilterPriority);
+        if(this.taskFilterPriority && this.taskFilterPriority.length > 0) {
+            filteredTasks = filteredTasks.filter(t => this.taskFilterPriority.includes(t.priority));
         }
-        if(this.taskFilterAssignee !== 'Todos') {
-            filteredTasks = filteredTasks.filter(t => t.assignees && t.assignees.includes(this.taskFilterAssignee));
+        if(this.taskFilterAssignee && this.taskFilterAssignee.length > 0) {
+            filteredTasks = filteredTasks.filter(t => t.assignees && t.assignees.some(a => this.taskFilterAssignee.includes(a)));
         }
         if(this.taskFilterDate) {
-            filteredTasks = filteredTasks.filter(t => t.dueDate === this.taskFilterDate);
+            filteredTasks = filteredTasks.filter(t => {
+                let d = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
+                return d === this.taskFilterDate;
+            });
         }
 
         if(filteredTasks.length === 0) {
-            listContainer.innerHTML = '<div class="p-8 text-center text-on-surface-variant italic">Nenhuma tarefa encontrada com os filtros atuais.</div>';
+            listContainer.innerHTML = '<div class="p-8 text-center text-on-surface-variant italic">Nenhuma tarefa encontrada.</div>';
             if(countBadge) countBadge.innerText = "0";
             return;
         }
 
-        // Ordenar: Atrasadas primeiro, depois por data de criação
         filteredTasks.sort((a, b) => (b.ts_manual || 0) - (a.ts_manual || 0));
 
         let htmlStr = '';
         filteredTasks.forEach(t => {
             try {
-                let taskDateStr = '';
-                if (typeof t.dueDate === 'string') {
-                    taskDateStr = t.dueDate;
-                } else if (t.dueDate && t.dueDate.toDate) {
-                    taskDateStr = t.dueDate.toDate().toISOString().split('T')[0];
-                }
+                let taskDateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
 
-                const isAtrasada = taskDateStr && taskDateStr < hoje && t.status !== 'Concluídas' && t.status !== 'Canceladas';
+                // Tradutor de Status e Definição de Cores
+                let normStatus = t.status || 'Em aberto';
+                if(normStatus === 'Aberto') normStatus = 'Em aberto';
+                if(normStatus === 'Em Progresso') normStatus = 'Em andamento';
+                if(normStatus === 'Concluído') normStatus = 'Concluídas';
+                if(normStatus === 'Cancelado') normStatus = 'Canceladas';
+
+                const isAtrasada = taskDateStr && taskDateStr < hoje && normStatus !== 'Concluídas' && normStatus !== 'Canceladas';
                 let borderClass = isAtrasada ? 'border-error/50' : 'border-outline-variant/30';
 
-                // Badges de Prioridade
                 let priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">MÉDIA</span>';
                 if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
                 if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
 
-                // Cores do Status
-                let statusColor = 'bg-surface-variant text-on-surface';
-                if (t.status === 'Em andamento') statusColor = 'bg-[#FFDD00]/20 text-[#FFDD00] border border-[#FFDD00]/30';
-                if (t.status === 'Concluídas') statusColor = 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/30';
-                if (t.status === 'Canceladas') statusColor = 'bg-error-container/20 text-error border border-error/30';
+                let statusColor = 'bg-[#00aaff]/20 text-[#00aaff] border border-[#00aaff]/30'; // Padrão Aberto
+                if (normStatus === 'Em andamento') statusColor = 'bg-[#FFDD00]/20 text-[#FFDD00] border border-[#FFDD00]/30';
+                if (normStatus === 'Concluídas') statusColor = 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/30';
+                if (normStatus === 'Canceladas') statusColor = 'bg-error-container/20 text-error border border-error/30';
 
-                // Usuário Responsável
                 let assigneeHtml = '<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-xs text-on-surface-variant" title="Sem Responsável">?</div>';
                 if (t.assignees && t.assignees.length > 0) {
                     const u = app.getUserData(t.assignees[0]);
-                    const safeNome = u.nome || 'Usuário';
-                    if (u.foto) {
-                        assigneeHtml = `<img src="${u.foto}" class="w-8 h-8 rounded-full border border-outline-variant object-cover shadow-sm" title="${safeNome}">`;
-                    } else {
-                        assigneeHtml = `<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold shadow-sm" title="${safeNome}">${safeNome.substring(0,2).toUpperCase()}</div>`;
-                    }
+                    assigneeHtml = u.foto ? `<img src="${u.foto}" class="w-8 h-8 rounded-full border border-outline-variant object-cover shadow-sm" title="${u.nome}">` : `<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold shadow-sm" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
                 }
 
-                // Ações Rápidas (Apenas os botões relevantes ao status)
                 let moveBtns = '';
-                if(t.status === 'Em aberto' || !t.status) {
-                    moveBtns = `<button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em andamento')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors bg-surface-container" title="Iniciar Tarefa"><span class="material-symbols-outlined text-[18px]">play_arrow</span></button>`;
-                } else if (t.status === 'Em andamento') {
+                if(normStatus === 'Em aberto') {
+                    moveBtns = `<button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em andamento')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors bg-surface-container" title="Iniciar"><span class="material-symbols-outlined text-[18px]">play_arrow</span></button>`;
+                } else if (normStatus === 'Em andamento') {
                     moveBtns = `
-                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em aberto')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-variant transition-colors bg-surface-container" title="Pausar/Voltar"><span class="material-symbols-outlined text-[18px]">pause</span></button>
+                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em aberto')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-variant transition-colors bg-surface-container" title="Pausar"><span class="material-symbols-outlined text-[18px]">pause</span></button>
                         <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Concluídas')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors bg-surface-container" title="Concluir"><span class="material-symbols-outlined text-[18px]">check</span></button>
                     `;
                 }
 
                 let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : 'Sem prazo';
 
+                // Agora o onclick abre os Detalhes/Chat (e o botão de Editar fica junto com Excluir)
                 htmlStr += `
-                    <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center" onclick="app.openTaskForm('${t.id}')">
-                        
-                        <!-- Coluna 1: Status e Prioridade -->
+                    <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center" onclick="app.openTaskDetails('${t.id}')">
                         <div class="flex flex-row md:flex-col gap-2 min-w-[130px]">
-                            <span class="px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider ${statusColor}">${t.status || 'Em aberto'}</span>
+                            <span class="px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider ${statusColor}">${normStatus}</span>
                             <div class="hidden md:flex justify-center">${priorityBadge}</div>
                         </div>
-
-                        <!-- Coluna 2: Textos -->
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
                                 <h4 class="font-bold text-base text-on-surface truncate">${t.title || 'Sem Título'}</h4>
@@ -816,8 +837,6 @@ const app = {
                             </div>
                             <p class="text-sm text-on-surface-variant line-clamp-1 opacity-90">${t.desc || 'Sem detalhes informados.'}</p>
                         </div>
-                        
-                        <!-- Coluna 3: Infos e Ações -->
                         <div class="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-outline-variant/30 pt-3 md:pt-0">
                             <div class="flex items-center gap-3">
                                 ${assigneeHtml}
@@ -826,17 +845,15 @@ const app = {
                                     <span class="text-xs font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface'}">${displayDate}</span>
                                 </div>
                             </div>
-
-                            <!-- Botões -->
                             <div class="flex items-center gap-1 border-l border-outline-variant/30 pl-4 ml-2">
                                 ${moveBtns}
+                                <button onclick="event.stopPropagation(); app.openTaskForm('${t.id}')" class="p-1.5 rounded-lg border border-transparent text-on-surface-variant hover:text-primary hover:bg-primary-container/10 transition-all flex items-center justify-center ml-2" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
                                 <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="p-1.5 rounded-lg border border-transparent text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all flex items-center justify-center" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                             </div>
                         </div>
-
                     </div>
                 `;
-            } catch(e) { console.error("Erro ao renderizar tarefa: ", t, e); }
+            } catch(e) { console.error("Erro render: ", e); }
         });
 
         listContainer.innerHTML = htmlStr;
@@ -979,6 +996,116 @@ const app = {
         } catch(e) { console.error(e); app.showToast("Erro", "error"); }
     },
 
+  openTaskDetails(id) {
+        const t = app.allTasks.find(x => x.id === id);
+        if(!t) return;
+        app.currentTaskId = id;
+        
+        let normStatus = t.status || 'Em aberto';
+        if(normStatus === 'Aberto') normStatus = 'Em aberto';
+        if(normStatus === 'Em Progresso') normStatus = 'Em andamento';
+        if(normStatus === 'Concluído') normStatus = 'Concluídas';
+        
+        let statusColor = 'bg-[#00aaff]/20 text-[#00aaff]';
+        if (normStatus === 'Em andamento') statusColor = 'bg-[#FFDD00]/20 text-[#FFDD00]';
+        if (normStatus === 'Concluídas') statusColor = 'bg-[#00E676]/20 text-[#00E676]';
+
+        document.getElementById('det-status').className = `px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider ${statusColor}`;
+        document.getElementById('det-status').innerText = normStatus;
+        document.getElementById('det-title').innerText = t.title || 'Sem Título';
+        document.getElementById('det-desc').innerText = t.desc || 'Sem descrição.';
+        
+        const dateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
+        document.getElementById('det-date').innerText = dateStr ? dateStr.split('-').reverse().join('/') : 'Sem prazo definido';
+        
+        let pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container text-on-surface">MÉDIA</span>';
+        if(t.priority === 'Alta') pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
+        if(t.priority === 'Baixa') pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
+        document.getElementById('det-priority-container').innerHTML = pBadge;
+
+        document.getElementById('task-details-modal').classList.remove('hidden');
+        app.listenToTaskComments(id);
+    },
+
+    closeTaskDetails() {
+        if(app.commentsUnsub) { app.commentsUnsub(); app.commentsUnsub = null; }
+        app.currentTaskId = null;
+        document.getElementById('task-details-modal').classList.add('hidden');
+    },
+
+    listenToTaskComments(taskId) {
+        if(app.commentsUnsub) app.commentsUnsub();
+        const list = document.getElementById('task-comments-list');
+        list.innerHTML = '<div class="text-center text-xs text-on-surface-variant/50 mt-4">Carregando histórico...</div>';
+
+        app.commentsUnsub = onSnapshot(collection(db, "tarefas", taskId, "comentarios"), snap => {
+            const comments = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.ts || 0) - (b.ts || 0));
+            list.innerHTML = '';
+            
+            if(comments.length === 0) {
+                list.innerHTML = '<div class="text-center text-xs text-on-surface-variant/50 mt-4 italic">Nenhum comentário ainda. Seja o primeiro a atualizar!</div>';
+                return;
+            }
+
+            comments.forEach(c => {
+                const isMe = c.author === (auth.currentUser.displayName || auth.currentUser.email);
+                const time = new Date(c.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+                const date = new Date(c.ts).toLocaleDateString('pt-BR');
+                
+                if(isMe) {
+                    list.innerHTML += `
+                        <div class="flex justify-end mb-2">
+                            <div class="bg-primary-container text-on-primary-container rounded-2xl rounded-tr-sm px-4 py-2 max-w-[85%] shadow-sm">
+                                <p class="text-[13px] whitespace-pre-wrap">${c.text}</p>
+                                <span class="text-[9px] opacity-70 block text-right mt-1 font-code-data">${date} ${time}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    list.innerHTML += `
+                        <div class="flex items-start gap-2 mb-2">
+                            <div class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center shrink-0 border border-outline-variant/30 text-[10px] font-bold text-on-surface">
+                                ${c.author.substring(0,2).toUpperCase()}
+                            </div>
+                            <div class="bg-surface-container rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%] border border-outline-variant/30 shadow-sm">
+                                <p class="text-[13px] text-on-surface whitespace-pre-wrap">${c.text}</p>
+                                <span class="text-[9px] text-on-surface-variant block mt-1 font-code-data">${c.author} • ${date} ${time}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
+        });
+    },
+
+    async addTaskComment() {
+        const inp = document.getElementById('task-comment-inp');
+        const text = inp.value.trim();
+        if(!text || !app.currentTaskId) return;
+
+        try {
+            inp.value = '';
+            await addDoc(collection(db, "tarefas", app.currentTaskId, "comentarios"), {
+                text: text,
+                author: auth.currentUser.displayName || auth.currentUser.email,
+                ts: Date.now()
+            });
+        } catch(e) { console.error(e); app.showToast("Erro ao enviar mensagem", "error"); }
+    },
+
+    bindEvents() {
+        const lf = document.getElementById('login-form');
+        if(lf) lf.addEventListener('submit', (e) => app.handleLogin(e));
+
+        // Fecha os menus de filtro se clicar fora
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('.filter-dropdown-container')) {
+                document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
+            }
+        });
+    },
+
     loadUsers() { 
         if (app.globalUsersUnsub) return;
         app.globalUsersUnsub = onSnapshot(collection(db, "usuarios"), (snap) => { 
@@ -994,17 +1121,20 @@ const app = {
             }
             
             const assignFormSelect = document.getElementById('task-assignee');
-            const assignFilterSelect = document.getElementById('task-filter-assignee');
-            
             if(assignFormSelect) {
                 assignFormSelect.innerHTML = '<option value="">Sem responsável</option>' +
                     Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
             }
-            if(assignFilterSelect) {
-                const curFilter = assignFilterSelect.value;
-                assignFilterSelect.innerHTML = '<option value="Todos">Todos</option>' +
-                    Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
-                assignFilterSelect.value = curFilter;
+
+            // Injeta Checkboxes no Filtro de Operadores
+            const assignMenu = document.getElementById('assignee-menu');
+            if(assignMenu) {
+                assignMenu.innerHTML = Object.values(app.userMap).map(u => `
+                    <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer">
+                        <input type="checkbox" value="${u.uid}" class="cb-assignee rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()">
+                        <span class="text-sm text-on-surface truncate">${u.nome}</span>
+                    </label>
+                `).join('');
             }
 
             app.renderDashboard();
