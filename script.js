@@ -43,6 +43,11 @@ const app = {
 
     currentTaskId: null,
     commentsUnsub: null,
+    currentSubtaskId: null,   // NOVA
+    subtasksUnsub: null,      // NOVA
+    subcommentsUnsub: null,   // NOVA
+    allSubtasks: [],
+
 
     init() { 
         this.bindEvents(); 
@@ -749,14 +754,14 @@ const app = {
 
         let filteredTasks = app.allTasks;
         
-        // Lógica de Filtragem com suporte aos nomes antigos
+        // Tradução robusta de Filtros
         if(this.taskFilterStatus && this.taskFilterStatus.length > 0) {
             filteredTasks = filteredTasks.filter(t => {
-                let s = t.status || 'Em aberto';
+                let s = (t.status || 'Em aberto').trim();
                 if(s === 'Aberto') s = 'Em aberto';
-                if(s === 'Em Progresso') s = 'Em andamento';
-                if(s === 'Concluído') s = 'Concluídas';
-                if(s === 'Cancelado') s = 'Canceladas';
+                if(s === 'Em Progresso' || s === 'Em andamento') s = 'Em andamento';
+                if(s === 'Concluído' || s === 'Concluída' || s === 'Concluídas') s = 'Concluídas';
+                if(s === 'Cancelado' || s === 'Cancelada' || s === 'Canceladas') s = 'Canceladas';
                 return this.taskFilterStatus.includes(s);
             });
         }
@@ -786,24 +791,25 @@ const app = {
             try {
                 let taskDateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
 
-                // Tradutor de Status e Definição de Cores
-                let normStatus = t.status || 'Em aberto';
+                // Tradutor de Status Nativo
+                let normStatus = (t.status || 'Em aberto').trim();
                 if(normStatus === 'Aberto') normStatus = 'Em aberto';
                 if(normStatus === 'Em Progresso') normStatus = 'Em andamento';
-                if(normStatus === 'Concluído') normStatus = 'Concluídas';
-                if(normStatus === 'Cancelado') normStatus = 'Canceladas';
+                if(normStatus === 'Concluído' || normStatus === 'Concluída') normStatus = 'Concluídas';
+                if(normStatus === 'Cancelado' || normStatus === 'Cancelada') normStatus = 'Canceladas';
 
                 const isAtrasada = taskDateStr && taskDateStr < hoje && normStatus !== 'Concluídas' && normStatus !== 'Canceladas';
-                let borderClass = isAtrasada ? 'border-error/50' : 'border-outline-variant/30';
+                let borderClass = isAtrasada ? 'border-red-500/50' : 'border-outline-variant/30';
 
                 let priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">MÉDIA</span>';
-                if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
-                if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
+                if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400">ALTA</span>';
+                if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400">BAIXA</span>';
 
-                let statusColor = 'bg-[#00aaff]/20 text-[#00aaff] border border-[#00aaff]/30'; // Padrão Aberto
-                if (normStatus === 'Em andamento') statusColor = 'bg-[#FFDD00]/20 text-[#FFDD00] border border-[#FFDD00]/30';
-                if (normStatus === 'Concluídas') statusColor = 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/30';
-                if (normStatus === 'Canceladas') statusColor = 'bg-error-container/20 text-error border border-error/30';
+                // Cores Vivas e Fixas Tailwind
+                let statusColor = 'bg-blue-500/20 text-blue-400 border border-blue-500/30'; // Padrão Aberto
+                if (normStatus === 'Em andamento') statusColor = 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+                if (normStatus === 'Concluídas') statusColor = 'bg-green-500/20 text-green-400 border border-green-500/30';
+                if (normStatus === 'Canceladas') statusColor = 'bg-red-500/20 text-red-400 border border-red-500/30';
 
                 let assigneeHtml = '<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-xs text-on-surface-variant" title="Sem Responsável">?</div>';
                 if (t.assignees && t.assignees.length > 0) {
@@ -813,17 +819,16 @@ const app = {
 
                 let moveBtns = '';
                 if(normStatus === 'Em aberto') {
-                    moveBtns = `<button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em andamento')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors bg-surface-container" title="Iniciar"><span class="material-symbols-outlined text-[18px]">play_arrow</span></button>`;
+                    moveBtns = `<button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em andamento')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-yellow-500/20 hover:text-yellow-400 hover:border-yellow-500 transition-colors bg-surface-container" title="Iniciar"><span class="material-symbols-outlined text-[18px]">play_arrow</span></button>`;
                 } else if (normStatus === 'Em andamento') {
                     moveBtns = `
-                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em aberto')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-variant transition-colors bg-surface-container" title="Pausar"><span class="material-symbols-outlined text-[18px]">pause</span></button>
-                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Concluídas')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors bg-surface-container" title="Concluir"><span class="material-symbols-outlined text-[18px]">check</span></button>
+                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em aberto')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-blue-500/20 hover:text-blue-400 transition-colors bg-surface-container" title="Pausar"><span class="material-symbols-outlined text-[18px]">pause</span></button>
+                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Concluídas')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-green-500/20 hover:text-green-400 hover:border-green-500 transition-colors bg-surface-container" title="Concluir"><span class="material-symbols-outlined text-[18px]">check</span></button>
                     `;
                 }
 
                 let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : 'Sem prazo';
 
-                // Agora o onclick abre os Detalhes/Chat (e o botão de Editar fica junto com Excluir)
                 htmlStr += `
                     <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center" onclick="app.openTaskDetails('${t.id}')">
                         <div class="flex flex-row md:flex-col gap-2 min-w-[130px]">
@@ -842,13 +847,13 @@ const app = {
                                 ${assigneeHtml}
                                 <div class="flex flex-col text-right">
                                     <span class="text-[10px] text-on-surface-variant uppercase font-bold">Prazo</span>
-                                    <span class="text-xs font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface'}">${displayDate}</span>
+                                    <span class="text-xs font-code-data ${isAtrasada ? 'text-red-400 font-bold' : 'text-on-surface'}">${displayDate}</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 border-l border-outline-variant/30 pl-4 ml-2">
                                 ${moveBtns}
                                 <button onclick="event.stopPropagation(); app.openTaskForm('${t.id}')" class="p-1.5 rounded-lg border border-transparent text-on-surface-variant hover:text-primary hover:bg-primary-container/10 transition-all flex items-center justify-center ml-2" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                                <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="p-1.5 rounded-lg border border-transparent text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all flex items-center justify-center" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                                <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="p-1.5 rounded-lg border border-transparent text-on-surface-variant hover:text-red-400 hover:bg-red-500/20 transition-all flex items-center justify-center" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                             </div>
                         </div>
                     </div>
@@ -1001,14 +1006,14 @@ const app = {
         if(!t) return;
         app.currentTaskId = id;
         
-        let normStatus = t.status || 'Em aberto';
+        let normStatus = (t.status || 'Em aberto').trim();
         if(normStatus === 'Aberto') normStatus = 'Em aberto';
-        if(normStatus === 'Em Progresso') normStatus = 'Em andamento';
-        if(normStatus === 'Concluído') normStatus = 'Concluídas';
+        if(normStatus === 'Em Progresso' || normStatus === 'Em andamento') normStatus = 'Em andamento';
+        if(normStatus === 'Concluído' || normStatus === 'Concluída' || normStatus === 'Concluídas') normStatus = 'Concluídas';
         
-        let statusColor = 'bg-[#00aaff]/20 text-[#00aaff]';
-        if (normStatus === 'Em andamento') statusColor = 'bg-[#FFDD00]/20 text-[#FFDD00]';
-        if (normStatus === 'Concluídas') statusColor = 'bg-[#00E676]/20 text-[#00E676]';
+        let statusColor = 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+        if (normStatus === 'Em andamento') statusColor = 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+        if (normStatus === 'Concluídas') statusColor = 'bg-green-500/20 text-green-400 border border-green-500/30';
 
         document.getElementById('det-status').className = `px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider ${statusColor}`;
         document.getElementById('det-status').innerText = normStatus;
@@ -1019,18 +1024,155 @@ const app = {
         document.getElementById('det-date').innerText = dateStr ? dateStr.split('-').reverse().join('/') : 'Sem prazo definido';
         
         let pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container text-on-surface">MÉDIA</span>';
-        if(t.priority === 'Alta') pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
-        if(t.priority === 'Baixa') pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
+        if(t.priority === 'Alta') pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400">ALTA</span>';
+        if(t.priority === 'Baixa') pBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400">BAIXA</span>';
         document.getElementById('det-priority-container').innerHTML = pBadge;
 
         document.getElementById('task-details-modal').classList.remove('hidden');
         app.listenToTaskComments(id);
+        app.listenToSubtasks(id); // INICIA LISTENER DE SUBTAREFAS
     },
 
     closeTaskDetails() {
         if(app.commentsUnsub) { app.commentsUnsub(); app.commentsUnsub = null; }
+        if(app.subtasksUnsub) { app.subtasksUnsub(); app.subtasksUnsub = null; }
         app.currentTaskId = null;
         document.getElementById('task-details-modal').classList.add('hidden');
+    },
+
+    // ======== LÓGICA DAS SUBTAREFAS ======== //
+    listenToSubtasks(taskId) {
+        if(app.subtasksUnsub) app.subtasksUnsub();
+        const list = document.getElementById('subtasks-list');
+        list.innerHTML = '<div class="text-xs text-on-surface-variant/50">Carregando subtarefas...</div>';
+
+        app.subtasksUnsub = onSnapshot(collection(db, "tarefas", taskId, "subtarefas"), snap => {
+            app.allSubtasks = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.ts || 0) - (b.ts || 0));
+            list.innerHTML = '';
+            
+            if(app.allSubtasks.length === 0) {
+                list.innerHTML = '<div class="text-xs text-on-surface-variant/50 italic py-2">Nenhum item adicionado.</div>';
+                return;
+            }
+            
+            app.allSubtasks.forEach(sub => {
+                const checked = sub.isDone ? 'checked' : '';
+                const lineClass = sub.isDone ? 'line-through opacity-50 text-on-surface-variant' : 'text-on-surface';
+                const bgClass = sub.isDone ? 'bg-surface-container-highest border-transparent' : 'bg-[#232323] border-outline-variant/50 hover:border-primary/50';
+                
+                list.innerHTML += `
+                    <div class="flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer group ${bgClass}" onclick="app.openSubtaskDetails('${sub.id}')">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${checked} onclick="event.stopPropagation(); app.toggleSubtask('${taskId}', '${sub.id}', this.checked)" class="w-5 h-5 rounded bg-surface border-outline-variant text-primary focus:ring-primary pointer-events-auto">
+                            <span class="text-sm font-medium ${lineClass}">${sub.title}</span>
+                        </div>
+                        <span class="material-symbols-outlined text-[18px] text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                    </div>
+                `;
+            });
+        });
+    },
+
+    async addSubtask() {
+        const inp = document.getElementById('new-subtask-inp');
+        const title = inp.value.trim();
+        if(!title || !app.currentTaskId) return;
+        try {
+            inp.value = '';
+            await addDoc(collection(db, "tarefas", app.currentTaskId, "subtarefas"), {
+                title: title, isDone: false, ts: Date.now()
+            });
+        } catch(e) { console.error(e); app.showToast("Erro ao adicionar item", "error"); }
+    },
+
+    async toggleSubtask(taskId, subId, isDone) {
+        try {
+            await updateDoc(doc(db, "tarefas", taskId, "subtarefas", subId), { isDone: isDone });
+            if(isDone) app.addLog(`✅ Concluiu a etapa da tarefa`, 'Logística');
+        } catch(e) { console.error(e); }
+    },
+
+    openSubtaskDetails(subId) {
+        app.currentSubtaskId = subId;
+        const sub = app.allSubtasks.find(s => s.id === subId);
+        if(!sub) return;
+
+        document.getElementById('subdet-title').innerText = sub.title;
+        document.getElementById('subdet-checkbox').checked = sub.isDone;
+        document.getElementById('subtask-details-modal').classList.remove('hidden');
+
+        app.listenToSubtaskComments(app.currentTaskId, subId);
+    },
+
+    closeSubtaskDetails() {
+        if(app.subcommentsUnsub) { app.subcommentsUnsub(); app.subcommentsUnsub = null; }
+        app.currentSubtaskId = null;
+        document.getElementById('subtask-details-modal').classList.add('hidden');
+    },
+
+    async toggleCurrentSubtask(isDone) {
+        if(!app.currentTaskId || !app.currentSubtaskId) return;
+        await app.toggleSubtask(app.currentTaskId, app.currentSubtaskId, isDone);
+    },
+
+    async deleteSubtask() {
+        if(!confirm("Excluir definitivamente este item?")) return;
+        try {
+            await deleteDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", app.currentSubtaskId));
+            app.closeSubtaskDetails();
+            app.showToast("Item excluído");
+        } catch(e) { console.error(e); }
+    },
+
+    listenToSubtaskComments(taskId, subId) {
+        if(app.subcommentsUnsub) app.subcommentsUnsub();
+        const list = document.getElementById('subtask-comments-list');
+        list.innerHTML = '<div class="text-center text-xs text-on-surface-variant/50 mt-4">Carregando...</div>';
+
+        app.subcommentsUnsub = onSnapshot(collection(db, "tarefas", taskId, "subtarefas", subId, "comentarios"), snap => {
+            const comments = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.ts || 0) - (b.ts || 0));
+            list.innerHTML = '';
+            if(comments.length === 0) {
+                list.innerHTML = '<div class="text-center text-xs text-on-surface-variant/50 mt-4 italic">Nenhum comentário nesta etapa.</div>'; return;
+            }
+            comments.forEach(c => {
+                const isMe = c.author === (auth.currentUser.displayName || auth.currentUser.email);
+                const time = new Date(c.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+                const date = new Date(c.ts).toLocaleDateString('pt-BR');
+                
+                if(isMe) {
+                    list.innerHTML += `
+                        <div class="flex justify-end mb-2">
+                            <div class="bg-tertiary-container text-on-tertiary-container rounded-2xl rounded-tr-sm px-4 py-2 max-w-[85%] shadow-sm">
+                                <p class="text-[13px] whitespace-pre-wrap">${c.text}</p>
+                                <span class="text-[9px] opacity-70 block text-right mt-1 font-code-data">${date} ${time}</span>
+                            </div>
+                        </div>`;
+                } else {
+                    list.innerHTML += `
+                        <div class="flex items-start gap-2 mb-2">
+                            <div class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center shrink-0 border border-outline-variant/30 text-[10px] font-bold text-on-surface">${c.author.substring(0,2).toUpperCase()}</div>
+                            <div class="bg-surface-container rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%] border border-outline-variant/30 shadow-sm">
+                                <p class="text-[13px] text-on-surface whitespace-pre-wrap">${c.text}</p>
+                                <span class="text-[9px] text-on-surface-variant block mt-1 font-code-data">${c.author} • ${date} ${time}</span>
+                            </div>
+                        </div>`;
+                }
+            });
+            setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
+        });
+    },
+
+    async addSubtaskComment() {
+        const inp = document.getElementById('subtask-comment-inp');
+        const text = inp.value.trim();
+        if(!text || !app.currentTaskId || !app.currentSubtaskId) return;
+        try {
+            inp.value = '';
+            await addDoc(collection(db, "tarefas", app.currentTaskId, "subtarefas", app.currentSubtaskId, "comentarios"), {
+                text: text, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now()
+            });
+        } catch(e) { console.error(e); }
     },
 
     listenToTaskComments(taskId) {
