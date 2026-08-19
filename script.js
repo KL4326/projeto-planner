@@ -843,12 +843,6 @@ const app = {
         if(countBadge) countBadge.innerText = filteredTasks.length;
     },
 
-        document.getElementById('count-aberto').innerText = cAberto;
-        document.getElementById('count-progresso').innerText = cProgresso;
-        document.getElementById('count-concluido').innerText = cConcluido;
-        document.getElementById('count-cancelado').innerText = cCancelado;
-    },
-
     renderDashboard() {
         try {
             const c = document.getElementById('my-tasks-list'); if(!c) return; c.innerHTML = '';
