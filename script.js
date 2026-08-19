@@ -58,6 +58,15 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.remove('hidden');
         
+        // Handle Sidebar Buttons active state
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors";
+        });
+        const activeBtn = document.getElementById(`nav-btn-${pageId}`);
+        if(activeBtn) {
+            activeBtn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all";
+        }
+        
         if(pageId === 'dashboard') { this.renderDashboard(); }
         window.scrollTo(0,0);
     },
@@ -199,7 +208,6 @@ const app = {
                 htmlStr += `
                     <li>
                         <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task">
-                            <input type="checkbox" onclick="event.preventDefault();" class="mt-0.5 w-4 h-4 rounded bg-surface border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface-dim pointer-events-none">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title}</span>
