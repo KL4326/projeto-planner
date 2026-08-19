@@ -96,6 +96,10 @@
         .bg-level-0 { background-color: #1A1A1A; }
         .bg-level-1 { background-color: #2D2D2D; border: 1px solid #3D3D3D; box-shadow: 0px 4px 12px rgba(0,0,0,0.4); }
         .bg-level-2 { background-color: #333333; box-shadow: 0px 12px 32px rgba(0,0,0,0.6); }
+        .text-primary-brand { color: #2196F3; }
+        .bg-primary-brand { background-color: #2196F3; }
+        .bg-primary-brand:hover { background-color: #1976D2; }
+        .border-primary-glow:focus { border-color: #2196F3; box-shadow: 0 0 0 1px #2196F3; }
         
         .chat-scroll::-webkit-scrollbar { width: 6px; }
         .chat-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -184,37 +188,37 @@
                 <li>
                     <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all">
                         <span class="material-symbols-outlined">dashboard</span>
-                        <span class="font-body-sm">Dashboard</span>
+                        <span class="font-body-sm">Visão Geral</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('logbook')" id="nav-btn-logbook" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined">menu_book</span>
-                        <span class="font-body-sm">Logbook</span>
+                        <span class="font-body-sm">Diário de Bordo</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('armarios')" id="nav-btn-armarios" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined">lock</span>
-                        <span class="font-body-sm">Locker Manager</span>
+                        <span class="font-body-sm">Gerenciador de Armários</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('tarefas')" id="nav-btn-tarefas" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined">checklist</span>
-                        <span class="font-body-sm">Task List</span>
+                        <span class="font-body-sm">Tarefas</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('calculadoras')" id="nav-btn-calculadoras" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined">calculate</span>
-                        <span class="font-body-sm">Calculators</span>
+                        <span class="font-body-sm">Calculadora</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('configuracoes')" id="nav-btn-configuracoes" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined">settings</span>
-                        <span class="font-body-sm">Settings</span>
+                        <span class="font-body-sm">Configurações</span>
                     </button>
                 </li>
             </ul>
@@ -288,7 +292,8 @@
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets</h3>
                             </div>
                             <div class="p-6 flex-1 flex flex-col items-center justify-center relative">
-                                <div class="w-32 h-32 rounded-full border-[12px] border-surface-container relative flex items-center justify-center mb-6 shadow-inner" style="background: conic-gradient(#78dc77 0%, #78dc77 62.5%, #ffb4ab 62.5%, #ffb4ab 87.5%, #fbbf24 87.5%, #fbbf24 100%); border-color: transparent;">
+                                <!-- Hard Stops no background para deixar a borda afiada e sem blur -->
+                                <div class="w-32 h-32 rounded-full border-[12px] border-surface-container relative flex items-center justify-center mb-6 shadow-inner" style="background: conic-gradient(#78dc77 0deg 225deg, #ffb4ab 225deg 315deg, #fbbf24 315deg 360deg); border-color: transparent;">
                                     <div class="absolute inset-0 m-auto w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center">
                                         <span class="font-display-lg text-[28px] leading-none font-bold text-on-surface">40</span>
                                         <span class="font-label-caps text-[10px] text-on-surface-variant">TOTAL</span>
