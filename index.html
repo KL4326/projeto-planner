@@ -362,14 +362,25 @@
                     
                     <!-- Filters Bar -->
                     <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex flex-wrap gap-md items-center shadow-sm">
-                        <div class="flex items-center gap-xs bg-surface-container px-sm py-xs rounded border border-outline-variant hover:border-primary transition-colors cursor-pointer">
-                            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_today</span>
-                            <span class="font-body-sm text-on-surface">Hoje</span>
+                        
+                        <!-- Filtro de Data Real -->
+                        <div class="relative flex items-center bg-surface-container rounded border border-outline-variant hover:border-primary transition-colors focus-within:border-primary overflow-hidden">
+                            <span class="material-symbols-outlined text-on-surface-variant text-[18px] pl-2 pointer-events-none absolute">calendar_today</span>
+                            <!-- O input type="date" vai abrir o calendário do próprio navegador -->
+                            <input type="date" id="log-date-filter" onchange="app.updateLogFilters()" class="bg-transparent border-none text-body-sm text-on-surface pl-8 pr-2 py-1.5 focus:ring-0 outline-none w-36 cursor-pointer dark:[color-scheme:dark]">
                         </div>
-                        <div class="flex items-center gap-xs bg-surface-container px-sm py-xs rounded border border-outline-variant hover:border-primary transition-colors cursor-pointer">
-                            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">person</span>
-                            <span class="font-body-sm text-on-surface">Todos Operadores</span>
+                        
+                        <!-- Filtro de Operador Real -->
+                        <div class="relative flex items-center bg-surface-container rounded border border-outline-variant hover:border-primary transition-colors focus-within:border-primary overflow-hidden">
+                            <span class="material-symbols-outlined text-on-surface-variant text-[18px] pl-2 pointer-events-none absolute">person</span>
+                            <!-- O select será populado automaticamente pelo JavaScript -->
+                            <select id="log-operator-filter" onchange="app.updateLogFilters()" class="bg-transparent border-none text-body-sm text-on-surface pl-8 pr-8 py-1.5 focus:ring-0 outline-none appearance-none cursor-pointer">
+                                <option value="Todos">Todos Operadores</option>
+                            </select>
+                            <span class="material-symbols-outlined text-on-surface-variant text-[18px] pr-2 pointer-events-none absolute right-0">expand_more</span>
                         </div>
+
+                        <!-- Filtro de Categorias (Chips) -->
                         <div class="flex gap-sm ml-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
                             <button onclick="app.setLogFilter('Todos')" id="filter-Todos" class="log-filter-btn px-sm py-1 rounded-full border border-primary text-primary bg-primary-container/10 font-label-caps whitespace-nowrap">Todos</button>
                             <button onclick="app.setLogFilter('Logística')" id="filter-Logística" class="log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Logística</button>
