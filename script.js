@@ -25,13 +25,11 @@ const app = {
     allReminders: [],
     currentReminderDate: '',
     
-    // Ouvintes Globais (Nunca são apagados na troca de abas)
     globalTasksUnsub: null,
     globalNotifsUnsub: null,
     globalUsersUnsub: null,
     globalRemindersUnsub: null,
     
-    // Ouvintes Locais (São apagados ao trocar de aba ou fechar modal)
     subtaskUnsub: null,
     chatUnsub: null,
     taskUnsub: null,
@@ -55,17 +53,6 @@ const app = {
             document.head.appendChild(style);
         }
     },
-    
-    toggleTheme() { 
-        document.documentElement.classList.toggle('dark'); 
-        localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); 
-    },
-
-    changePrimaryColor(hex) {
-        document.documentElement.style.setProperty('--color-primary', hex);
-        localStorage.setItem('primaryColor', hex);
-        app.showToast("Cor de destaque atualizada!");
-    },
 
     getTodayStr() {
         const d = new Date();
@@ -85,25 +72,9 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
         
-        document.querySelectorAll('#bottom-nav button').forEach(b => {
-            b.className = "flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:text-gray-400 dark:hover:text-white transition-all font-display text-[11px] font-semibold w-24 h-14 rounded-full";
-        });
-        const activeNavBtn = document.getElementById(`nav-btn-${pageId === 'dashboard' ? 'dashboard' : pageId}`);
-        if(activeNavBtn) activeNavBtn.className = "flex flex-col items-center justify-center bg-primary text-white shadow-md transition-all font-display text-[11px] font-bold w-24 h-14 rounded-full scale-110 -translate-y-2";
-
-        if(pageId === 'nova-tarefa') {
-            const tInp = document.getElementById('nova-titulo'); if(tInp) tInp.value = '';
-            const dInp = document.getElementById('nova-desc'); if(dInp) dInp.value = '';
-            const fInp = document.getElementById('nova-fim'); if(fInp) fInp.value = '';
-            const pInp = document.getElementById('nova-prio'); if(pInp) pInp.value = 'Média';
-            document.querySelectorAll('.task-assignees-checkboxes-item').forEach(cb => cb.checked = false);
-        }
-
-        if(pageId === 'dashboard') { this.renderDashboard(); this.renderRanking(); this.renderReminders(); }
-        if(pageId === 'calendario') this.renderCalendar();
-        if(pageId === 'configuracoes') this.showConfigTab('profile');
-        if(pageId === 'detalhes' && params) { this.renderDetails(params); }
+        // Reset nav styles if needed later for new items
         
+        if(pageId === 'dashboard') { this.renderDashboard(); }
         this.closeModal(); 
         window.scrollTo(0,0);
     },
@@ -120,75 +91,47 @@ const app = {
     bindEvents() {
         const lf = document.getElementById('login-form');
         if(lf) lf.addEventListener('submit', (e) => app.handleLogin(e));
-
-        const si = document.getElementById('search-input');
-        if(si) si.addEventListener('input', (e) => { app.filters.search = e.target.value; app.renderDashboard(); });
-        
-        const nb = document.getElementById('notif-btn');
-        if(nb) nb.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notif-menu').classList.toggle('hidden'); app.markNotifsRead(); });
-        
-        const pt = document.getElementById('profile-trigger');
-        if(pt) pt.addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-menu').classList.toggle('hidden'); });
-        
-        document.addEventListener('click', () => { 
-            const nm = document.getElementById('notif-menu'); if(nm) nm.classList.add('hidden'); 
-            const pm = document.getElementById('profile-menu'); if(pm) pm.classList.add('hidden'); 
-            const af = document.getElementById('assignee-filter-menu'); if(af) af.classList.add('hidden');
-        });
-        
-        const st = document.getElementById('submit-edit-task'); if(st) st.onclick = () => app.handleUpdateTask();
-        const ss = document.getElementById('submit-subtask-form'); if(ss) ss.onclick = () => app.handleSaveSubtask();
-        const pu = document.getElementById('profile-upload'); if(pu) pu.addEventListener('change', (e) => { const f = e.target.files[0]; if(f) app.compressImage(f, (b64) => { app.tempPhotoBase64 = b64; document.getElementById('profile-page-avatar').style.backgroundImage = `url('${b64}')`; document.getElementById('profile-page-avatar').innerText = ''; }); });
     },
 
     checkAuth() { 
         onAuthStateChanged(auth, async (u) => { 
-            const h = document.getElementById('main-header'); 
-            const b = document.getElementById('bottom-nav'); 
+            const pLogin = document.getElementById('page-login'); 
+            const appL = document.getElementById('app-layout'); 
             if(u){ 
-                if(h) h.classList.replace('hidden', 'flex'); 
-                if(b) b.classList.replace('hidden', 'flex'); 
+                if(pLogin) pLogin.classList.remove('active'); 
+                if(appL) appL.classList.remove('hidden'); 
                 
                 try {
                     const ud = await getDoc(doc(db, "usuarios", u.uid));
                     let userName = u.displayName || u.email;
-                    let userRole = "Colaborador";
                     let userFoto = u.photoURL;
 
                     if(ud.exists()) {
                         const data = ud.data();
                         if(data.nome) userName = data.nome;
-                        if(data.cargo) userRole = data.cargo;
                         if(data.foto) userFoto = data.foto; 
                     }
                     
-                    document.getElementById('user-display-name').innerText = userName;
-                    document.getElementById('user-display-role').innerText = userRole;
-                    const bv = document.getElementById('boas-vindas-texto');
-                    if(bv) bv.innerText = `Olá, ${userName.split(' ')[0]}`;
-                    
+                    const sn = document.getElementById('sidebar-name');
+                    if(sn) sn.innerText = userName;
                     app.updateAvatar(u, userFoto, userName);
                 } catch(e) { console.error(e); }
                 
                 app.listenToTasks(); 
-                app.listenToReminders(); 
                 app.loadUsers(); 
                 app.listenToNotifications();
                 
-                const rFilter = document.getElementById('reminder-date-filter');
-                if(rFilter) rFilter.value = app.currentReminderDate;
-                
                 app.navigate('dashboard'); 
             } else { 
-                if(h) h.classList.add('hidden'); 
-                if(b) b.classList.add('hidden'); 
-                app.navigate('login'); 
+                if(pLogin) pLogin.classList.add('active'); 
+                if(appL) appL.classList.add('hidden'); 
             } 
         }); 
     },
 
     updateAvatar(u, fotoDb, name) { 
-        const av = document.getElementById('header-avatar'); 
+        const av = document.getElementById('sidebar-avatar'); 
+        if(!av) return;
         const fotoReal = fotoDb || u.photoURL;
         const nomeReal = name || u.displayName || u.email;
         if(fotoReal) { 
@@ -209,29 +152,27 @@ const app = {
     listenToNotifications() {
         if (app.globalNotifsUnsub) return;
         app.globalNotifsUnsub = onSnapshot(collection(db, "notificacoes"), snap => {
-            const list = document.getElementById('notif-list'); const badge = document.getElementById('notif-badge'); if(!list) return;
+            const list = document.getElementById('dashboard-log-list'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
-            if (snap.size > app.lastLogCount) { 
-                badge.innerText = snap.size - app.lastLogCount; 
-                badge.classList.remove('hidden'); 
-            } else { 
-                badge.classList.add('hidden'); 
-            }
+            
             list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Sem registros.</p>';
-            logs.slice(0, 15).forEach(dt => {
+            logs.slice(0, 5).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                list.innerHTML += `<div class="p-4 border-b dark:border-white/5 text-left"><p class="text-[13px] font-bold text-on-surface dark:text-gray-200">${dt.text || ''}</p><div class="flex justify-between mt-1 text-[9px] font-black uppercase text-on-surface-variant/60 dark:text-gray-500"><span>${dt.author || 'Sistema'}</span><span>${time}</span></div></div>`;
+                list.innerHTML += `
+                    <li class="p-4 hover:bg-[#333333] transition-colors flex gap-4">
+                        <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/50">
+                            <span class="font-code-data text-xs text-primary-fixed-dim">${time}</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <div class="flex items-baseline gap-2 mb-1">
+                                <span class="font-code-data text-sm font-semibold text-on-surface">${dt.author || 'Sistema'}</span>
+                            </div>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">${dt.text || ''}</p>
+                        </div>
+                    </li>
+                `;
             });
         });
-    },
-
-    markNotifsRead() { 
-        const badge = document.getElementById('notif-badge');
-        if(badge && !badge.classList.contains('hidden')) {
-            app.lastLogCount += (parseInt(badge.innerText) || 0);
-            localStorage.setItem('lastLogCount', app.lastLogCount);
-            badge.classList.add('hidden');
-        }
     },
 
     listenToTasks() { 
@@ -239,699 +180,78 @@ const app = {
         app.globalTasksUnsub = onSnapshot(collection(db, "tarefas"), snap => { 
             app.allTasks = snap.docs.map(d => ({id: d.id, ...d.data()})); 
             app.renderDashboard(); 
-            app.renderRanking(); 
         }); 
-    },
-
-    applyFilters() {
-        const eqCheckboxes = document.querySelectorAll('#assignee-filter-list input:checked');
-        app.filters.assignees = Array.from(eqCheckboxes).map(cb => cb.value);
-        
-        const prioCheckboxes = document.querySelectorAll('#priority-filter-menu input:checked');
-        app.filters.priorities = Array.from(prioCheckboxes).map(cb => cb.value);
-        
-        const dateInput = document.getElementById('dashboard-date-filter');
-        app.filters.dueDate = dateInput ? dateInput.value : '';
-
-        const countEq = app.filters.assignees.length;
-        const eqEl = document.getElementById('assignee-filter-count');
-        if(eqEl) eqEl.innerText = countEq > 0 ? `Equipe (${countEq})` : 'Equipe';
-        
-        const countPrio = app.filters.priorities.length;
-        const prioEl = document.getElementById('priority-filter-count');
-        if(prioEl) prioEl.innerText = countPrio > 0 ? `Prioridade (${countPrio})` : 'Prioridade';
-        
-        const labelDate = document.getElementById('date-filter-label');
-        if(labelDate) labelDate.innerText = app.filters.dueDate ? app.filters.dueDate.split('-').reverse().join('/') : 'Prazo Específico';
-
-        app.renderDashboard();
-    },
-
-    clearFilters() {
-        document.querySelectorAll('#assignee-filter-list input[type="checkbox"]').forEach(cb => cb.checked = false);
-        document.querySelectorAll('#priority-filter-menu input[type="checkbox"]').forEach(cb => cb.checked = false);
-        const dateInp = document.getElementById('dashboard-date-filter');
-        if(dateInp) dateInp.value = '';
-        
-        app.applyFilters();
     },
 
     renderDashboard() {
         try {
-            const c = document.getElementById('taskTableBody'); if(!c) return; c.innerHTML = '';
-            const clearBtn = document.getElementById('clear-filters-btn');
-            if (clearBtn) {
-                if (app.filters.assignees.length > 0 || app.filters.priorities.length > 0 || app.filters.dueDate !== "") {
-                    clearBtn.classList.remove('hidden'); clearBtn.classList.add('flex');
-                } else {
-                    clearBtn.classList.add('hidden'); clearBtn.classList.remove('flex');
-                }
-            }
-
-            const sorted = [...app.allTasks].sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
+            const c = document.getElementById('my-tasks-list'); if(!c) return; c.innerHTML = '';
+            
             const hoje = app.getTodayStr();
-            
-            let baseFiltered = sorted.filter(t => { 
-                const matchSearch = (t.title || '').toLowerCase().includes(app.filters.search.toLowerCase());
-                
-                const matchAssignee = app.filters.assignees.length === 0 || (t.assignees && t.assignees.some(a => {
-                    return app.filters.assignees.includes(app.getUserData(a).uid);
-                }));
-                
-                const matchPriority = app.filters.priorities.length === 0 || app.filters.priorities.includes(t.priority || 'Média');
-                const matchDate = !app.filters.dueDate || t.dueDate === app.filters.dueDate;
-                return matchSearch && matchAssignee && matchPriority && matchDate; 
-            });
+            const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
-            const stats = { 'Em aberto': 0, 'Em andamento': 0, 'Atrasadas': 0, 'Concluídas': 0, 'Canceladas': 0 };
-            baseFiltered.forEach(t => { 
-                const sReal = t.status || 'Em aberto';
-                const isOverdue = sReal !== 'Concluída' && sReal !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
-                if (isOverdue) stats['Atrasadas']++;
-                else {
-                    if (sReal === 'Concluída') stats['Concluídas']++;
-                    else if (sReal === 'Cancelada') stats['Canceladas']++;
-                    else if (stats[sReal] !== undefined) stats[sReal]++;
-                }
-            });
-            app.renderStats(stats, baseFiltered.length);
+            // Filtra tarefas designadas para o UID do usuário e que não estão concluídas
+            let myTasks = app.allTasks.filter(t => { 
+                const matchAssignee = t.assignees && t.assignees.some(a => app.getUserData(a).uid === currentUid);
+                const notDone = t.status !== 'Concluída' && t.status !== 'Cancelada';
+                return matchAssignee && notDone; 
+            }).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
 
-            let finalFiltered = baseFiltered.filter(t => {
-                const statusStr = t.status || 'Em aberto';
-                const isOverdue = statusStr !== 'Concluída' && statusStr !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
-                let computedCategory = statusStr;
-                if (isOverdue) computedCategory = 'Atrasadas';
-                else if (statusStr === 'Concluída') computedCategory = 'Concluídas';
-                else if (statusStr === 'Cancelada') computedCategory = 'Canceladas';
-                return app.filters.status === "Todas" || computedCategory === app.filters.status;
-            });
-            
-            const tc = document.getElementById('taskCount');
-            if(tc) tc.innerText = `(${finalFiltered.length})`;
+            if(myTasks.length === 0) {
+                c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50">Nenhuma tarefa pendente para você hoje.</p>';
+                return;
+            }
             
             let htmlStr = '';
-            finalFiltered.forEach(t => {
-                const prazo = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
+            myTasks.forEach(t => {
+                const isAtrasada = t.dueDate && t.dueDate < hoje;
                 const pLabel = t.priority || 'Média';
-                const title = t.title || 'Sem título';
-                const statusName = t.status || 'Em aberto';
                 
-                const isAtrasada = statusName !== 'Concluída' && statusName !== 'Cancelada' && t.dueDate && t.dueDate < hoje;
-                
-                const statusColors = {
-                    'Em aberto': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                    'Em andamento': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-                    'Concluída': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-                    'Cancelada': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                };
-                const prioColors = {
-                    'Alta': 'text-red-600 dark:text-red-400',
-                    'Média': 'text-amber-600 dark:text-amber-400',
-                    'Baixa': 'text-emerald-600 dark:text-emerald-400'
-                };
-
-                const sColor = statusColors[statusName] || statusColors['Em aberto'];
-                const pColor = prioColors[pLabel] || prioColors['Média'];
-                
-                let avatarsHtml = '';
-                (t.assignees || []).forEach(assigneeStr => {
-                    const uData = app.getUserData(assigneeStr);
-                    if(uData.foto) {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-cover bg-center -ml-2 first:ml-0 shadow-sm" style="background-image:url('${uData.foto}')" title="${uData.nome}"></div>`;
-                    } else {
-                        avatarsHtml += `<div class="w-8 h-8 rounded-full border-2 border-surface dark:border-slate-800 bg-primary text-white flex items-center justify-center text-[10px] font-bold -ml-2 first:ml-0 shadow-sm" title="${uData.nome}">${uData.nome.substring(0,2).toUpperCase()}</div>`;
-                    }
-                });
-
-                const borderClass = isAtrasada ? 'border-red-500' : 'border-transparent dark:border-white/5';
-                const rowId = `task-row-${t.id}`;
+                let pTag = '';
+                if(pLabel === 'Alta') pTag = `<span class="px-1.5 py-0.5 bg-error-container/20 text-error font-label-caps text-[9px] rounded border border-error/20">URGENTE</span>`;
+                if(pLabel === 'Baixa') pTag = `<span class="px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary font-label-caps text-[9px] rounded border border-tertiary/20">BAIXA</span>`;
                 
                 htmlStr += `
-                    <div id="${rowId}" class="glass-panel rounded-2xl p-5 border-l-[6px] ${borderClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-5 hover:-translate-y-0.5 hover:shadow-lg transition-all cubic-bezier bento-highlight dark:bg-[#151c2c]" onclick="app.navigate('detalhes', '${t.id}')">
-                        <div class="flex-grow min-w-0">
-                            <div class="flex flex-wrap items-center gap-3 mb-1.5">
-                                <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${sColor}">${statusName}</span>
-                                <h4 class="font-display font-bold text-primary dark:text-white truncate text-lg ${statusName==='Concluída'?'line-through opacity-50':''}">${title}</h4>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3 text-xs text-on-surface-variant/80 dark:text-gray-400 font-medium mt-2">
-                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Prazo: <span class="${isAtrasada ? 'text-red-500 font-black' : 'dark:text-white'}">${prazo} ${isAtrasada ? '(ATRASADA)' : ''}</span></span>
-                                <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
-                                <span class="flex items-center gap-1 font-bold ${pColor} uppercase tracking-wider text-[10px]"><span class="material-symbols-outlined text-[12px]">flag</span>${pLabel}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0 pt-3 md:pt-0 border-t dark:border-white/5 md:border-none">
-                            <div class="flex items-center gap-3 w-32">
-                                <span id="progress-text-${t.id}" class="text-[10px] font-black text-on-surface-variant dark:text-gray-400 w-8 text-right">0%</span>
-                                <div class="flex-1 h-1.5 bg-surface-container-high dark:bg-white/10 rounded-full overflow-hidden">
-                                    <div id="progress-bar-${t.id}" class="h-full bg-primary dark:bg-blue-500 rounded-full transition-all duration-700" style="width: 0%"></div>
+                    <li>
+                        <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task">
+                            <input type="checkbox" onclick="event.preventDefault();" class="mt-0.5 w-4 h-4 rounded bg-surface border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface-dim pointer-events-none">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title}</span>
+                                    ${pTag}
                                 </div>
+                                ${t.dueDate ? `<span class="font-code-data text-[10px] ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'} block mt-1">Prazo: ${t.dueDate.split('-').reverse().join('/')}</span>` : ''}
                             </div>
-                            <div class="flex items-center">${avatarsHtml || '<span class="text-[10px] text-gray-400 font-bold uppercase">Sem equipe</span>'}</div>
-                        </div>
-                    </div>
+                        </label>
+                    </li>
                 `;
             });
             c.innerHTML = htmlStr;
-            finalFiltered.forEach(t => app.calculateTaskProgress(t.id, t.status));
+            
         } catch (e) { console.error("Erro na renderização", e); }
     },
 
-    calculateTaskProgress(tid, status) {
-        getDocs(collection(db, "tarefas", tid, "subtarefas")).then(s => {
-            const total = s.size;
-            let pct = 0;
-            if (total > 0) {
-                const completed = s.docs.filter(d => d.data().completed === true).length;
-                pct = Math.round((completed / total) * 100);
-            } else if (status === 'Concluída' || status === 'Concluídas') {
-                pct = 100;
-            }
-            const bar = document.getElementById(`progress-bar-${tid}`);
-            const txt = document.getElementById(`progress-text-${tid}`);
-            if(bar) bar.style.width = `${pct}%`;
-            if(txt) txt.innerText = `${pct}%`;
-        }).catch(e => console.error(e));
-    },
-
-    renderStats(s, total) {
-        const container = document.getElementById('statsContainer');
-        if(!container) return;
-        const cards = [ 
-            {label: 'Todas', val: total, color: 'text-gray-500 dark:text-gray-400', icon: 'list'}, 
-            {label: 'Em aberto', val: s['Em aberto'], color: 'text-blue-600 dark:text-blue-400', icon: 'pending_actions'}, 
-            {label: 'Em andamento', val: s['Em andamento'], color: 'text-orange-500 dark:text-orange-400', icon: 'bolt'}, 
-            {label: 'Atrasadas', val: s['Atrasadas'], color: 'text-red-600 dark:text-red-400', icon: 'alarm'}, 
-            {label: 'Concluídas', val: s['Concluídas'], color: 'text-emerald-600 dark:text-emerald-400', icon: 'verified'}, 
-            {label: 'Canceladas', val: s['Canceladas'], color: 'text-slate-400 dark:text-slate-500', icon: 'cancel'} 
-        ];
-        container.innerHTML = cards.map(c => `
-            <div onclick="app.applyStatFilter('${c.label}')" class="glass-panel rounded-2xl p-5 flex flex-col justify-between h-[104px] hover:-translate-y-1 transition-all cursor-pointer border ${app.filters.status===c.label?'ring-2 ring-primary border-transparent':'border-gray-200 dark:border-white/5'} shadow-sm relative overflow-hidden bento-highlight dark:bg-[#151c2c]">
-                <div class="flex justify-between items-start">
-                    <span class="material-symbols-outlined ${c.color} text-[22px] drop-shadow-sm">${c.icon}</span>
-                    <h3 class="text-2xl font-display font-black leading-none dark:text-white">${c.val}</h3>
-                </div>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70 dark:text-gray-400 mt-2 truncate">${c.label}</p>
-            </div>
-        `).join('');
-    },
-
-    applyStatFilter(label) { app.filters.status = label; app.renderDashboard(); },
-
-    async criarTarefa() {
-        try {
-            const title = document.getElementById('nova-titulo').value; 
-            if(!title) { app.showToast("Título obrigatório", "error"); return; }
-            const resps = Array.from(document.querySelectorAll('.task-assignees-checkboxes-item:checked')).map(cb => cb.value);
-            await addDoc(collection(db,"tarefas"), { title, description: document.getElementById('nova-desc').value, priority: document.getElementById('nova-prio').value, assignees: resps, status: "Em aberto", ts_manual: Date.now(), createdAt: serverTimestamp(), createdBy: auth.currentUser.uid, dueDate: document.getElementById('nova-fim').value });
-            await app.addLog(`➕ Adicionou a tarefa: "${title}"`); 
-            app.navigate('dashboard');
-            app.showToast("Tarefa distribuída com sucesso!");
-        } catch(e) { console.error(e); app.showToast("Erro ao criar.", "error"); }
-    },
-
-    renderDetails(id) {
-        app.currentTaskId = id; const container = document.getElementById('details-view-content');
-        if(!container) return;
-
-        container.innerHTML = `
-            <div id="detail-header-actions" class="flex items-center justify-between mb-4"></div>
-            <div id="detail-main-card" class="glass-panel p-8 rounded-3xl border dark:border-white/5 shadow-xl flex flex-col md:flex-row justify-between gap-8 bento-highlight dark:bg-[#151c2c] mb-6 text-left"></div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="flex flex-col gap-4 text-left"><div class="flex items-center justify-between p-1 font-black text-[11px] uppercase tracking-wider text-on-surface-variant/70">Subtarefas Conectadas<button onclick="app.openSubtaskForm()" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[10px] font-bold shadow hover:opacity-90 transition-all flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">add</span> Nova</button></div><div id="subtasks-list" class="glass-panel dark:bg-[#151c2c] rounded-3xl border dark:border-white/5 divide-y border-gray-100 dark:divide-white/5 shadow-sm overflow-hidden"></div></div>
-                <div class="flex flex-col gap-4 text-left"><h2 class="font-black text-[11px] uppercase tracking-wider text-on-surface-variant/70 p-1">Painel de Discussão</h2><div class="glass-panel dark:bg-[#151c2c] rounded-3xl border dark:border-white/5 flex flex-col h-[400px] shadow-sm overflow-hidden"><div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div><div class="p-4 border-t border-gray-100 dark:border-white/5 flex gap-2 bg-surface-container-low dark:bg-transparent"><input id="chat-input" onkeydown="if(event.key==='Enter')app.sendChatMessage()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem corporativa..."><button onclick="app.sendChatMessage()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow hover:opacity-90 transition-all"><span class="material-symbols-outlined text-[18px]">send</span></button></div></div></div>
-            </div>
-            <div id="detail-footer-actions" class="flex gap-4 mt-6"></div>
-        `;
-
-        app.listenToSubtasks(id); 
-        app.listenToChat(id);
-
-        if(app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
-        
-        app.taskUnsub = onSnapshot(doc(db, "tarefas", id), (d) => {
-            if(!d.exists()) return;
-            const t = d.data();
-            const prazoSafe = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '---';
-            
-            let btns = '';
-            if (t.status === 'Concluída' || t.status === 'Cancelada' || t.status === 'Concluídas' || t.status === 'Canceladas') {
-                btns = `<button onclick="app.updateTaskStatus('${id}', 'Em aberto')" class="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow flex items-center gap-1 hover:opacity-90"><span class="material-symbols-outlined text-[14px]">refresh</span> Reabrir</button>`;
-            } else {
-                btns = (t.status !== 'Em andamento' ? `<button onclick="app.updateTaskStatus('${id}', 'Em andamento')" class="bg-primary text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Iniciar</button>` : '') + 
-                       `<button onclick="app.updateTaskStatus('${id}', 'Concluída')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Concluir</button><button onclick="app.updateTaskStatus('${id}', 'Cancelada')" class="bg-red-500 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase shadow hover:opacity-90">Cancelar</button>`;
-            }
-
-            let avatarsHtml = '';
-            (t.assignees || []).forEach(assigneeStr => {
-                const uData = app.getUserData(assigneeStr);
-                if(uData.foto) avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-cover bg-center shadow-sm -ml-2 first:ml-0" style="background-image:url('${uData.foto}')" title="${uData.nome}"></div>`;
-                else avatarsHtml += `<div class="w-10 h-10 rounded-full border-2 border-white dark:border-[#151c2c] bg-primary text-white flex items-center justify-center font-bold text-[11px] shadow-sm -ml-2 first:ml-0" title="${uData.nome}">${uData.nome.substring(0,2).toUpperCase()}</div>`;
-            });
-
-            const ha = document.getElementById('detail-header-actions');
-            if(ha) ha.innerHTML = `<button onclick="app.navigate('dashboard')" class="bg-white dark:bg-[#151c2c] p-2.5 rounded-xl shadow-sm border dark:border-white/5 hover:text-primary transition-all"><span class="material-symbols-outlined">arrow_back</span></button><div class="flex items-center gap-2">${btns}</div>`;
-
-            const mc = document.getElementById('detail-main-card');
-            if(mc) mc.innerHTML = `
-                <div class="flex-1 text-left">
-                    <div class="flex items-center gap-3 mb-2"><h1 class="text-3xl font-display font-black text-primary dark:text-white">${t.title || 'Sem título'}</h1></div>
-                    <div class="inline-flex px-2.5 py-0.5 bg-surface-container dark:bg-white/5 rounded-md text-[10px] font-bold uppercase tracking-widest text-on-surface-variant dark:text-gray-300 mb-6">${t.status || 'Em aberto'} • ${t.priority || 'Média'}</div>
-                    <p class="text-on-surface-variant/90 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed mb-6 font-medium">${t.description || 'Sem descrição.'}</p>
-                    <div class="grid grid-cols-2 gap-6 border-t border-gray-200 dark:border-white/5 pt-5 text-sm">
-                        <div><span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60">Fim do Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div>
-                        <div><span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60">Anexos de Suporte</span><div id="task-att-list" class="flex flex-wrap gap-2 mt-2"></div><button onclick="app.handleFileUpload('task', '${id}')" class="mt-3 text-[10px] font-black uppercase tracking-wider text-primary dark:text-blue-400 flex items-center gap-1 hover:opacity-80 transition-all"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR ARQUIVO</button></div>
-                    </div>
-                </div>
-                <div class="md:w-48 border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/5 pt-6 md:pt-0 md:pl-8 text-left flex flex-col">
-                    <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/60 mb-3">Equipe Executora</span>
-                    <div class="flex flex-wrap gap-2">${avatarsHtml || '<span class="text-xs font-bold text-gray-400 uppercase">Não definido</span>'}</div>
-                </div>
-            `;
-            const al = document.getElementById('task-att-list'); 
-            if(al) {
-                (t.anexos || []).forEach(a => { al.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-surface-container dark:bg-white/5 text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-200 transition-all flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">download</span> ${a.name}</a>`; });
-            }
-
-            const fa = document.getElementById('detail-footer-actions');
-            if(fa) fa.innerHTML = `<button onclick="app.openEditModal()" class="flex-1 bg-amber-600 text-white py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Editar Escopo</button><button onclick="app.handleDeleteTask('${id}')" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold uppercase text-[11px] tracking-wider shadow transition-all hover:opacity-90">Excluir Demanda</button>`;
-        });
-    },
-
-    listenToSubtasks(tid) {
-        if(app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
-        app.subtaskUnsub = onSnapshot(collection(db,"tarefas",tid,"subtarefas"), s => {
-            const l = document.getElementById('subtasks-list'); if(!l) return;
-            const sts = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (a.ts_manual||0) - (b.ts_manual||0));
-            l.innerHTML = sts.length ? sts.map(st => {
-                const prioColor = st.priority === 'Alta' ? 'text-red-600 dark:text-red-400' : (st.priority === 'Baixa' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400');
-                return `<div class="flex items-center gap-4 px-6 py-4 hover:bg-surface-container dark:hover:bg-white/5 cursor-pointer text-left transition-colors" onclick="if(event.target.type !== 'checkbox') app.openSubtaskView('${st.id}')"><input type="checkbox" ${st.completed?'checked':''} onchange="app.toggleSub('${st.id}', this.checked)" class="rounded text-primary focus:ring-0 w-5 h-5 cursor-pointer"><div class="flex-1 flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-bold ${st.completed?'subtask-done text-on-surface-variant/50':''} dark:text-white">${st.title}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${prioColor}">${st.priority || 'Média'}</span></div><span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-[18px]">chevron_right</span></div>`;
-            }).join('') : '<p class="p-8 text-center text-xs text-on-surface-variant/50 italic font-bold">Nenhuma etapa cadastrada.</p>';
-        });
-    },
-
-    renderCalendar() {
-        const grid = document.getElementById('calendar-grid');
-        const monthYearLabel = document.getElementById('calendar-month-year');
-        if(!grid || !monthYearLabel) return;
-        grid.innerHTML = '';
-
-        const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        const currentMonthPrefix = `${app.currentYear}-${String(app.currentMonth + 1).padStart(2, '0')}`;
-        const totalTarefasMes = app.allTasks.filter(t => t.dueDate && t.dueDate.startsWith(currentMonthPrefix)).length;
-        
-        monthYearLabel.innerHTML = `${meses[app.currentMonth]} de ${app.currentYear} <span class="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest bg-surface-container dark:bg-white/5 px-3 py-1.5 rounded-xl ml-3">(${totalTarefasMes} Demandas)</span>`;
-
-        const primeiroDiaSemana = new Date(app.currentYear, app.currentMonth, 1).getDay();
-        const totalDiasMes = new Date(app.currentYear, app.currentMonth + 1, 0).getDate();
-
-        for(let i = 0; i < primeiroDiaSemana; i++) { grid.innerHTML += `<div class="p-2 bg-surface-container-low/30 dark:bg-[#151c2c]/30 rounded-2xl min-h-[140px]"></div>`; }
-
-        for(let dia = 1; dia <= totalDiasMes; dia++) {
-            const mFormat = String(app.currentMonth + 1).padStart(2, '0');
-            const dFormat = String(dia).padStart(2, '0');
-            const dateStr = `${app.currentYear}-${mFormat}-${dFormat}`;
-
-            const tarefasDoDia = app.allTasks.filter(t => t.dueDate === dateStr);
-            let indicatorsHtml = '';
-            tarefasDoDia.forEach(t => { indicatorsHtml += `<div onclick="app.navigate('detalhes', '${t.id}')" class="text-[9px] font-bold truncate px-2 py-1.5 bg-primary/10 text-primary dark:bg-white/10 dark:text-white rounded-md mt-1 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="${t.title}">${t.title}</div>`; });
-
-            grid.innerHTML += `
-                <div class="p-3 bg-white dark:bg-[#151c2c] rounded-2xl min-h-[140px] border border-gray-100 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <span class="text-xs font-black text-on-surface-variant/80 text-left dark:text-gray-400">${dia}</span>
-                    <div class="flex-grow overflow-y-auto custom-scrollbar flex flex-col mt-1 pr-1">${indicatorsHtml}</div>
-                </div>
-            `;
-        }
-    },
-    
-    changeMonth(dir) {
-        app.currentMonth += dir;
-        if(app.currentMonth < 0) { app.currentMonth = 11; app.currentYear--; }
-        if(app.currentMonth > 11) { app.currentMonth = 0; app.currentYear++; }
-        app.renderCalendar();
-    },
-
-    showConfigTab(tabId) {
-        document.querySelectorAll('.config-subtab').forEach(el => el.classList.add('hidden'));
-        document.getElementById(`config-tab-${tabId}`).classList.remove('hidden');
-        if(tabId === 'profile') app.loadProfileData();
-        if(tabId === 'users') app.renderUsersDirectory();
-    },
-    
-    renderUsersDirectory() {
-        const container = document.getElementById('config-users-list'); if(!container) return;
-        container.innerHTML = Object.values(app.userMap).map(u => `
-            <div onclick="app.showUserModal('${u.uid}')" class="flex items-center gap-4 p-4 bg-white dark:bg-[#151c2c] border dark:border-white/5 rounded-2xl cursor-pointer hover:shadow-lg transition-all bento-highlight">
-                <div class="w-12 h-12 rounded-full bg-cover bg-center shadow bg-primary text-white flex items-center justify-center font-bold text-lg" style="${u.foto?`background-image:url('${u.foto}')`:''}">
-                    ${u.foto ? '' : u.nome.substring(0,2).toUpperCase()}
-                </div>
-                <div class="min-w-0">
-                    <p class="text-sm font-black truncate dark:text-white">${u.nome}</p>
-                    <p class="text-[11px] font-bold text-on-surface-variant/70 dark:text-gray-400 uppercase tracking-wider truncate mt-0.5">${u.cargo || 'Membro'}</p>
-                </div>
-            </div>
-        `).join('');
-    },
-    
-    showUserModal(uid) {
-        const u = app.userMap[uid]; if(!u) return;
-        const av = document.getElementById('modal-user-avatar');
-        if(u.foto) { av.innerText = ''; av.style.backgroundImage = `url('${u.foto}')`; }
-        else { av.innerText = u.nome.substring(0,2).toUpperCase(); av.style.backgroundImage = 'none'; }
-        
-        document.getElementById('modal-user-name').innerText = u.nome;
-        document.getElementById('modal-user-role').innerText = u.cargo || 'Membro da Equipe';
-        document.getElementById('modal-user-bio').innerText = u.bio || 'Nenhuma biografia cadastrada.';
-        
-        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
-        document.getElementById('modal-user-detail').classList.remove('hidden');
-    },
-
-    filterReminders(dateStr) {
-        app.currentReminderDate = dateStr;
-        app.renderReminders();
-    },
-
-    listenToReminders() {
-        if(app.globalRemindersUnsub) return;
-        app.globalRemindersUnsub = onSnapshot(collection(db, "lembretes"), s => {
-            app.allReminders = s.docs.map(d => ({id: d.id, ...d.data()}));
-            app.renderReminders();
-        });
-    },
-
-    renderReminders() {
-        const rc = document.getElementById('remindersContainer'); if(!rc) return;
-        const targetDate = app.currentReminderDate || app.getTodayStr();
-        
-        const filtered = app.allReminders
-            .filter(l => l.dueDate === targetDate)
-            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
-
-        if (filtered.length === 0) {
-            rc.innerHTML = '<p class="text-on-surface-variant/40 dark:text-gray-500 text-xs text-center py-6 font-bold italic">Nenhum lembrete para esta data.</p>';
-            return;
-        }
-
-        rc.innerHTML = filtered.map(l => `
-            <div class="flex items-start gap-3 p-3 rounded-2xl hover:bg-surface-container dark:hover:bg-white/5 transition-all group">
-                <input type="checkbox" ${l.completed ? 'checked' : ''} onchange="app.toggleReminder('${l.id}', this.checked)" class="mt-1 rounded text-primary focus:ring-0 w-4 h-4 cursor-pointer">
-                <div class="flex-1 min-w-0">
-                    <p class="text-[13px] font-black ${l.completed ? 'line-through text-on-surface-variant/40 dark:text-gray-600' : 'dark:text-white'}">${l.title}</p>
-                    ${l.description ? `<p class="text-[10px] font-medium text-on-surface-variant/70 dark:text-gray-400 mt-1 truncate ${l.completed ? 'opacity-40' : ''}">${l.description}</p>` : ''}
-                </div>
-                <div class="flex items-center gap-1">
-                    <button onclick="app.openEditReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-amber-500 hover:text-amber-600 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                    <button onclick="app.deleteReminder('${l.id}')" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-1"><span class="material-symbols-outlined text-[18px]">delete</span></button>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    openLembreteForm() {
-        document.getElementById('lembrete-title-inp').value = '';
-        document.getElementById('lembrete-desc-inp').value = '';
-        document.getElementById('lembrete-date-inp').value = app.currentReminderDate || app.getTodayStr();
-        app.editReminderId = null;
-        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
-        document.getElementById('modal-lembrete-form').classList.remove('hidden');
-    },
-
-    async openEditReminder(id) {
-        app.editReminderId = id;
-        try {
-            const d = await getDoc(doc(db, "lembretes", id));
-            if (d.exists()) {
-                const l = d.data();
-                document.getElementById('lembrete-title-inp').value = l.title || '';
-                document.getElementById('lembrete-desc-inp').value = l.description || '';
-                document.getElementById('lembrete-date-inp').value = l.dueDate || app.getTodayStr();
-                document.getElementById('modal-backdrop').classList.replace('hidden', 'flex');
-                document.getElementById('modal-lembrete-form').classList.remove('hidden');
-            }
-        } catch(e) { console.error(e); }
-    },
-
-    async saveReminder() {
-        try {
-            const titleInp = document.getElementById('lembrete-title-inp');
-            const descInp = document.getElementById('lembrete-desc-inp');
-            const dateInp = document.getElementById('lembrete-date-inp');
-            const title = titleInp.value; 
-            if(!title) { app.showToast("Título obrigatório", "error"); return; }
-            const desc = descInp.value;
-            const targetDate = (dateInp && dateInp.value) ? dateInp.value : app.getTodayStr();
-
-            if (app.editReminderId) {
-                await updateDoc(doc(db, "lembretes", app.editReminderId), { title, description: desc, dueDate: targetDate });
-                await app.addLog(`✏️ Alterou lembrete para: "${title}"`);
-                app.showToast("Lembrete atualizado!");
-                app.editReminderId = null;
-            } else {
-                await addDoc(collection(db, "lembretes"), { title, description: desc, dueDate: targetDate, completed: false, ts: Date.now(), createdBy: auth.currentUser.uid });
-                await app.addLog(`➕ Criou lembrete: "${title}"`);
-                app.showToast("Lembrete criado com sucesso!");
-            }
-            titleInp.value = ''; descInp.value = '';
-            app.currentReminderDate = targetDate;
-            const rFilter = document.getElementById('reminder-date-filter');
-            if(rFilter) rFilter.value = targetDate;
-            app.renderReminders();
-            app.closeModal();
-        } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
-    },
-
-    async toggleReminder(id, val) { 
-        await updateDoc(doc(db, "lembretes", id), { completed: val }); 
-        await app.addLog(val ? "✅ Concluiu um lembrete rápido" : "⭕ Remarcou lembrete como pendente");
-    },
-
-    async deleteReminder(id) { 
-        if(confirm('Apagar lembrete diário?')) {
-            const d = await getDoc(doc(db, "lembretes", id));
-            const txt = d.exists() ? d.data().title : 'Lembrete';
-            await deleteDoc(doc(db, "lembretes", id)); 
-            await app.addLog(`🗑️ Removeu lembrete: "${txt}"`);
-            app.showToast("Lembrete excluído!");
-        } 
-    },
-
-    async updateTaskStatus(id, newStatus) { 
-        let realStatus = newStatus;
-        if(newStatus === 'Concluídas') realStatus = 'Concluída';
-        if(newStatus === 'Canceladas') realStatus = 'Cancelada';
-        await updateDoc(doc(db, "tarefas", id), { status: realStatus }); 
-        const d = await getDoc(doc(db,"tarefas",id));
-        await app.addLog(`🔄 "${d.data().title || 'Tarefa'}" -> ${realStatus}`); 
-    },
-    
-    async openSubtaskView(sid) {
-        try {
-            app.activeSid = sid; 
-            const docSnap = await getDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", sid));
-            if (!docSnap.exists()) return app.showToast("Subtarefa não encontrada.", "error");
-            const d = docSnap.data();
-            
-            const prioColor = d.priority === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : (d.priority === 'Baixa' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400');
-            const prazoSafe = d.dueDate ? d.dueDate.split('-').reverse().join('/') : '---';
-            const cont = document.getElementById('subtask-view-content');
-            
-            const assigneeNames = (d.assignees || []).map(assigneeStr => {
-                const uData = app.getUserData(assigneeStr);
-                return uData.nome;
-            }).join(', ') || 'Não definido';
-            
-            cont.innerHTML = `
-                <div class="w-full md:w-1/2 p-8 border-r border-gray-100 dark:border-white/5 overflow-y-auto flex flex-col gap-6 bg-white dark:bg-[#151c2c] text-left">
-                    <div class="flex items-center justify-between font-black text-[10px] uppercase text-on-surface-variant/60 tracking-wider">Detalhes da Subtarefa<button onclick="app.closeModal()"><span class="material-symbols-outlined text-sm dark:text-white">close</span></button></div>
-                    <div><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-display font-black text-primary dark:text-white">${d.title || 'Sem título'}</h3><span class="${prioColor} px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest">${d.priority || 'Média'}</span></div><div class="p-5 bg-surface-container-low dark:bg-white/5 rounded-2xl text-sm font-medium leading-relaxed dark:text-gray-300">${d.description || 'Sem instruções específicas.'}</div></div>
-                    <div class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-5 text-xs"><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Responsáveis</span><p class="font-bold dark:text-white mt-1">${assigneeNames}</p></div><div><span class="text-[9px] uppercase font-black text-on-surface-variant/60 tracking-wider">Prazo</span><p class="font-bold dark:text-white mt-1">${prazoSafe}</p></div></div>
-                    <div class="flex flex-col border-t border-gray-100 dark:border-white/5 pt-5 text-left"><span class="text-[9px] uppercase font-black text-on-surface-variant/60 mb-2 tracking-wider">Anexos</span><div id="sub-att-list" class="flex flex-wrap gap-2"></div><button onclick="app.handleFileUpload('sub', '${sid}')" class="mt-3 text-[10px] font-black tracking-wider uppercase text-primary dark:text-blue-400 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">attach_file</span> ANEXAR</button></div>
-                    <div class="flex gap-3 mt-auto pt-8"><button onclick="app.openSubtaskForm('${sid}')" class="flex-1 bg-amber-600 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow">Editar</button><button onclick="app.deleteSub('${sid}')" class="bg-red-500/10 text-red-500 px-5 rounded-xl hover:bg-red-500 hover:text-white transition-all"><span class="material-symbols-outlined text-lg">delete</span></button></div>
-                </div>
-                <div class="flex-1 flex flex-col bg-surface-container dark:bg-transparent text-left">
-                    <div class="p-5 border-b border-gray-200 dark:border-white/5 font-black text-[10px] uppercase text-on-surface-variant/70 tracking-wider">Chat da Subtarefa</div>
-                    <div id="sub-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
-                    <div class="p-4 border-t border-gray-200 dark:border-white/5 flex gap-2"><input id="sub-chat-input" onkeydown="if(event.key === 'Enter') app.sendSubComment()" type="text" class="flex-1 bg-white dark:bg-white/5 border-none rounded-xl px-4 text-sm font-medium outline-none shadow-sm dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Mensagem..."><button onclick="app.sendSubComment()" class="bg-primary text-white w-12 h-12 rounded-xl flex items-center justify-center shadow"><span class="material-symbols-outlined text-[18px]">send</span></button></div>
-                </div>
-            `;
-            const sl = document.getElementById('sub-att-list'); 
-            (d.anexos || []).forEach(a => { sl.innerHTML += `<a href="${a.data}" download="${a.nome}" class="p-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[10px] font-bold rounded-xl shadow-sm hover:text-primary dark:text-gray-300">${a.name}</a>`; });
-            
-            document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
-            document.getElementById('modal-subtask-view').classList.remove('hidden');
-            
-            if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
-            app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { const c = document.getElementById('sub-chat-messages'); if(c) { const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); c.innerHTML = msgs.map(d => `<div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}"><span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span><div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div></div>`).join(''); c.scrollTop = c.scrollHeight; } });
-            
-        } catch(e) { console.error(e); app.showToast("Erro ao abrir subtarefa", "error"); }
-    },
-    
-    async openEditModal() { 
-        try {
-            const d = await getDoc(doc(db,"tarefas",app.currentTaskId)); 
-            if(!d.exists()) return app.showToast("Tarefa não encontrada.", "error");
-            const t = d.data(); 
-            document.getElementById('edit-task-title').value = t.title || ""; 
-            document.getElementById('edit-task-desc').value = t.description || ""; 
-            document.getElementById('edit-task-priority').value = t.priority || "Média"; 
-            document.getElementById('edit-task-date').value = t.dueDate || ""; 
-            
-            document.querySelectorAll('.edit-assignees-checkboxes-item').forEach(cb => {
-                cb.checked = t.assignees?.some(a => app.getUserData(a).uid === cb.value);
-            }); 
-            
-            document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
-            document.getElementById('modal-edit-task').classList.remove('hidden'); 
-        } catch(e) { console.error(e); app.showToast("Erro ao abrir edição", "error"); }
-    },
-    
-    async handleUpdateTask() { 
-        try {
-            const title = document.getElementById('edit-task-title').value; 
-            const resps = Array.from(document.querySelectorAll('.edit-assignees-checkboxes-item:checked')).map(cb => cb.value); 
-            await updateDoc(doc(db, "tarefas", app.currentTaskId), { title, description: document.getElementById('edit-task-desc').value, priority: document.getElementById('edit-task-priority').value, dueDate: document.getElementById('edit-task-date').value, assignees: resps }); 
-            await app.addLog(`✏️ Editou a tarefa: "${title}"`); 
-            app.closeModal(); 
-            app.showToast("Tarefa atualizada!");
-        } catch(e) { console.error(e); app.showToast("Erro ao atualizar", "error"); }
-    },
-    
-    openSubtaskForm(sid = null) { 
-        app.editSubId = sid; 
-        app.closeModal(); 
-        document.getElementById('modal-backdrop').classList.replace('hidden', 'flex'); 
-        document.getElementById('modal-subtask-form').classList.remove('hidden'); 
-        
-        if(sid) { 
-            getDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid)).then(d => { 
-                const s = d.data(); 
-                document.getElementById('sub-title-inp').value = s.title || ""; 
-                document.getElementById('sub-desc-inp').value = s.description || ""; 
-                document.getElementById('sub-priority-inp').value = s.priority || "Média"; 
-                document.getElementById('sub-date-inp').value = s.dueDate || ""; 
-                document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => {
-                    cb.checked = s.assignees?.some(a => app.getUserData(a).uid === cb.value);
-                }); 
-            }); 
-        } else { 
-            document.getElementById('sub-title-inp').value = ""; 
-            document.getElementById('sub-desc-inp').value = ""; 
-            document.querySelectorAll('.sub-assignees-checkboxes-item').forEach(cb => cb.checked = false); 
-        } 
-    },
-    
-    async handleSaveSubtask() { 
-        try {
-            const t = document.getElementById('sub-title-inp').value; 
-            if(!t) { app.showToast("Título obrigatório", "error"); return; }
-            const resps = Array.from(document.querySelectorAll('.sub-assignees-checkboxes-item:checked')).map(cb => cb.value); 
-            const data = { title: t, description: document.getElementById('sub-desc-inp').value, priority: document.getElementById('sub-priority-inp').value, dueDate: document.getElementById('sub-date-inp').value, assignees: resps, ts_manual: Date.now() }; 
-            
-            if (app.editSubId) { 
-                await updateDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", app.editSubId), data); 
-                await app.addLog(`✏️ Editou a subtarefa: "${t}"`);
-            } else { 
-                await addDoc(collection(db, "tarefas", app.currentTaskId, "subtarefas"), { ...data, completed: false, createdAt: serverTimestamp() }); 
-                await app.addLog(`➕ Criou subtarefa: "${t}"`);
-            } 
-            app.closeModal(); 
-            app.showToast("Subtarefa gravada!");
-        } catch(e) { console.error(e); app.showToast("Erro ao gravar", "error"); }
-    },
-    
     loadUsers() { 
         if (app.globalUsersUnsub) return;
         app.globalUsersUnsub = onSnapshot(collection(db, "usuarios"), (snap) => { 
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
-            const opts = Object.values(app.userMap); 
-            
-            ['task-assignees-checkboxes', 'edit-assignees-checkboxes', 'sub-assignees-checkboxes'].forEach(cid => { 
-                const el = document.getElementById(cid); 
-                if (el) el.innerHTML = opts.map(u => `<label class="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-all"><input type="checkbox" value="${u.uid}" class="${cid}-item rounded text-primary focus:ring-0 w-4 h-4"><span class="text-sm font-bold dark:text-white">${u.nome}</span></label>`).join(''); 
-            }); 
-            
-            const filterEl = document.getElementById('assignee-filter-list');
-            if(filterEl) {
-                filterEl.innerHTML = opts.map(u => `
-                    <label class="flex items-center gap-2 p-1.5 hover:bg-surface-container dark:hover:bg-slate-800 rounded cursor-pointer transition-all">
-                        <input type="checkbox" value="${u.uid}" onchange="app.applyFilters()" class="rounded text-primary focus:ring-0 w-4 h-4" ${app.filters.assignees.includes(u.uid) ? 'checked' : ''}>
-                        <span class="text-xs font-medium dark:text-white">${u.nome}</span>
-                    </label>
-                `).join('');
-            }
-            
             app.renderDashboard();
-            app.renderRanking();
         }); 
-    },
-    
-    renderRanking() { 
-        const rc = document.getElementById('rankingContainer'); 
-        if(!rc) return; 
-        
-        const pts = {}; 
-        app.allTasks.forEach(t => { 
-            if(t.status === "Concluída" || t.status === "Concluídas") {
-                (t.assignees || []).forEach(assigneeStr => {
-                    const uData = app.getUserData(assigneeStr);
-                    pts[uData.uid] = (pts[uData.uid] || 0) + 1; 
-                });
-            }
-        }); 
-        
-        const sorted = Object.entries(pts).sort((a,b)=>b[1]-a[1]); 
-        rc.innerHTML = sorted.length ? sorted.map((r, i) => {
-            const key = r[0];
-            const score = r[1];
-            const uData = app.getUserData(key);
-            const dispName = uData.nome;
-
-            let crown = ''; 
-            const svgIcon = `<svg class="w-5 h-5 fill-current drop-shadow-md" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
-            if (i === 0) crown = `<span class="text-amber-400 drop-shadow" title="1º Lugar">${svgIcon}</span>`; 
-            else if (i === 1) crown = `<span class="text-slate-400 drop-shadow" title="2º Lugar">${svgIcon}</span>`; 
-            else if (i === 2) crown = `<span class="text-amber-700 drop-shadow" title="3º Lugar">${svgIcon}</span>`;
-            
-            return `
-                <div class="flex items-center gap-4">
-                    <div class="h-10 w-10 rounded-xl bg-surface-container dark:bg-white/5 flex items-center justify-center font-black text-primary dark:text-white shadow-sm">${i+1}</div>
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 font-black truncate dark:text-white text-sm"><span>${dispName}</span>${crown}</div>
-                        <div class="mt-2 w-full bg-surface-container dark:bg-white/5 h-1.5 rounded-full overflow-hidden"><div class="bg-primary h-full" style="width: ${(score/sorted[0][1])*100}%"></div></div>
-                    </div>
-                    <div class="font-black text-right dark:text-white text-lg">${score}</div>
-                </div>
-            `;
-        }).join('') : '<p class="text-on-surface-variant/50 text-xs text-center py-6 font-bold italic">Sem métricas calculadas.</p>'; 
     },
     
     cleanup() { 
+        app.unsubs.forEach(f => { if(typeof f === 'function') f(); }); 
+        app.unsubs = []; 
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
         if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
     },
     
     closeModal() { 
-        document.getElementById('modal-backdrop').classList.add('hidden'); 
-        document.getElementById('modal-backdrop').classList.remove('flex'); 
-        document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); 
-    },
-    
-    async toggleSub(sid, val) { 
-        await updateDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid), {completed: val}); 
-        await app.addLog(val ? "✅ Etapa concluída" : "⭕ Etapa pendente"); 
-    },
-    
-    async deleteSub(sid) { 
-        if(confirm("Remover subtarefa?")) { 
-            const d = await getDoc(doc(db, "tarefas", app.currentTaskId, "subtarefas", sid));
-            const subTitle = d.exists() ? d.data().title : 'Subtarefa';
-            await deleteDoc(doc(db,"tarefas",app.currentTaskId,"subtarefas",sid)); 
-            await app.addLog(`🗑️ Excluiu a subtarefa: "${subTitle}"`);
-            app.closeModal(); 
-        } 
+        // document.getElementById('modal-backdrop').classList.add('hidden'); 
+        // document.getElementById('modal-backdrop').classList.remove('flex'); 
+        // document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); 
     },
     
     signOut() { 
@@ -946,203 +266,7 @@ const app = {
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         signOut(auth); 
     },
-    
-    async handleDeleteTask(id) { 
-        if(confirm("Excluir tarefa?")) { 
-            const d = await getDoc(doc(db,"tarefas",id)); 
-            const title = d.exists() ? d.data().title : 'Tarefa';
-            await deleteDoc(doc(db,"tarefas",id)); 
-            await app.addLog(`🗑️ Excluiu a tarefa: "${title}"`);
-            app.navigate('dashboard'); 
-        } 
-    },
 
-    async handleFileUpload(type, id) { 
-        const inp = document.createElement('input'); 
-        inp.type = 'file'; 
-        inp.onchange = (e) => { 
-            const f = e.target.files[0]; 
-            if(!f || f.size > 800000) return alert("< 800KB"); 
-            const r = new FileReader(); 
-            r.onload = async (ev) => { 
-                const path = type === 'task' ? doc(db,"tarefas",id) : doc(db,"tarefas",app.currentTaskId,"subtarefas",id); 
-                const d = await getDoc(path); 
-                const anexos = d.data().anexos || []; 
-                anexos.push({ name: f.name, data: ev.target.result }); 
-                await updateDoc(path, { anexos }); 
-                await app.addLog(`📎 Anexou arquivo em "${d.data().title || 'Tarefa'}"`); 
-                app.showToast("Anexo salvo!"); 
-            }; 
-            r.readAsDataURL(f); 
-        }; 
-        inp.click(); 
-    },
-    
-    async loadProfileData() { 
-        const u = auth.currentUser; 
-        if(!u) return; 
-        const d = await getDoc(doc(db, "usuarios", u.uid)); 
-        const dt = d.data() || {}; 
-        
-        const nameInp = document.getElementById('profile-name-input');
-        const roleInp = document.getElementById('profile-role-input');
-        const bioInp = document.getElementById('profile-bio-input');
-        const av = document.getElementById('profile-page-avatar'); 
-
-        if (nameInp) nameInp.value = u.displayName || dt.nome || ""; 
-        if (roleInp) roleInp.value = dt.cargo || ""; 
-        if (bioInp) bioInp.value = dt.bio || ""; 
-        
-        if (av) {
-            if(dt.foto || u.photoURL) { 
-                av.style.backgroundImage = `url('${dt.foto || u.photoURL}')`; 
-                av.innerText = ''; 
-            } else { 
-                av.innerText = (dt.nome || u.displayName || u.email || 'U').substring(0,2).toUpperCase(); 
-                av.style.backgroundImage = 'none'; 
-            }
-        }
-    },
-    
-    async handleSaveProfile() { 
-        try { 
-            const oldName = document.getElementById('user-display-name').innerText;
-            const newName = document.getElementById('profile-name-input').value;
-            const uid = auth.currentUser.uid;
-
-            await updateProfile(auth.currentUser, { displayName: newName }); 
-            const novaFoto = app.tempPhotoBase64; 
-            const updateObj = { 
-                nome: newName, 
-                cargo: document.getElementById('profile-role-input').value, 
-                bio: document.getElementById('profile-bio-input').value 
-            }; 
-            if (novaFoto !== null) updateObj.foto = novaFoto; 
-            await setDoc(doc(db,"usuarios", uid), updateObj, {merge:true}); 
-
-            if (oldName && oldName !== newName && oldName !== "...") {
-                app.allTasks.forEach(async t => {
-                    if (t.assignees && t.assignees.includes(oldName)) {
-                        const newAssignees = t.assignees.map(a => a === oldName ? uid : a);
-                        await updateDoc(doc(db, "tarefas", t.id), { assignees: newAssignees });
-                    }
-                    const subSnap = await getDocs(collection(db, "tarefas", t.id, "subtarefas"));
-                    subSnap.forEach(async sub => {
-                        const sData = sub.data();
-                        if(sData.assignees && sData.assignees.includes(oldName)) {
-                            const newSubA = sData.assignees.map(a => a === oldName ? uid : a);
-                            await updateDoc(doc(db, "tarefas", t.id, "subtarefas", sub.id), { assignees: newSubA });
-                        }
-                    });
-                });
-            }
-            
-            document.getElementById('user-display-name').innerText = newName; 
-            document.getElementById('user-display-role').innerText = document.getElementById('profile-role-input').value; 
-            
-            const avH = document.getElementById('header-avatar'); 
-            if (novaFoto) { 
-                avH.style.backgroundImage = `url('${novaFoto}')`; 
-                avH.innerText = ''; 
-            } else if (novaFoto === "") { 
-                avH.style.backgroundImage = 'none'; 
-                avH.innerText = newName.substring(0,2).toUpperCase(); 
-            } 
-            app.showToast("Perfil corporativo atualizado!"); 
-            app.navigate('dashboard'); 
-        } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); } 
-    },
-    
-    async removeProfilePhoto() { 
-        if(confirm("Remover foto?")) { 
-            const av = document.getElementById('profile-page-avatar'); 
-            av.style.backgroundImage = 'none'; 
-            av.innerText = (auth.currentUser.displayName || auth.currentUser.email).substring(0,2).toUpperCase(); 
-            app.tempPhotoBase64 = ""; 
-        } 
-    },
-    
-    async handlePasswordUpdate() { 
-        const u = auth.currentUser; 
-        const cur = document.getElementById('current-password-input').value; 
-        const n1 = document.getElementById('new-password-input').value; 
-        const n2 = document.getElementById('confirm-password-input').value; 
-        
-        if(n1 !== n2) return app.showToast("Senhas não coincidem.", "error"); 
-        
-        try { 
-            await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); 
-            await updatePassword(u, n1); 
-            app.showToast("Senha alterada!"); 
-            app.navigate('dashboard'); 
-        } catch(e) { app.showToast("Senha atual incorreta.", "error"); } 
-    },
-    
-    compressImage(f, cb) { 
-        const r = new FileReader(); 
-        r.readAsDataURL(f); 
-        r.onload = (e) => { 
-            const img = new Image(); 
-            img.src = e.target.result; 
-            img.onload = () => { 
-                const canvas = document.createElement('canvas'); 
-                const MAX = 300; 
-                canvas.width = MAX; 
-                canvas.height = img.height * (MAX/img.width); 
-                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); 
-                cb(canvas.toDataURL('image/jpeg', 0.7)); 
-            }; 
-        }; 
-    },
-    
-    listenToChat(tid) { 
-        if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
-        app.chatUnsub = onSnapshot(collection(db,"tarefas",tid,"comentarios"), s => { 
-            const c = document.getElementById('chat-messages'); 
-            if(c) { 
-                const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
-                c.innerHTML = msgs.map(d => `
-                    <div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}">
-                        <span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span>
-                        <div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-surface-container dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div>
-                    </div>
-                `).join(''); 
-                c.scrollTop = c.scrollHeight; 
-            } 
-        }); 
-    },
-    
-    async sendChatMessage() { 
-        const i = document.getElementById('chat-input'); 
-        if(!i.value.trim()) return; 
-        await addDoc(collection(db,"tarefas",app.currentTaskId,"comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
-        i.value = ''; 
-    },
-    
-    listenToSubChat(sid) { 
-        if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
-        app.chatUnsub = onSnapshot(collection(db,"tarefas",app.currentTaskId,"subtarefas",sid,"comentarios"), s => { 
-            const c = document.getElementById('sub-chat-messages'); 
-            if(c) { 
-                const msgs = s.docs.map(d=>d.data()).sort((a,b)=> (a.ts||0) - (b.ts||0)); 
-                c.innerHTML = msgs.map(d => `
-                    <div class="flex flex-col ${d.createdBy===auth.currentUser.uid?'items-end':'items-start'}">
-                        <span class="text-[8px] font-black text-on-surface-variant/50 mb-1 uppercase">${d.authorName}</span>
-                        <div class="${d.createdBy===auth.currentUser.uid?'bg-primary text-white rounded-br-none':'bg-white dark:bg-white/5 dark:text-white rounded-bl-none'} p-4 rounded-2xl text-[13px] font-medium shadow-sm max-w-[85%]">${d.text || ''}</div>
-                    </div>
-                `).join(''); 
-                c.scrollTop = c.scrollHeight; 
-            } 
-        }); 
-    },
-    
-    async sendSubComment() { 
-        const i = document.getElementById('sub-chat-input'); 
-        if(!i || !i.value.trim()) return; 
-        await addDoc(collection(db,"tarefas",app.currentTaskId,"subtarefas",app.activeSid, "comentarios"), { text: i.value, authorName: auth.currentUser.displayName, createdBy: auth.currentUser.uid, ts: Date.now() }); 
-        i.value = ''; 
-    },
-    
     showToast(m, t='success') { 
         const c = document.getElementById('toast-container'); 
         const toast = document.createElement('div'); 
