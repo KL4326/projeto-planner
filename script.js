@@ -25,6 +25,20 @@ const app = {
     init() { 
         this.bindEvents(); 
         this.checkAuth(); 
+        this.initTheme(); 
+    },
+    
+    initTheme() { 
+        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
+        const savedColor = localStorage.getItem('primaryColor');
+        if (savedColor) document.documentElement.style.setProperty('--color-primary', savedColor);
+        
+        if(!document.getElementById('dark-select-fix')) {
+            const style = document.createElement('style');
+            style.id = 'dark-select-fix';
+            style.innerHTML = `.dark option { background-color: #151c2c; color: #ffffff; }`;
+            document.head.appendChild(style);
+        }
     },
 
     getTodayStr() {
@@ -40,9 +54,9 @@ const app = {
     },
 
     navigate(pageId) {
-        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
         const target = document.getElementById(`page-${pageId}`);
-        if(target) target.classList.add('active');
+        if(target) target.classList.remove('hidden');
         
         if(pageId === 'dashboard') { this.renderDashboard(); }
         window.scrollTo(0,0);
@@ -69,7 +83,7 @@ const app = {
             const pLogin = document.getElementById('page-login'); 
             const appL = document.getElementById('app-layout'); 
             if(u){ 
-                if(pLogin) pLogin.classList.remove('active'); 
+                if(pLogin) pLogin.classList.add('hidden'); 
                 if(appL) appL.classList.remove('hidden'); 
                 
                 try {
@@ -92,8 +106,9 @@ const app = {
                 app.loadUsers(); 
                 app.listenToNotifications();
                 
+                app.navigate('dashboard'); 
             } else { 
-                if(pLogin) pLogin.classList.add('active'); 
+                if(pLogin) pLogin.classList.remove('hidden'); 
                 if(appL) appL.classList.add('hidden'); 
             } 
         }); 
@@ -112,6 +127,12 @@ const app = {
             av.style.backgroundImage = 'none';
         } 
     },
+
+    async addLog(msg) { 
+        try { 
+            await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
+        } catch(e) { console.error(e); } 
+    },
     
     listenToNotifications() {
         if (app.globalNotifsUnsub) return;
@@ -121,7 +142,6 @@ const app = {
             
             list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum log recente.</p>';
             
-            // Exibe os últimos 5 logs na tela inicial
             logs.slice(0, 5).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
                 list.innerHTML += `
@@ -156,7 +176,6 @@ const app = {
             const hoje = app.getTodayStr();
             const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
-            // Filtra tarefas designadas para o UID do usuário e que não estão concluídas
             let myTasks = app.allTasks.filter(t => { 
                 const matchAssignee = t.assignees && t.assignees.some(a => app.getUserData(a).uid === currentUid);
                 const notDone = t.status !== 'Concluída' && t.status !== 'Cancelada';
@@ -180,6 +199,7 @@ const app = {
                 htmlStr += `
                     <li>
                         <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task">
+                            <input type="checkbox" onclick="event.preventDefault();" class="mt-0.5 w-4 h-4 rounded bg-surface border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface-dim pointer-events-none">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title}</span>
