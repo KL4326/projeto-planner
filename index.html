@@ -342,6 +342,102 @@
                     </div>
                 </div>
             </section>
+
+            <!-- TELA DIÁRIO DE BORDO (LOGBOOK) -->
+            <section id="page-logbook" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
+                <div class="max-w-container-max mx-auto pb-24">
+                    <!-- Header Section -->
+                    <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
+                        <div>
+                            <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Diário de Bordo</h2>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Registro detalhado de operações e ocorrências</p>
+                        </div>
+                        <div class="flex items-center gap-md">
+                            <button onclick="document.getElementById('modal-log-form').classList.remove('hidden')" class="bg-primary-container text-on-primary-container font-code-data px-md py-sm rounded-lg flex items-center gap-xs hover:bg-primary transition-colors shadow-sm active:scale-95">
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                                Novo Registro
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters Bar -->
+                    <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex flex-wrap gap-md items-center shadow-sm">
+                        <div class="flex items-center gap-xs bg-surface-container px-sm py-xs rounded border border-outline-variant hover:border-primary transition-colors cursor-pointer">
+                            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_today</span>
+                            <span class="font-body-sm text-on-surface">Hoje</span>
+                        </div>
+                        <div class="flex items-center gap-xs bg-surface-container px-sm py-xs rounded border border-outline-variant hover:border-primary transition-colors cursor-pointer">
+                            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">person</span>
+                            <span class="font-body-sm text-on-surface">Todos Operadores</span>
+                        </div>
+                        <div class="flex gap-sm ml-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                            <button class="px-sm py-1 rounded-full border border-primary text-primary bg-primary-container/10 font-label-caps whitespace-nowrap">Todos</button>
+                            <button class="px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Logistics</button>
+                            <button class="px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Maintenance</button>
+                            <button class="px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Incident</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Layout: Grid -->
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-gutter items-start">
+                        <!-- Log Feed -->
+                        <div class="xl:col-span-2 space-y-md" id="logbook-feed-list">
+                            <!-- Injetado via JS -->
+                        </div>
+                        
+                        <!-- Right Side Panel: Fast Entry / Summary -->
+                        <div class="xl:col-span-1 space-y-gutter hidden xl:block">
+                            <div class="bg-surface-container-low border border-outline-variant rounded-lg shadow-sm overflow-hidden">
+                                <div class="p-md border-b border-outline-variant bg-surface-container">
+                                    <h3 class="font-title-md text-on-surface flex items-center gap-sm">
+                                        <span class="material-symbols-outlined text-primary">analytics</span>
+                                        Resumo do Turno
+                                    </h3>
+                                </div>
+                                <div class="p-md space-y-sm">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-body-sm text-on-surface-variant">Registros Hoje</span>
+                                        <span id="logbook-today-count" class="font-code-data text-on-surface">0</span>
+                                    </div>
+                                    <div class="w-full bg-surface-container h-2 rounded-full overflow-hidden flex">
+                                        <div class="bg-primary h-full w-[60%]"></div>
+                                        <div class="bg-tertiary-container h-full w-[25%]"></div>
+                                        <div class="bg-error h-full w-[15%]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal Novo Registro (Coloque isso logo antes de fechar a tag </body>) -->
+            <div id="modal-log-form" class="fixed inset-0 bg-[#000000cc] backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
+                <div class="bg-surface-container-low border border-outline-variant rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+                    <div class="h-14 px-6 border-b border-outline-variant flex items-center justify-between bg-surface-container">
+                        <h3 class="font-title-md text-on-surface">Novo Registro Manual</h3>
+                        <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="font-label-caps text-on-surface-variant">Categoria</label>
+                            <select id="log-category-inp" class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
+                                <option value="Logistics">Logistics (Operação)</option>
+                                <option value="Maintenance">Maintenance (Manutenção)</option>
+                                <option value="Incident">Incident (Problema/Alerta)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-label-caps text-on-surface-variant">Ocorrência</label>
+                            <textarea id="log-text-inp" rows="4" placeholder="Descreva os detalhes da passagem de turno ou recado..." class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"></textarea>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-surface-container border-t border-outline-variant flex justify-end gap-3">
+                        <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="px-4 py-2 rounded-lg text-body-sm font-medium text-on-surface-variant hover:bg-surface-container-highest transition-colors">Cancelar</button>
+                        <button onclick="app.saveManualLog()" class="px-4 py-2 rounded-lg text-body-sm font-bold bg-primary-container text-white shadow hover:bg-inverse-primary transition-all">Salvar Registro</button>
+                    </div>
+                </div>
+            </div>
             
             <!-- Floating Chat Widget -->
             <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
