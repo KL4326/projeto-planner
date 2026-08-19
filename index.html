@@ -105,9 +105,6 @@
         .chat-scroll::-webkit-scrollbar-track { background: transparent; }
         .chat-scroll::-webkit-scrollbar-thumb { background-color: #404752; border-radius: 20px; }
         
-        .page-section { display: none; }
-        .page-section.active { display: block; }
-        
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
         .toast { padding: 12px 24px; border-radius: 8px; color: white; display: flex; align-items: center; gap: 8px; font-size: 14px; animation: slideUp 0.3s ease-out; }
         .toast.success { background-color: #42a547; }
@@ -121,7 +118,7 @@
     <div id="toast-container"></div>
 
     <!-- PÁGINA DE LOGIN -->
-    <section id="page-login" class="page-section active flex w-full min-h-screen">
+    <section id="page-login" class="flex w-full min-h-screen">
         <div class="hidden lg:flex lg:w-1/2 relative bg-surface-container-highest overflow-hidden border-r border-outline-variant">
             <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCPu2rNHBlaNVPJURoQsuczm1PIxw-bIdGIrIpyis6uXzPRZvFbuSriRRDImkZCJuDwGQm5wKbLqQeFlsmRiEOpEybbBcbwyMaQcoQF_qkvqMHsr-MscRLSGemTUhXMDshlH5AXi-2udEgZCohFwy5x6ZdCMli-v8aprL9gtrsdrASRbOk9yFwdP0DfXSUorbCK5XJGhHxd7xIAcCEDXk440CZkB4EgGs6bnq0b0StL3gp5ctx3Uh8')"></div>
             <div class="absolute inset-0 bg-[#0a121c]/80 mix-blend-multiply"></div>
@@ -224,7 +221,7 @@
             </header>
 
             <!-- TELA INICIAL (DASHBOARD) -->
-            <section id="page-dashboard" class="page-section active flex-1 overflow-auto bg-level-0 p-md md:p-lg">
+            <section id="page-dashboard" class="page-section flex-1 overflow-auto bg-level-0 p-md md:p-lg hidden">
                 <div class="max-w-container-max mx-auto space-y-gutter pb-24">
                     
                     <div class="flex items-end justify-between mb-2">
@@ -257,7 +254,7 @@
                             </div>
                         </section>
 
-                        <!-- Visão Armários (Apenas visual Fixo por enquanto) -->
+                        <!-- Visão Armários -->
                         <section class="bg-level-1 rounded-xl flex flex-col md:col-span-4 overflow-hidden">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets</h3>
