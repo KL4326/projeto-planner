@@ -20,6 +20,8 @@ const app = {
     userMap: {},
     allLogs: [],
     logFilter: 'Todos',
+    logDateFilter: '',
+    logOperatorFilter: 'Todos',
     globalTasksUnsub: null,
 
     init() { 
@@ -204,25 +206,38 @@ const app = {
         const countBadge = document.getElementById('logbook-today-count');
         if(!logbookList) return;
 
-        // Função auxiliar para descobrir se é manual retroativamente
         const isLogManual = (log) => {
             if (log.isManual) return true;
             const isAction = log.text && log.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
             return !isAction;
         };
 
-        // Lógica do Filtro
+        // 1. FILTRO DE CATEGORIA
         let filteredLogs = app.allLogs;
         if(app.logFilter === 'Manuais') {
-            filteredLogs = app.allLogs.filter(l => isLogManual(l));
+            filteredLogs = filteredLogs.filter(l => isLogManual(l));
         } else if (app.logFilter !== 'Todos') {
-            filteredLogs = app.allLogs.filter(l => {
+            filteredLogs = filteredLogs.filter(l => {
                 let cat = l.category || 'Logística';
                 if (cat === 'Logistics') cat = 'Logística';
                 if (cat === 'Maintenance') cat = 'Manutenção';
                 if (cat === 'Incident') cat = 'Incidente';
                 return cat === app.logFilter;
             });
+        }
+
+        // 2. FILTRO DE DATA
+        if (app.logDateFilter) {
+            filteredLogs = filteredLogs.filter(l => {
+                const d = new Date(l.ts);
+                const logDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return logDateStr === app.logDateFilter;
+            });
+        }
+
+        // 3. FILTRO DE OPERADOR
+        if (app.logOperatorFilter !== "Todos") {
+            filteredLogs = filteredLogs.filter(l => l.author === app.logOperatorFilter);
         }
 
         let todayCount = 0;
@@ -235,7 +250,6 @@ const app = {
 
             const time = dt.ts ? dateObj.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
             
-            // Padroniza Nomes
             let category = dt.category || 'Logística';
             if (category === 'Logistics') category = 'Logística';
             if (category === 'Maintenance') category = 'Manutenção';
@@ -248,7 +262,6 @@ const app = {
 
             const reallyManual = isLogManual(dt);
 
-            // Verifica Automáticos se não for manual
             if(!reallyManual) {
                 const isAction = dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
                 if(isAction) {
@@ -261,7 +274,6 @@ const app = {
                 }
             }
 
-            // Cores
             if(category === 'Manutenção') { colorClass = 'text-amber-400'; bgClass = 'bg-amber-400'; bgLightClass = 'bg-amber-400/10'; }
             if(category === 'Incidente') { colorClass = 'text-error'; bgClass = 'bg-error'; bgLightClass = 'bg-error-container/20'; }
             if(category === 'Logística') { colorClass = 'text-tertiary'; bgClass = 'bg-tertiary'; bgLightClass = 'bg-tertiary-container/20'; }
@@ -270,7 +282,6 @@ const app = {
             let avatarHtml = `<div class="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface text-[10px] font-bold">${(dt.author || 'S').substring(0,2).toUpperCase()}</div>`;
             if(userL.foto) { avatarHtml = `<img src="${userL.foto}" class="w-full h-full object-cover">`; }
 
-            // Botões de Editar e Excluir APENAS para registros manuais
             let actionBtns = '';
             if (reallyManual) {
                 actionBtns = `
@@ -306,7 +317,7 @@ const app = {
             `;
         });
 
-        logbookList.innerHTML = logbookHtml || '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Diário vazio.</p>';
+        logbookList.innerHTML = logbookHtml || '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum registro encontrado para estes filtros.</p>';
         if(countBadge) countBadge.innerText = todayCount;
     },
 
@@ -321,6 +332,12 @@ const app = {
         });
         this.renderLogbook(); 
     },
+
+    updateLogFilters() {
+          this.logDateFilter = document.getElementById('log-date-filter').value;
+          this.logOperatorFilter = document.getElementById('log-operator-filter').value;
+          this.renderLogbook(); // Atualiza a tela aplicando todos os filtros
+      },
 
     openNewLogModal() {
         document.getElementById('edit-log-id').value = '';
@@ -438,6 +455,16 @@ const app = {
         app.globalUsersUnsub = onSnapshot(collection(db, "usuarios"), (snap) => { 
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
+            
+            // Popula o filtro de operadores do Diário de Bordo
+            const opSelect = document.getElementById('log-operator-filter');
+            if(opSelect) {
+                const currentOp = opSelect.value;
+                opSelect.innerHTML = '<option value="Todos">Todos Operadores</option>' +
+                    Object.values(app.userMap).map(u => `<option value="${u.nome}">${u.nome}</option>`).join('');
+                opSelect.value = currentOp;
+            }
+
             app.renderDashboard();
         }); 
     },
