@@ -550,10 +550,11 @@ const app = {
                             <span class="material-symbols-outlined text-2xl md:text-3xl">laptop_mac</span>
                         </div>
                         <div class="flex-grow">
-                            <div class="flex items-center gap-2 md:gap-3 mb-1 flex-wrap">
-                                <h4 class="font-bold text-on-surface text-base md:text-lg">${nb.tag}</h4>
+                            <div class="flex items-center gap-2 md:gap-3 mb-0.5 flex-wrap">
+                                <h4 class="font-bold text-on-surface text-base md:text-lg">${nb.ic || nb.tag || 'S/IC'}</h4>
                                 <span class="px-2 py-1 md:px-3 md:py-1 rounded-md ${nb.statusClass} text-[9px] md:text-[10px] font-black uppercase whitespace-nowrap border border-current opacity-80">${nb.statusText}</span>
                             </div>
+                            <p class="text-[11px] text-on-surface-variant font-code-data mb-1.5 opacity-80">${nb.tag || 'S/TAG'} | ${nb.sn || 'S/SN'}</p>
                             <p class="text-sm font-bold text-on-surface-variant">${nb.model}</p>
                             <p class="text-xs text-outline">${nb.desc || 'Nenhuma observação'}</p>
                         </div>
@@ -577,12 +578,16 @@ const app = {
         if(isEditing) {
             const locker = app.allLockers.find(l => l.id === app.currentLockerId);
             const nb = locker.equipamentos[index];
-            document.getElementById('nb-tag').value = nb.tag;
-            document.getElementById('nb-model').value = nb.model;
-            document.getElementById('nb-desc').value = nb.desc;
+            document.getElementById('nb-ic').value = nb.ic || "";
+            document.getElementById('nb-tag').value = nb.tag || "";
+            document.getElementById('nb-sn').value = nb.sn || "";
+            document.getElementById('nb-model').value = nb.model || "";
+            document.getElementById('nb-desc').value = nb.desc || "";
             document.getElementById('nb-status').value = nb.statusText + "|" + nb.statusClass;
         } else {
+            document.getElementById('nb-ic').value = "";
             document.getElementById('nb-tag').value = "";
+            document.getElementById('nb-sn').value = "";
             document.getElementById('nb-model').value = "";
             document.getElementById('nb-desc').value = "";
             document.getElementById('nb-status').value = "Disponível|bg-tertiary-container/20 text-tertiary";
@@ -590,23 +595,21 @@ const app = {
         document.getElementById('notebook-form-modal').classList.remove('hidden');
     },
 
-    closeNotebookForm() {
-        document.getElementById('notebook-form-modal').classList.add('hidden');
-    },
-
     async saveNotebookForm() {
+        const ic = document.getElementById('nb-ic').value;
         const tag = document.getElementById('nb-tag').value;
+        const sn = document.getElementById('nb-sn').value;
         const model = document.getElementById('nb-model').value;
         const desc = document.getElementById('nb-desc').value;
         const statusVal = document.getElementById('nb-status').value.split('|');
 
-        if (!tag || !model) return app.showToast("Preencha TAG e Modelo.", "error");
+        if (!ic || !model) return app.showToast("Preencha IC/Ativo e Modelo.", "error");
 
         const locker = app.allLockers.find(l => l.id === app.currentLockerId);
         let equips = [...(locker.equipamentos || [])];
 
         const notebookData = {
-            tag: tag, model: model, desc: desc,
+            ic: ic, tag: tag, sn: sn, model: model, desc: desc,
             statusText: statusVal[0], statusClass: statusVal[1]
         };
 
