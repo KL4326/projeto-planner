@@ -785,10 +785,10 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Responsável</label>
-                        <select id="task-assignee" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none">
-                            <!-- Preenchido automaticamente pelo JS -->
-                        </select>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-2">Responsáveis</label>
+                        <div id="task-assignee-list" class="bg-[#232323] border border-outline-variant rounded-lg p-3 max-h-32 overflow-y-auto space-y-1">
+                            <!-- Injetado via JS -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -811,6 +811,11 @@
                 </div>
                 <h3 class="text-[10px] font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Subtarefa (Item)</h3>
                 <h2 id="subdet-title" class="font-title-md text-xl font-bold text-on-surface mb-6">Título da subtarefa</h2>
+
+                <!-- Dentro do subtask-details-modal, abaixo do h2 id="subdet-title" -->
+                <button onclick="app.editSubtask()" class="text-xs text-primary font-bold flex items-center gap-1 mb-6 hover:underline">
+                    <span class="material-symbols-outlined text-[16px]">edit</span> Editar título
+                </button>
                 
                 <div class="flex items-center gap-3 mb-6 bg-surface p-4 rounded-xl border border-outline-variant/30 cursor-pointer hover:border-primary/50 transition-colors" onclick="document.getElementById('subdet-checkbox').click()">
                     <input type="checkbox" id="subdet-checkbox" class="w-5 h-5 rounded bg-[#232323] border-outline-variant text-primary focus:ring-primary pointer-events-none" onchange="app.toggleCurrentSubtask(this.checked)">
