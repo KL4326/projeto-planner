@@ -16,42 +16,15 @@ const db = getFirestore(fb);
 const auth = getAuth(fb);
 
 const app = {
-    currentTaskId: null, activeSid: null, editSubId: null, editReminderId: null, allTasks: [], unsubs: [], tempPhotoBase64: null,
-    lastLogCount: parseInt(localStorage.getItem('lastLogCount')) || 0,
-    filters: { status: "Todas", search: "", assignees: [], priorities: [], dueDate: "" },
-    currentYear: new Date().getFullYear(),
-    currentMonth: new Date().getMonth(),
+    allTasks: [], 
     userMap: {},
-    allReminders: [],
-    currentReminderDate: '',
-    
     globalTasksUnsub: null,
     globalNotifsUnsub: null,
     globalUsersUnsub: null,
-    globalRemindersUnsub: null,
-    
-    subtaskUnsub: null,
-    chatUnsub: null,
-    taskUnsub: null,
 
     init() { 
-        this.currentReminderDate = this.getTodayStr();
         this.bindEvents(); 
         this.checkAuth(); 
-        this.initTheme(); 
-    },
-    
-    initTheme() { 
-        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
-        const savedColor = localStorage.getItem('primaryColor');
-        if (savedColor) document.documentElement.style.setProperty('--color-primary', savedColor);
-        
-        if(!document.getElementById('dark-select-fix')) {
-            const style = document.createElement('style');
-            style.id = 'dark-select-fix';
-            style.innerHTML = `.dark option { background-color: #151c2c; color: #ffffff; }`;
-            document.head.appendChild(style);
-        }
     },
 
     getTodayStr() {
@@ -66,23 +39,21 @@ const app = {
         return u || { nome: val, foto: null, uid: val };
     },
 
-    navigate(pageId, params = null) {
-        this.cleanup();
+    navigate(pageId) {
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.add('active');
         
-        // Reset nav styles if needed later for new items
-        
         if(pageId === 'dashboard') { this.renderDashboard(); }
-        this.closeModal(); 
         window.scrollTo(0,0);
     },
 
     async handleLogin(e) {
         if(e) e.preventDefault();
         try {
-            await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            await signInWithEmailAndPassword(auth, email, pass);
         } catch(err) {
             app.showToast("Email ou senha incorretos", "error");
         }
@@ -121,7 +92,6 @@ const app = {
                 app.loadUsers(); 
                 app.listenToNotifications();
                 
-                app.navigate('dashboard'); 
             } else { 
                 if(pLogin) pLogin.classList.add('active'); 
                 if(appL) appL.classList.add('hidden'); 
@@ -142,12 +112,6 @@ const app = {
             av.style.backgroundImage = 'none';
         } 
     },
-
-    async addLog(msg) { 
-        try { 
-            await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
-        } catch(e) { console.error(e); } 
-    },
     
     listenToNotifications() {
         if (app.globalNotifsUnsub) return;
@@ -155,7 +119,9 @@ const app = {
             const list = document.getElementById('dashboard-log-list'); if(!list) return;
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
             
-            list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Sem registros.</p>';
+            list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum log recente.</p>';
+            
+            // Exibe os últimos 5 logs na tela inicial
             logs.slice(0, 5).forEach(dt => {
                 const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
                 list.innerHTML += `
@@ -198,7 +164,7 @@ const app = {
             }).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
 
             if(myTasks.length === 0) {
-                c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50">Nenhuma tarefa pendente para você hoje.</p>';
+                c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50 font-medium">Nenhuma pendência na sua fila hoje. Ótimo trabalho!</p>';
                 return;
             }
             
@@ -214,7 +180,6 @@ const app = {
                 htmlStr += `
                     <li>
                         <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task">
-                            <input type="checkbox" onclick="event.preventDefault();" class="mt-0.5 w-4 h-4 rounded bg-surface border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface-dim pointer-events-none">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title}</span>
@@ -228,7 +193,7 @@ const app = {
             });
             c.innerHTML = htmlStr;
             
-        } catch (e) { console.error("Erro na renderização", e); }
+        } catch (e) { console.error("Erro na renderização dashboard", e); }
     },
 
     loadUsers() { 
@@ -240,28 +205,12 @@ const app = {
         }); 
     },
     
-    cleanup() { 
-        app.unsubs.forEach(f => { if(typeof f === 'function') f(); }); 
-        app.unsubs = []; 
-        if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
-        if (app.subtaskUnsub) { app.subtaskUnsub(); app.subtaskUnsub = null; }
-        if (app.taskUnsub) { app.taskUnsub(); app.taskUnsub = null; }
-    },
-    
-    closeModal() { 
-        // document.getElementById('modal-backdrop').classList.add('hidden'); 
-        // document.getElementById('modal-backdrop').classList.remove('flex'); 
-        // document.querySelectorAll('.modal-box').forEach(m => m.classList.add('hidden')); 
-    },
-    
     signOut() { 
         const em = document.getElementById('login-email'); 
         const ps = document.getElementById('login-password'); 
         if(em) em.value = ''; 
         if(ps) ps.value = ''; 
-        app.cleanup();
         if (app.globalTasksUnsub) { app.globalTasksUnsub(); app.globalTasksUnsub = null; }
-        if (app.globalRemindersUnsub) { app.globalRemindersUnsub(); app.globalRemindersUnsub = null; }
         if (app.globalNotifsUnsub) { app.globalNotifsUnsub(); app.globalNotifsUnsub = null; }
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         signOut(auth); 
