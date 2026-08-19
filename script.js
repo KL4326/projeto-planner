@@ -595,6 +595,10 @@ const app = {
         document.getElementById('notebook-form-modal').classList.remove('hidden');
     },
 
+    closeNotebookForm() {
+        document.getElementById('notebook-form-modal').classList.add('hidden');
+    },
+
     async saveNotebookForm() {
         const ic = document.getElementById('nb-ic').value;
         const tag = document.getElementById('nb-tag').value;
