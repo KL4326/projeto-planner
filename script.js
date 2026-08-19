@@ -743,69 +743,81 @@ const app = {
         if(this.taskFilterAssignee !== 'Todos') {
             filteredTasks = filteredTasks.filter(t => t.assignees && t.assignees.includes(this.taskFilterAssignee));
         }
-        if(this.taskFilterDate) {
-            filteredTasks = filteredTasks.filter(t => t.dueDate === this.taskFilterDate);
-        }
 
         filteredTasks.forEach(t => {
-            const isAtrasada = t.dueDate && t.dueDate < hoje && t.status !== 'Concluídas' && t.status !== 'Canceladas';
-            let borderClass = 'border-outline-variant/30';
-            if (isAtrasada) borderClass = 'border-error/50';
-
-            let priorityBadge = '';
-            if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
-            if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
-
-            let assigneeHtml = '<div class="w-6 h-6 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant" title="Sem Responsável">?</div>';
-            if (t.assignees && t.assignees.length > 0) {
-                const u = app.getUserData(t.assignees[0]);
-                if (u.foto) {
-                    assigneeHtml = `<img src="${u.foto}" class="w-6 h-6 rounded-full border border-outline-variant object-cover" title="${u.nome}">`;
-                } else {
-                    assigneeHtml = `<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
+            try {
+                // Blindagem da Data (Evita que dados antigos quebrem o Kanban)
+                let taskDateStr = '';
+                if (typeof t.dueDate === 'string') {
+                    taskDateStr = t.dueDate;
+                } else if (t.dueDate && t.dueDate.toDate) {
+                    taskDateStr = t.dueDate.toDate().toISOString().split('T')[0];
                 }
-            }
+                
+                if (this.taskFilterDate && taskDateStr !== this.taskFilterDate) return;
 
-            let moveBtns = '';
-            if(t.status === 'Em aberto') {
-                moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Mover para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_right</span></button>`;
-            } else if (t.status === 'Em andamento') {
-                moveBtns = `
-                    <button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00aaff]/20 hover:text-[#00aaff] hover:border-[#00aaff] transition-colors" title="Voltar para Aberto"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>
-                    <button onclick="app.changeTaskStatus('${t.id}', 'Concluídas')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors" title="Mover para Concluídas"><span class="material-symbols-outlined text-[14px]">check</span></button>
+                const isAtrasada = taskDateStr && taskDateStr < hoje && t.status !== 'Concluídas' && t.status !== 'Canceladas';
+                let borderClass = 'border-outline-variant/30';
+                if (isAtrasada) borderClass = 'border-error/50';
+
+                let priorityBadge = '';
+                if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
+                if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
+
+                // Blindagem do Usuário
+                let assigneeHtml = '<div class="w-6 h-6 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant" title="Sem Responsável">?</div>';
+                if (t.assignees && t.assignees.length > 0) {
+                    const u = app.getUserData(t.assignees[0]);
+                    const safeNome = u.nome || 'Usuário';
+                    if (u.foto) {
+                        assigneeHtml = `<img src="${u.foto}" class="w-6 h-6 rounded-full border border-outline-variant object-cover" title="${safeNome}">`;
+                    } else {
+                        assigneeHtml = `<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold" title="${safeNome}">${safeNome.substring(0,2).toUpperCase()}</div>`;
+                    }
+                }
+
+                let moveBtns = '';
+                if(t.status === 'Em aberto' || !t.status) {
+                    moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Mover para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_right</span></button>`;
+                } else if (t.status === 'Em andamento') {
+                    moveBtns = `
+                        <button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00aaff]/20 hover:text-[#00aaff] hover:border-[#00aaff] transition-colors" title="Voltar para Aberto"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>
+                        <button onclick="app.changeTaskStatus('${t.id}', 'Concluídas')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors" title="Mover para Concluídas"><span class="material-symbols-outlined text-[14px]">check</span></button>
+                    `;
+                } else if (t.status === 'Concluídas') {
+                    moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Voltar para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>`;
+                } else if (t.status === 'Canceladas') {
+                    moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-surface-variant hover:text-white transition-colors" title="Reabrir Tarefa"><span class="material-symbols-outlined text-[14px]">refresh</span></button>`;
+                }
+
+                let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : '';
+
+                const cardHtml = `
+                    <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm" onclick="app.openTaskForm('${t.id}')">
+                        <div class="flex justify-between items-start mb-2">
+                            ${priorityBadge}
+                            <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+                        </div>
+                        <h4 class="font-bold text-sm text-on-surface mb-1">${t.title || 'Sem Título'}</h4>
+                        <p class="text-[13px] text-on-surface-variant line-clamp-2 mb-4 opacity-90">${t.desc || ''}</p>
+                        
+                        <div class="flex items-center justify-between mt-auto pt-3 border-t border-outline-variant/30">
+                            <div class="flex items-center gap-2">
+                                ${assigneeHtml}
+                                ${displayDate ? `<span class="text-[10px] font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'}"><span class="material-symbols-outlined text-[12px] align-middle">calendar_today</span> ${displayDate}</span>` : ''}
+                            </div>
+                            <div class="flex gap-1" onclick="event.stopPropagation()">
+                                ${moveBtns}
+                            </div>
+                        </div>
+                    </div>
                 `;
-            } else if (t.status === 'Concluídas') {
-                moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Voltar para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>`;
-            } else if (t.status === 'Canceladas') {
-                moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-surface-variant hover:text-white transition-colors" title="Reabrir Tarefa"><span class="material-symbols-outlined text-[14px]">refresh</span></button>`;
-            }
 
-            const cardHtml = `
-                <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm" onclick="app.openTaskForm('${t.id}')">
-                    <div class="flex justify-between items-start mb-2">
-                        ${priorityBadge}
-                        <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all"><span class="material-symbols-outlined text-[16px]">delete</span></button>
-                    </div>
-                    <h4 class="font-bold text-sm text-on-surface mb-1">${t.title}</h4>
-                    <p class="text-[13px] text-on-surface-variant line-clamp-2 mb-4 opacity-90">${t.desc || ''}</p>
-                    
-                    <div class="flex items-center justify-between mt-auto pt-3 border-t border-outline-variant/30">
-                        <div class="flex items-center gap-2">
-                            ${assigneeHtml}
-                            ${t.dueDate ? `<span class="text-[10px] font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'}"><span class="material-symbols-outlined text-[12px] align-middle">calendar_today</span> ${t.dueDate.split('-').reverse().join('/')}</span>` : ''}
-                        </div>
-                        <div class="flex gap-1" onclick="event.stopPropagation()">
-                            ${moveBtns}
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            if(t.status === 'Em aberto') { colAberto.innerHTML += cardHtml; cAberto++; }
-            else if(t.status === 'Em andamento') { colProgresso.innerHTML += cardHtml; cProgresso++; }
-            else if(t.status === 'Concluídas') { colConcluido.innerHTML += cardHtml; cConcluido++; }
-            else if(t.status === 'Canceladas') { colCancelado.innerHTML += cardHtml; cCancelado++; }
-            else { colAberto.innerHTML += cardHtml; cAberto++; } 
+                if(t.status === 'Em aberto' || !t.status) { colAberto.innerHTML += cardHtml; cAberto++; }
+                else if(t.status === 'Em andamento') { colProgresso.innerHTML += cardHtml; cProgresso++; }
+                else if(t.status === 'Concluídas') { colConcluido.innerHTML += cardHtml; cConcluido++; }
+                else if(t.status === 'Canceladas') { colCancelado.innerHTML += cardHtml; cCancelado++; }
+            } catch(e) { console.error("Erro ao renderizar tarefa: ", t, e); }
         });
 
         document.getElementById('count-aberto').innerText = cAberto;
@@ -827,30 +839,41 @@ const app = {
             }).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
 
             if(myTasks.length === 0) {
-                c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50 font-medium">Nenhuma pendência na sua fila hoje. Ótimo trabalho!</p>';
+                c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50 font-medium">Nenhuma pendência na sua fila hoje.</p>';
                 return;
             }
             
             let htmlStr = '';
             myTasks.forEach(t => {
-                const isAtrasada = t.dueDate && t.dueDate < hoje;
-                let pTag = '';
-                if(t.priority === 'Alta') pTag = `<span class="px-1.5 py-0.5 bg-error-container/20 text-error font-label-caps text-[9px] rounded border border-error/20">URGENTE</span>`;
-                if(t.priority === 'Baixa') pTag = `<span class="px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary font-label-caps text-[9px] rounded border border-tertiary/20">BAIXA</span>`;
-                
-                htmlStr += `
-                    <li>
-                        <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task" onclick="app.navigate('tarefas'); app.openTaskForm('${t.id}')">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title}</span>
-                                    ${pTag}
+                try {
+                    let taskDateStr = '';
+                    if (typeof t.dueDate === 'string') {
+                        taskDateStr = t.dueDate;
+                    } else if (t.dueDate && t.dueDate.toDate) {
+                        taskDateStr = t.dueDate.toDate().toISOString().split('T')[0];
+                    }
+
+                    const isAtrasada = taskDateStr && taskDateStr < hoje;
+                    let pTag = '';
+                    if(t.priority === 'Alta') pTag = `<span class="px-1.5 py-0.5 bg-error-container/20 text-error font-label-caps text-[9px] rounded border border-error/20">URGENTE</span>`;
+                    if(t.priority === 'Baixa') pTag = `<span class="px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary font-label-caps text-[9px] rounded border border-tertiary/20">BAIXA</span>`;
+                    
+                    let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : '';
+
+                    htmlStr += `
+                        <li>
+                            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-error/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task" onclick="app.navigate('tarefas'); app.openTaskForm('${t.id}')">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title || 'Sem Título'}</span>
+                                        ${pTag}
+                                    </div>
+                                    ${displayDate ? `<span class="font-code-data text-[10px] ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'} block mt-1">Prazo: ${displayDate}</span>` : ''}
                                 </div>
-                                ${t.dueDate ? `<span class="font-code-data text-[10px] ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'} block mt-1">Prazo: ${t.dueDate.split('-').reverse().join('/')}</span>` : ''}
-                            </div>
-                        </label>
-                    </li>
-                `;
+                            </label>
+                        </li>
+                    `;
+                } catch(e) { console.error("Erro painel dash:", e); }
             });
             c.innerHTML = htmlStr;
         } catch (e) { console.error("Erro na renderização dashboard", e); }
