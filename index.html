@@ -93,6 +93,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        
         .bg-level-0 { background-color: #1A1A1A; }
         .bg-level-1 { background-color: #2D2D2D; border: 1px solid #3D3D3D; box-shadow: 0px 4px 12px rgba(0,0,0,0.4); }
         .bg-level-2 { background-color: #333333; box-shadow: 0px 12px 32px rgba(0,0,0,0.6); }
@@ -100,28 +101,26 @@
         .page-section { display: none; }
         .page-section.active { display: block; }
         
-        /* Efeitos de Vidro (Glassmorphism) */
         .glass-panel { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); }
         .dark .glass-panel { background: #1a1c22; border: 1px solid rgba(255, 255, 255, 0.1); }
         .status-strip { width: 4px; height: 100%; position: absolute; left: 0; top: 0; }
 
-        /* Cores de Status forçadas (!important) */
         .text-Atrasado { color: #FF3D6F !important; } .bg-Atrasado { background-color: #FF3D6F !important; }
         .text-Aberto { color: #00aaff !important; } .bg-Aberto { background-color: #00aaff !important; }
         .text-Em-Progresso { color: #FFDD00 !important; } .bg-Em-Progresso { background-color: #FFDD00 !important; }
         .text-Concluído { color: #00E676 !important; } .bg-Concluído { background-color: #00E676 !important; }
 
-        /* Barra de Rolagem Customizada */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar, .chat-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track, .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb, .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb, .dark .chat-scroll::-webkit-scrollbar-thumb { background: #404752; }
 
-        /* Estilo das Notificações (Toasts) */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
         .toast { min-width: 250px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; animation: slideIn 0.3s ease-out forwards; }
         .toast.success { background: #00E676; color: #000; }
         .toast.error { background: #FF3D6F; }
         .toast.info { background: #00aaff; }
+        
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; } }
     </style>
@@ -196,39 +195,39 @@
             </div>
             <ul class="flex flex-col gap-2 flex-grow">
                 <li>
-                    <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all">
+                    <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">dashboard</span>
-                        <span class="font-body-sm leading-tight text-left">Visão Geral</span>
+                        <span class="font-body-sm leading-tight">Visão Geral</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('logbook')" id="nav-btn-logbook" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">menu_book</span>
-                        <span class="font-body-sm leading-tight text-left">Diário de Bordo</span>
+                        <span class="font-body-sm leading-tight">Diário de Bordo</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('armarios')" id="nav-btn-armarios" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">lock</span>
-                        <span class="font-body-sm leading-tight text-left">Gerenciador de Armários</span>
+                        <span class="font-body-sm leading-tight">Gerenciador de Armários</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('tarefas')" id="nav-btn-tarefas" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">checklist</span>
-                        <span class="font-body-sm leading-tight text-left">Tarefas</span>
+                        <span class="font-body-sm leading-tight">Tarefas</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('calculadoras')" id="nav-btn-calculadoras" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">calculate</span>
-                        <span class="font-body-sm leading-tight text-left">Calculadora</span>
+                        <span class="font-body-sm leading-tight">Calculadora</span>
                     </button>
                 </li>
                 <li>
                     <button onclick="app.navigate('configuracoes')" id="nav-btn-configuracoes" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">settings</span>
-                        <span class="font-body-sm leading-tight text-left">Configurações</span>
+                        <span class="font-body-sm leading-tight">Configurações</span>
                     </button>
                 </li>
             </ul>
@@ -302,9 +301,7 @@
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets</h3>
                             </div>
                             <div class="p-6 flex-1 flex flex-col items-center justify-center relative">
-                                <!-- Camada de isolamento para cortes perfeitos na rosca -->
                                 <div class="relative w-32 h-32 rounded-full flex items-center justify-center mb-6">
-                                    <!-- Gráfico atualizado apenas com as cores dos status presentes (25 Verde / 10 Vermelho) -->
                                     <div class="absolute inset-0 rounded-full overflow-hidden" style="background: conic-gradient(#78dc77 0% 71.4%, #ffb4ab 71.4% 100%);"></div>
                                     <div class="relative z-10 w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
                                         <span class="font-display-lg text-[28px] leading-none font-bold text-on-surface">35</span>
@@ -346,7 +343,6 @@
             <!-- TELA DIÁRIO DE BORDO (LOGBOOK) -->
             <section id="page-logbook" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
                 <div class="max-w-container-max mx-auto pb-24">
-                    <!-- Header Section -->
                     <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
                         <div>
                             <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Diário de Bordo</h2>
@@ -360,27 +356,18 @@
                         </div>
                     </div>
                     
-                    <!-- Filters Bar -->
                     <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex flex-wrap gap-md items-center shadow-sm">
-                        
-                        <!-- Filtro de Data Real -->
                         <div class="relative flex items-center bg-surface-container rounded border border-outline-variant hover:border-primary transition-colors focus-within:border-primary overflow-hidden">
                             <span class="material-symbols-outlined text-on-surface-variant text-[18px] pl-2 pointer-events-none absolute">calendar_today</span>
-                            <!-- O input type="date" vai abrir o calendário do próprio navegador -->
                             <input type="date" id="log-date-filter" onchange="app.updateLogFilters()" class="bg-transparent border-none text-body-sm text-on-surface pl-8 pr-2 py-1.5 focus:ring-0 outline-none w-36 cursor-pointer dark:[color-scheme:dark]">
                         </div>
-                        
-                        <!-- Filtro de Operador Real -->
                         <div class="relative flex items-center bg-surface-container rounded border border-outline-variant hover:border-primary transition-colors focus-within:border-primary overflow-hidden">
                             <span class="material-symbols-outlined text-on-surface-variant text-[18px] pl-2 pointer-events-none absolute">person</span>
-                            <!-- O select será populado automaticamente pelo JavaScript -->
                             <select id="log-operator-filter" onchange="app.updateLogFilters()" class="bg-transparent border-none text-body-sm text-on-surface pl-8 pr-8 py-1.5 focus:ring-0 outline-none appearance-none cursor-pointer">
                                 <option value="Todos">Todos Operadores</option>
                             </select>
                             <span class="material-symbols-outlined text-on-surface-variant text-[18px] pr-2 pointer-events-none absolute right-0">expand_more</span>
                         </div>
-
-                        <!-- Filtro de Categorias (Chips) -->
                         <div class="flex gap-sm ml-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
                             <button onclick="app.setLogFilter('Todos')" id="filter-Todos" class="log-filter-btn px-sm py-1 rounded-full border border-primary text-primary bg-primary-container/10 font-label-caps whitespace-nowrap">Todos</button>
                             <button onclick="app.setLogFilter('Logística')" id="filter-Logística" class="log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors">Logística</button>
@@ -390,14 +377,8 @@
                         </div>
                     </div>
                     
-                    <!-- Main Layout: Grid -->
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-gutter items-start">
-                        <!-- Log Feed -->
-                        <div class="xl:col-span-2 space-y-md" id="logbook-feed-list">
-                            <!-- Injetado via JS -->
-                        </div>
-                        
-                        <!-- Right Side Panel: Fast Entry / Summary -->
+                        <div class="xl:col-span-2 space-y-md" id="logbook-feed-list"></div>
                         <div class="xl:col-span-1 space-y-gutter hidden xl:block">
                             <div class="bg-surface-container-low border border-outline-variant rounded-lg shadow-sm overflow-hidden">
                                 <div class="p-md border-b border-outline-variant bg-surface-container">
@@ -423,38 +404,29 @@
                 </div>
             </section>
 
-            <!-- Modal Novo Registro (Coloque isso logo antes de fechar a tag </body>) -->
-            <div id="modal-log-form" class="fixed inset-0 bg-[#000000cc] backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
-                <div class="bg-surface-container-low border border-outline-variant rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
-                    <div class="h-14 px-6 border-b border-outline-variant flex items-center justify-between bg-surface-container">
-                        <h3 class="font-title-md text-on-surface">Registro do Diário</h3>
-                        <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">close</span></button>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <input type="hidden" id="edit-log-id" value="">
+            <!-- TELA GERENCIADOR DE ARMÁRIOS -->
+            <section id="page-armarios" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
+                <div class="max-w-container-max mx-auto pb-24">
+                    <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
                         <div>
-                            <label class="font-label-caps text-on-surface-variant">Categoria</label>
-                            <select id="log-category-inp" class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
-                                <option value="Logística">Logística (Operação)</option>
-                                <option value="Manutenção">Manutenção</option>
-                                <option value="Incidente">Incidente (Problema/Alerta)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="font-label-caps text-on-surface-variant">Ocorrência</label>
-                            <textarea id="log-text-inp" rows="4" placeholder="Descreva os detalhes da passagem de turno ou recado..." class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"></textarea>
+                            <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Gerenciador de Armários</h2>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Controle de equipamentos e ocupação das baias</p>
                         </div>
                     </div>
-                    <div class="p-4 bg-surface-container border-t border-outline-variant flex justify-end gap-3">
-                        <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="px-4 py-2 rounded-lg text-body-sm font-medium text-on-surface-variant hover:bg-surface-container-highest transition-colors">Cancelar</button>
-                        <button onclick="app.saveManualLog()" class="px-4 py-2 rounded-lg text-body-sm font-bold bg-primary-container text-white shadow hover:bg-inverse-primary transition-all">Salvar Registro</button>
+
+                    <div class="flex gap-4 mb-6">
+                        <button onclick="app.setLockerFilter('1-andar')" id="locker-filter-1" class="px-4 py-2 border border-primary text-primary bg-primary-container/10 rounded-lg shadow-sm font-bold transition-colors">1º Andar</button>
+                        <button onclick="app.setLockerFilter('mezanino')" id="locker-filter-2" class="px-4 py-2 bg-surface-container-low border border-outline-variant text-on-surface-variant rounded-lg shadow-sm font-bold hover:bg-surface-container-highest transition-colors">Mezanino</button>
+                    </div>
+
+                    <div id="locker-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Renderizado via JS -->
                     </div>
                 </div>
-            </div>
+            </section>
             
             <!-- Floating Chat Widget -->
             <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
-                <!-- Chat Panel -->
                 <div id="global-chat-panel" class="hidden bg-level-2 w-[320px] rounded-xl border border-outline-variant/50 overflow-hidden shadow-[0_12px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm bg-[#333333]/95 flex flex-col transition-all duration-300 transform origin-bottom-right pointer-events-auto">
                     <div class="h-12 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-high cursor-pointer" onclick="document.getElementById('global-chat-panel').classList.toggle('hidden')">
                         <div class="flex items-center gap-2">
@@ -487,12 +459,131 @@
                         </div>
                     </div>
                 </div>
-                <!-- FAB Icon -->
                 <button onclick="document.getElementById('global-chat-panel').classList.toggle('hidden')" class="w-14 h-14 rounded-full bg-primary-brand text-white shadow-[0_4px_12px_rgba(33,150,243,0.4)] flex items-center justify-center hover:bg-[#1976D2] hover:scale-105 transition-all duration-200 pointer-events-auto border-2 border-surface">
                     <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
                 </button>
             </div>
             
+        </div>
+    </div>
+
+    <!-- MODAIS GLOBAIS -->
+    <!-- Modal Diário -->
+    <div id="modal-log-form" class="fixed inset-0 bg-[#000000cc] backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
+        <div class="bg-surface-container-low border border-outline-variant rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="h-14 px-6 border-b border-outline-variant flex items-center justify-between bg-surface-container">
+                <h3 class="font-title-md text-on-surface">Registro do Diário</h3>
+                <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-log-id" value="">
+                <div>
+                    <label class="font-label-caps text-on-surface-variant">Categoria</label>
+                    <select id="log-category-inp" class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
+                        <option value="Logística">Logística (Operação)</option>
+                        <option value="Manutenção">Manutenção</option>
+                        <option value="Incidente">Incidente (Problema/Alerta)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-label-caps text-on-surface-variant">Ocorrência</label>
+                    <textarea id="log-text-inp" rows="4" placeholder="Descreva os detalhes da passagem de turno ou recado..." class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"></textarea>
+                </div>
+            </div>
+            <div class="p-4 bg-surface-container border-t border-outline-variant flex justify-end gap-3">
+                <button onclick="document.getElementById('modal-log-form').classList.add('hidden')" class="px-4 py-2 rounded-lg text-body-sm font-medium text-on-surface-variant hover:bg-surface-container-highest transition-colors">Cancelar</button>
+                <button onclick="app.saveManualLog()" class="px-4 py-2 rounded-lg text-body-sm font-bold bg-primary-container text-white shadow hover:bg-inverse-primary transition-all">Salvar Registro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais Armários -->
+    <!-- Modal Equipamentos -->
+    <div id="locker-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeLocker()"></div>
+        <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6 border-b border-outline-variant/50 pb-4">
+                <div>
+                    <h2 id="modal-title" class="text-2xl md:text-3xl font-bold text-primary">Nome do Armário</h2>
+                    <p id="modal-subtitle" class="text-on-surface-variant font-medium">Andar</p>
+                </div>
+                <button onclick="app.closeLocker()" class="p-2 bg-surface-container text-on-surface-variant rounded-full hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            
+            <div class="mb-6">
+                <div class="flex justify-between items-center text-xs font-bold uppercase text-on-surface-variant mb-2">
+                    <span>Ocupação Total</span>
+                    <span id="modal-cap" class="text-primary">0%</span>
+                </div>
+                <div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                    <div id="modal-progress" class="h-full bg-primary rounded-full transition-all" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="modal-item-list" class="space-y-3"></div> 
+        </div>
+    </div>
+
+    <!-- Modal Form Armário -->
+    <div id="locker-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeLockerForm()"></div>
+        <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-md rounded-xl shadow-2xl p-6 md:p-8">
+            <h3 id="locker-form-title" class="text-xl font-bold text-on-surface mb-6 border-b border-outline-variant/50 pb-2">Novo Armário</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-on-surface-variant mb-2">Nome do Armário</label>
+                    <input type="text" id="locker-form-name" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-on-surface-variant mb-2">Andar</label>
+                    <select id="locker-form-floor" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none">
+                        <option value="1º Andar">1º Andar</option>
+                        <option value="Mezanino">Mezanino</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-8">
+                <button onclick="app.closeLockerForm()" class="px-5 py-2.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-highest">Cancelar</button>
+                <button onclick="app.saveLockerForm()" class="px-6 py-2.5 bg-primary-container text-white font-bold rounded-xl hover:bg-inverse-primary transition-colors">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form Notebook -->
+    <div id="notebook-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeNotebookForm()"></div>
+        <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-md rounded-xl shadow-2xl p-6 md:p-8">
+            <h3 class="text-xl font-bold text-on-surface mb-6 border-b border-outline-variant/50 pb-2">Equipamento</h3>
+            <div class="space-y-4">
+                <input type="text" id="nb-tag" placeholder="TAG (Ex: #TAG-001)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
+                <input type="text" id="nb-model" placeholder="Modelo (Ex: Latitude 3420)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
+                <input type="text" id="nb-desc" placeholder="Descrição/Obs" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
+                <select id="nb-status" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
+                    <option value="Disponível|bg-tertiary-container/20 text-tertiary">Disponível</option>
+                    <option value="Em Manutenção|bg-amber-400/10 text-amber-400">Em Manutenção</option>
+                    <option value="Descarte|bg-error-container/20 text-error">Descarte</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="app.closeNotebookForm()" class="px-5 py-2.5 font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-xl">Cancelar</button>
+                <button onclick="app.saveNotebookForm()" class="px-5 py-2.5 bg-primary-container text-white font-bold rounded-xl hover:bg-inverse-primary transition-colors">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mover -->
+    <div id="move-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeMoveModal()"></div>
+        <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-sm rounded-xl shadow-2xl p-6 md:p-8">
+            <h3 class="text-xl font-bold text-on-surface mb-6 border-b border-outline-variant/50 pb-2">Mover Equipamento</h3>
+            <div class="space-y-4">
+                <label class="block text-sm font-bold text-on-surface-variant">Escolha o Armário de Destino:</label>
+                <select id="move-dest-locker" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none"></select>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="app.closeMoveModal()" class="px-5 py-2.5 font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-xl">Cancelar</button>
+                <button onclick="app.confirmMove()" class="px-5 py-2.5 bg-primary-container text-white font-bold rounded-xl hover:bg-inverse-primary transition-colors">Transferir</button>
+            </div>
         </div>
     </div>
 
