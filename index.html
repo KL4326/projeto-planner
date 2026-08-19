@@ -599,6 +599,156 @@
         </div>
     </div>
 
+            <!-- TELA LISTA DE TAREFAS (PLANNER KANBAN) -->
+            <section id="page-tarefas" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
+                <div class="max-w-container-max mx-auto pb-24">
+                    <!-- Cabeçalho -->
+                    <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
+                        <div>
+                            <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Lista de Tarefas</h2>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Quadro de chamados, manutenções e pendências</p>
+                        </div>
+                        <button onclick="app.openTaskForm()" class="bg-primary-container text-on-primary-container font-code-data px-md py-sm rounded-lg flex items-center gap-xs hover:bg-primary transition-colors shadow-sm active:scale-95">
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            Nova Tarefa
+                        </button>
+                    </div>
+
+                    <!-- Barra de Filtros -->
+                    <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex flex-wrap gap-md items-center shadow-sm">
+                        <!-- Status -->
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-on-surface-variant uppercase">Status</label>
+                            <select id="task-filter-status" onchange="app.updateTaskFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                                <option value="Todas">Todas</option>
+                                <option value="Em aberto">Em aberto</option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Concluídas">Concluídas</option>
+                                <option value="Canceladas">Canceladas</option>
+                            </select>
+                        </div>
+                        <!-- Prioridade -->
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-on-surface-variant uppercase">Prioridade</label>
+                            <select id="task-filter-priority" onchange="app.updateTaskFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                                <option value="Todas">Todas</option>
+                                <option value="Baixa">Baixa</option>
+                                <option value="Média">Média</option>
+                                <option value="Alta">Alta</option>
+                            </select>
+                        </div>
+                        <!-- Operador -->
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-on-surface-variant uppercase">Operador</label>
+                            <select id="task-filter-assignee" onchange="app.updateTaskFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                                <option value="Todos">Todos</option>
+                            </select>
+                        </div>
+                        <!-- Data -->
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-on-surface-variant uppercase">Data do Prazo</label>
+                            <div class="flex items-center bg-surface-container rounded border border-outline-variant px-2 focus-within:border-primary overflow-hidden">
+                                <span class="material-symbols-outlined text-on-surface-variant text-[16px] mr-1">calendar_today</span>
+                                <input type="date" id="task-filter-date" onchange="app.updateTaskFilters()" class="bg-transparent border-none text-body-sm text-on-surface p-1 focus:ring-0 outline-none w-32 dark:[color-scheme:dark] cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quadro Kanban (4 Colunas) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+                        <!-- Coluna Em Aberto -->
+                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm">
+                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
+                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-Aberto"></span>Em aberto</h3>
+                                <span id="count-aberto" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
+                            </div>
+                            <div id="col-aberto" class="flex flex-col gap-3 min-h-[100px]"></div>
+                        </div>
+
+                        <!-- Coluna Em Andamento -->
+                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm">
+                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
+                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-Em-Progresso"></span>Em andamento</h3>
+                                <span id="count-progresso" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
+                            </div>
+                            <div id="col-progresso" class="flex flex-col gap-3 min-h-[100px]"></div>
+                        </div>
+
+                        <!-- Coluna Concluídas -->
+                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm">
+                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
+                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-Concluído"></span>Concluídas</h3>
+                                <span id="count-concluido" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
+                            </div>
+                            <div id="col-concluido" class="flex flex-col gap-3 min-h-[100px]"></div>
+                        </div>
+
+                        <!-- Coluna Canceladas -->
+                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm opacity-80">
+                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
+                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-error"></span>Canceladas</h3>
+                                <span id="count-cancelado" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
+                            </div>
+                            <div id="col-cancelado" class="flex flex-col gap-3 min-h-[100px]"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+    <!-- Modal Form Tarefa -->
+    <div id="task-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeTaskForm()"></div>
+        <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-lg rounded-xl shadow-2xl p-6 md:p-8">
+            <h3 id="task-form-title" class="text-xl font-bold text-on-surface mb-6 border-b border-outline-variant/50 pb-2">Nova Tarefa</h3>
+            <input type="hidden" id="task-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-on-surface-variant mb-1">Título</label>
+                    <input type="text" id="task-title" placeholder="Ex: Verificar rede do Mezanino" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-bold">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-on-surface-variant mb-1">Descrição</label>
+                    <textarea id="task-desc" rows="3" placeholder="Detalhes do chamado ou manutenção..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Prazo</label>
+                        <input type="date" id="task-date" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Prioridade</label>
+                        <select id="task-priority" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none">
+                            <option value="Baixa">Baixa</option>
+                            <option value="Média" selected>Média</option>
+                            <option value="Alta">Alta</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Status</label>
+                        <select id="task-status" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none">
+                            <option value="Em aberto">Em aberto</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Concluídas">Concluídas</option>
+                            <option value="Canceladas">Canceladas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Responsável</label>
+                        <select id="task-assignee" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none">
+                            <!-- Preenchido automaticamente pelo JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-8">
+                <button onclick="app.closeTaskForm()" class="px-5 py-2.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-highest">Cancelar</button>
+                <button onclick="app.saveTaskForm()" class="px-6 py-2.5 bg-primary-container text-white font-bold rounded-xl hover:bg-inverse-primary transition-colors">Salvar Tarefa</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
