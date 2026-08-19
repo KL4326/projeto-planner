@@ -61,10 +61,20 @@ const app = {
     },
 
     navigate(pageId) {
-        document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
-        const target = document.getElementById(`page-${pageId}`);
-        if(target) target.classList.remove('hidden');
+        // Esconde todas as seções e remove a classe active
+        document.querySelectorAll('.page-section').forEach(s => {
+            s.classList.remove('active');
+            s.classList.add('hidden');
+        });
         
+        // Mostra apenas a seção alvo
+        const target = document.getElementById(`page-${pageId}`);
+        if(target) {
+            target.classList.add('active');
+            target.classList.remove('hidden');
+        }
+        
+        // Atualiza a cor/estilo do botão ativo no menu lateral
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors";
         });
@@ -73,8 +83,11 @@ const app = {
             activeBtn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all";
         }
         
+        // Renderiza os dados dependendo da tela aberta
         if(pageId === 'dashboard') { this.renderDashboard(); }
         if(pageId === 'armarios') { this.renderLockers(); }
+        if(pageId === 'logbook') { this.renderLogbook(); }
+        
         window.scrollTo(0,0);
     },
 
