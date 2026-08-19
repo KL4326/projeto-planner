@@ -455,15 +455,23 @@ const app = {
         `);
     },
 
-    openLocker(id) {
-        app.currentLockerId = id;
-        const locker = app.allLockers.find(l => l.id === id);
-        if(!locker) return;
+    openLockerForm(id, event) {
+        if(event) event.stopPropagation(); 
+        app.editingLockerId = id;
         
-        document.getElementById('modal-title').innerText = locker.name;
-        document.getElementById('modal-subtitle').innerText = locker.zone;
-        document.getElementById('locker-modal').classList.remove('hidden');
-        app.renderNotebooks();
+        if (id) {
+            const locker = app.allLockers.find(l => l.id === id);
+            document.getElementById('locker-form-title').innerText = "Editar Armário";
+            document.getElementById('locker-form-name').value = locker.name;
+            document.getElementById('locker-form-desc').value = locker.desc || "";
+            document.getElementById('locker-form-floor').value = locker.zone;
+        } else {
+            document.getElementById('locker-form-title').innerText = "Novo Armário";
+            document.getElementById('locker-form-name').value = "";
+            document.getElementById('locker-form-desc').value = "";
+            document.getElementById('locker-form-floor').value = "1º Andar";
+        }
+        document.getElementById('locker-form-modal').classList.remove('hidden');
     },
 
     closeLocker() {
@@ -494,6 +502,7 @@ const app = {
 
     async saveLockerForm() {
         const name = document.getElementById('locker-form-name').value;
+        const desc = document.getElementById('locker-form-desc').value;
         const floor = document.getElementById('locker-form-floor').value;
         const zoneClass = floor === '1º Andar' ? '1-andar' : 'mezanino';
 
@@ -502,13 +511,13 @@ const app = {
         try {
             if (app.editingLockerId) {
                 await updateDoc(doc(db, "armarios", app.editingLockerId), {
-                    name: name, zone: floor, zoneClass: zoneClass
+                    name: name, desc: desc, zone: floor, zoneClass: zoneClass
                 });
                 app.showToast("Armário atualizado!");
                 app.addLog(`✏️ Atualizou o armário: ${name}`);
             } else {
                 await addDoc(collection(db, "armarios"), { 
-                    name: name, zone: floor, zoneClass: zoneClass, desc: 'Sem descrição', icon: 'door_back', equipamentos: [] 
+                    name: name, desc: desc || 'Sem descrição', zone: floor, zoneClass: zoneClass, icon: 'door_back', equipamentos: [] 
                 });
                 app.showToast("Armário criado!");
                 app.addLog(`➕ Criou um novo armário: ${name}`);
