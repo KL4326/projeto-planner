@@ -204,14 +204,20 @@ const app = {
         const countBadge = document.getElementById('logbook-today-count');
         if(!logbookList) return;
 
+        // Função auxiliar para descobrir se é manual retroativamente
+        const isLogManual = (log) => {
+            if (log.isManual) return true;
+            const isAction = log.text && log.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
+            return !isAction;
+        };
+
         // Lógica do Filtro
         let filteredLogs = app.allLogs;
         if(app.logFilter === 'Manuais') {
-            filteredLogs = app.allLogs.filter(l => l.isManual);
+            filteredLogs = app.allLogs.filter(l => isLogManual(l));
         } else if (app.logFilter !== 'Todos') {
             filteredLogs = app.allLogs.filter(l => {
                 let cat = l.category || 'Logística';
-                // Adaptação caso existam logs antigos em inglês
                 if (cat === 'Logistics') cat = 'Logística';
                 if (cat === 'Maintenance') cat = 'Manutenção';
                 if (cat === 'Incident') cat = 'Incidente';
@@ -240,15 +246,19 @@ const app = {
             let bgClass = 'bg-primary';
             let bgLightClass = 'bg-primary-container/10';
 
-            // Verifica Automáticos
-            const isAction = dt.text && dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
-            if(!dt.isManual && isAction) {
-                const icon = isAction[0];
-                if(icon === '➕') { title = 'Nova Demanda'; category = 'Logística'; }
-                else if(icon === '✏️' || icon === '🔄') { title = 'Atualização no Sistema'; category = 'Manutenção'; }
-                else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incidente'; }
-                else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logística'; }
-                else { title = 'Ação de Sistema'; }
+            const reallyManual = isLogManual(dt);
+
+            // Verifica Automáticos se não for manual
+            if(!reallyManual) {
+                const isAction = dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
+                if(isAction) {
+                    const icon = isAction[0];
+                    if(icon === '➕') { title = 'Nova Demanda'; category = 'Logística'; }
+                    else if(icon === '✏️' || icon === '🔄') { title = 'Atualização no Sistema'; category = 'Manutenção'; }
+                    else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incidente'; }
+                    else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logística'; }
+                    else { title = 'Ação de Sistema'; }
+                }
             }
 
             // Cores
@@ -262,11 +272,11 @@ const app = {
 
             // Botões de Editar e Excluir APENAS para registros manuais
             let actionBtns = '';
-            if (dt.isManual) {
+            if (reallyManual) {
                 actionBtns = `
-                    <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="app.openEditLog('${dt.id}')" class="p-1 text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                        <button onclick="app.deleteLog('${dt.id}')" class="p-1 text-on-surface-variant hover:text-error transition-colors" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                    <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button onclick="app.openEditLog('${dt.id}')" class="p-1.5 bg-surface-container-high rounded-md text-on-surface-variant hover:text-primary transition-colors shadow-sm" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                        <button onclick="app.deleteLog('${dt.id}')" class="p-1.5 bg-surface-container-high rounded-md text-on-surface-variant hover:text-error transition-colors shadow-sm" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
                     </div>
                 `;
             }
@@ -275,7 +285,7 @@ const app = {
                 <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-outline transition-colors">
                     <div class="absolute left-0 top-0 bottom-0 w-1 ${bgClass}"></div>
                     ${actionBtns}
-                    <div class="flex justify-between items-start mb-sm pl-xs pr-8">
+                    <div class="flex justify-between items-start mb-sm pl-xs pr-14">
                         <div class="flex items-center gap-sm">
                             <span class="font-code-data text-on-surface-variant bg-surface-container px-2 py-1 rounded text-sm">${time}</span>
                             <div class="flex items-center gap-xs">
