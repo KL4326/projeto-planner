@@ -719,20 +719,14 @@ const app = {
     },
 
     renderTasksPage() {
-        const colAberto = document.getElementById('col-aberto');
-        const colProgresso = document.getElementById('col-progresso');
-        const colConcluido = document.getElementById('col-concluido');
-        const colCancelado = document.getElementById('col-cancelado');
-        if(!colAberto) return;
+        const listContainer = document.getElementById('task-list-container');
+        const countBadge = document.getElementById('total-tasks-count');
+        if(!listContainer) return;
 
-        colAberto.innerHTML = '';
-        colProgresso.innerHTML = '';
-        colConcluido.innerHTML = '';
-        colCancelado.innerHTML = '';
-
-        let cAberto = 0, cProgresso = 0, cConcluido = 0, cCancelado = 0;
+        listContainer.innerHTML = '';
         const hoje = app.getTodayStr();
 
+        // Aplicar Filtros
         let filteredTasks = app.allTasks;
         if(this.taskFilterStatus !== 'Todas') {
             filteredTasks = filteredTasks.filter(t => t.status === this.taskFilterStatus);
@@ -743,82 +737,111 @@ const app = {
         if(this.taskFilterAssignee !== 'Todos') {
             filteredTasks = filteredTasks.filter(t => t.assignees && t.assignees.includes(this.taskFilterAssignee));
         }
+        if(this.taskFilterDate) {
+            filteredTasks = filteredTasks.filter(t => t.dueDate === this.taskFilterDate);
+        }
 
+        if(filteredTasks.length === 0) {
+            listContainer.innerHTML = '<div class="p-8 text-center text-on-surface-variant italic">Nenhuma tarefa encontrada com os filtros atuais.</div>';
+            if(countBadge) countBadge.innerText = "0";
+            return;
+        }
+
+        // Ordenar: Atrasadas primeiro, depois por data de criação
+        filteredTasks.sort((a, b) => (b.ts_manual || 0) - (a.ts_manual || 0));
+
+        let htmlStr = '';
         filteredTasks.forEach(t => {
             try {
-                // Blindagem da Data (Evita que dados antigos quebrem o Kanban)
                 let taskDateStr = '';
                 if (typeof t.dueDate === 'string') {
                     taskDateStr = t.dueDate;
                 } else if (t.dueDate && t.dueDate.toDate) {
                     taskDateStr = t.dueDate.toDate().toISOString().split('T')[0];
                 }
-                
-                if (this.taskFilterDate && taskDateStr !== this.taskFilterDate) return;
 
                 const isAtrasada = taskDateStr && taskDateStr < hoje && t.status !== 'Concluídas' && t.status !== 'Canceladas';
-                let borderClass = 'border-outline-variant/30';
-                if (isAtrasada) borderClass = 'border-error/50';
+                let borderClass = isAtrasada ? 'border-error/50' : 'border-outline-variant/30';
 
-                let priorityBadge = '';
-                if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
-                if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
+                // Badges de Prioridade
+                let priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">MÉDIA</span>';
+                if(t.priority === 'Alta') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">ALTA</span>';
+                if(t.priority === 'Baixa') priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container/20 text-tertiary">BAIXA</span>';
 
-                // Blindagem do Usuário
-                let assigneeHtml = '<div class="w-6 h-6 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant" title="Sem Responsável">?</div>';
+                // Cores do Status
+                let statusColor = 'bg-surface-variant text-on-surface';
+                if (t.status === 'Em andamento') statusColor = 'bg-[#FFDD00]/20 text-[#FFDD00] border border-[#FFDD00]/30';
+                if (t.status === 'Concluídas') statusColor = 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/30';
+                if (t.status === 'Canceladas') statusColor = 'bg-error-container/20 text-error border border-error/30';
+
+                // Usuário Responsável
+                let assigneeHtml = '<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center text-xs text-on-surface-variant" title="Sem Responsável">?</div>';
                 if (t.assignees && t.assignees.length > 0) {
                     const u = app.getUserData(t.assignees[0]);
                     const safeNome = u.nome || 'Usuário';
                     if (u.foto) {
-                        assigneeHtml = `<img src="${u.foto}" class="w-6 h-6 rounded-full border border-outline-variant object-cover" title="${safeNome}">`;
+                        assigneeHtml = `<img src="${u.foto}" class="w-8 h-8 rounded-full border border-outline-variant object-cover shadow-sm" title="${safeNome}">`;
                     } else {
-                        assigneeHtml = `<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold" title="${safeNome}">${safeNome.substring(0,2).toUpperCase()}</div>`;
+                        assigneeHtml = `<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold shadow-sm" title="${safeNome}">${safeNome.substring(0,2).toUpperCase()}</div>`;
                     }
                 }
 
+                // Ações Rápidas (Apenas os botões relevantes ao status)
                 let moveBtns = '';
                 if(t.status === 'Em aberto' || !t.status) {
-                    moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Mover para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_right</span></button>`;
+                    moveBtns = `<button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em andamento')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors bg-surface-container" title="Iniciar Tarefa"><span class="material-symbols-outlined text-[18px]">play_arrow</span></button>`;
                 } else if (t.status === 'Em andamento') {
                     moveBtns = `
-                        <button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00aaff]/20 hover:text-[#00aaff] hover:border-[#00aaff] transition-colors" title="Voltar para Aberto"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>
-                        <button onclick="app.changeTaskStatus('${t.id}', 'Concluídas')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors" title="Mover para Concluídas"><span class="material-symbols-outlined text-[14px]">check</span></button>
+                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Em aberto')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-variant transition-colors bg-surface-container" title="Pausar/Voltar"><span class="material-symbols-outlined text-[18px]">pause</span></button>
+                        <button onclick="event.stopPropagation(); app.changeTaskStatus('${t.id}', 'Concluídas')" class="p-1.5 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-[#00E676]/20 hover:text-[#00E676] hover:border-[#00E676] transition-colors bg-surface-container" title="Concluir"><span class="material-symbols-outlined text-[18px]">check</span></button>
                     `;
-                } else if (t.status === 'Concluídas') {
-                    moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Voltar para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_left</span></button>`;
-                } else if (t.status === 'Canceladas') {
-                    moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em aberto')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-surface-variant hover:text-white transition-colors" title="Reabrir Tarefa"><span class="material-symbols-outlined text-[14px]">refresh</span></button>`;
                 }
 
-                let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : '';
+                let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : 'Sem prazo';
 
-                const cardHtml = `
-                    <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm" onclick="app.openTaskForm('${t.id}')">
-                        <div class="flex justify-between items-start mb-2">
-                            ${priorityBadge}
-                            <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all"><span class="material-symbols-outlined text-[16px]">delete</span></button>
-                        </div>
-                        <h4 class="font-bold text-sm text-on-surface mb-1">${t.title || 'Sem Título'}</h4>
-                        <p class="text-[13px] text-on-surface-variant line-clamp-2 mb-4 opacity-90">${t.desc || ''}</p>
+                htmlStr += `
+                    <div class="glass-panel p-4 rounded-xl border ${borderClass} hover:border-primary/50 transition-colors group cursor-pointer shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center" onclick="app.openTaskForm('${t.id}')">
                         
-                        <div class="flex items-center justify-between mt-auto pt-3 border-t border-outline-variant/30">
-                            <div class="flex items-center gap-2">
-                                ${assigneeHtml}
-                                ${displayDate ? `<span class="text-[10px] font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface-variant'}"><span class="material-symbols-outlined text-[12px] align-middle">calendar_today</span> ${displayDate}</span>` : ''}
+                        <!-- Coluna 1: Status e Prioridade -->
+                        <div class="flex flex-row md:flex-col gap-2 min-w-[130px]">
+                            <span class="px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider ${statusColor}">${t.status || 'Em aberto'}</span>
+                            <div class="hidden md:flex justify-center">${priorityBadge}</div>
+                        </div>
+
+                        <!-- Coluna 2: Textos -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-bold text-base text-on-surface truncate">${t.title || 'Sem Título'}</h4>
+                                <div class="md:hidden">${priorityBadge}</div>
                             </div>
-                            <div class="flex gap-1" onclick="event.stopPropagation()">
+                            <p class="text-sm text-on-surface-variant line-clamp-1 opacity-90">${t.desc || 'Sem detalhes informados.'}</p>
+                        </div>
+                        
+                        <!-- Coluna 3: Infos e Ações -->
+                        <div class="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-outline-variant/30 pt-3 md:pt-0">
+                            <div class="flex items-center gap-3">
+                                ${assigneeHtml}
+                                <div class="flex flex-col text-right">
+                                    <span class="text-[10px] text-on-surface-variant uppercase font-bold">Prazo</span>
+                                    <span class="text-xs font-code-data ${isAtrasada ? 'text-error font-bold' : 'text-on-surface'}">${displayDate}</span>
+                                </div>
+                            </div>
+
+                            <!-- Botões -->
+                            <div class="flex items-center gap-1 border-l border-outline-variant/30 pl-4 ml-2">
                                 ${moveBtns}
+                                <button onclick="event.stopPropagation(); app.deleteTask('${t.id}')" class="p-1.5 rounded-lg border border-transparent text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all flex items-center justify-center" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                             </div>
                         </div>
+
                     </div>
                 `;
-
-                if(t.status === 'Em aberto' || !t.status) { colAberto.innerHTML += cardHtml; cAberto++; }
-                else if(t.status === 'Em andamento') { colProgresso.innerHTML += cardHtml; cProgresso++; }
-                else if(t.status === 'Concluídas') { colConcluido.innerHTML += cardHtml; cConcluido++; }
-                else if(t.status === 'Canceladas') { colCancelado.innerHTML += cardHtml; cCancelado++; }
             } catch(e) { console.error("Erro ao renderizar tarefa: ", t, e); }
         });
+
+        listContainer.innerHTML = htmlStr;
+        if(countBadge) countBadge.innerText = filteredTasks.length;
+    },
 
         document.getElementById('count-aberto').innerText = cAberto;
         document.getElementById('count-progresso').innerText = cProgresso;
