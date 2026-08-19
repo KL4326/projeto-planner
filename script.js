@@ -18,9 +18,9 @@ const auth = getAuth(fb);
 const app = {
     allTasks: [], 
     userMap: {},
+    allLogs: [],
+    logFilter: 'Todos',
     globalTasksUnsub: null,
-    globalNotifsUnsub: null,
-    globalUsersUnsub: null,
 
     init() { 
         this.bindEvents(); 
@@ -166,99 +166,207 @@ const app = {
     listenToNotifications() {
         if (app.globalNotifsUnsub) return;
         app.globalNotifsUnsub = onSnapshot(collection(db, "notificacoes"), snap => {
-            const dashList = document.getElementById('dashboard-log-list'); 
-            const logbookList = document.getElementById('logbook-feed-list');
-            const countBadge = document.getElementById('logbook-today-count');
+            // Guardamos em memória para não precisar carregar o banco ao filtrar
+            app.allLogs = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (b.ts || 0) - (a.ts || 0));
             
-            const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
+            // Renderiza as telas de forma assíncrona/separada (Evita o congelamento)
+            app.renderDashboardLogs();
+            app.renderLogbook();
+        });
+    },
+
+    renderDashboardLogs() {
+        const dashList = document.getElementById('dashboard-log-list'); 
+        if(!dashList) return;
+        
+        let dashHtml = '';
+        app.allLogs.slice(0, 5).forEach(dt => {
+            const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+            dashHtml += `
+                <li class="p-4 hover:bg-[#333333] transition-colors flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/50">
+                        <span class="font-code-data text-xs text-primary-fixed-dim">${time}</span>
+                    </div>
+                    <div class="flex-1 pt-1">
+                        <div class="flex items-baseline gap-2 mb-1">
+                            <span class="font-code-data text-sm font-semibold text-on-surface">${dt.author || 'Sistema'}</span>
+                        </div>
+                        <p class="font-body-sm text-body-sm text-on-surface-variant">${dt.text || ''}</p>
+                    </div>
+                </li>
+            `;
+        });
+        dashList.innerHTML = dashHtml || '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum log recente.</p>';
+    },
+
+    renderLogbook() {
+        const logbookList = document.getElementById('logbook-feed-list');
+        const countBadge = document.getElementById('logbook-today-count');
+        if(!logbookList) return;
+
+        // Lógica do Filtro
+        let filteredLogs = app.allLogs;
+        if(app.logFilter === 'Manuais') {
+            filteredLogs = app.allLogs.filter(l => l.isManual);
+        } else if (app.logFilter !== 'Todos') {
+            filteredLogs = app.allLogs.filter(l => {
+                let cat = l.category || 'Logística';
+                // Adaptação caso existam logs antigos em inglês
+                if (cat === 'Logistics') cat = 'Logística';
+                if (cat === 'Maintenance') cat = 'Manutenção';
+                if (cat === 'Incident') cat = 'Incidente';
+                return cat === app.logFilter;
+            });
+        }
+
+        let todayCount = 0;
+        const todayStr = new Date().toDateString();
+        let logbookHtml = '';
+
+        filteredLogs.forEach(dt => {
+            const dateObj = new Date(dt.ts);
+            if(dateObj.toDateString() === todayStr) todayCount++;
+
+            const time = dt.ts ? dateObj.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
             
-            // Popula Widget do Dashboard
-            if(dashList) {
-                dashList.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum log recente.</p>';
-                logs.slice(0, 5).forEach(dt => {
-                    const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                    dashList.innerHTML += `
-                        <li class="p-4 hover:bg-[#333333] transition-colors flex gap-4">
-                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/50">
-                                <span class="font-code-data text-xs text-primary-fixed-dim">${time}</span>
-                            </div>
-                            <div class="flex-1 pt-1">
-                                <div class="flex items-baseline gap-2 mb-1">
-                                    <span class="font-code-data text-sm font-semibold text-on-surface">${dt.author || 'Sistema'}</span>
-                                </div>
-                                <p class="font-body-sm text-body-sm text-on-surface-variant">${dt.text || ''}</p>
-                            </div>
-                        </li>
-                    `;
-                });
+            // Padroniza Nomes
+            let category = dt.category || 'Logística';
+            if (category === 'Logistics') category = 'Logística';
+            if (category === 'Maintenance') category = 'Manutenção';
+            if (category === 'Incident') category = 'Incidente';
+
+            let title = 'Registro Manual';
+            let colorClass = 'text-primary';
+            let bgClass = 'bg-primary';
+            let bgLightClass = 'bg-primary-container/10';
+
+            // Verifica Automáticos
+            const isAction = dt.text && dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
+            if(!dt.isManual && isAction) {
+                const icon = isAction[0];
+                if(icon === '➕') { title = 'Nova Demanda'; category = 'Logística'; }
+                else if(icon === '✏️' || icon === '🔄') { title = 'Atualização no Sistema'; category = 'Manutenção'; }
+                else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incidente'; }
+                else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logística'; }
+                else { title = 'Ação de Sistema'; }
             }
 
-            // Popula Tela Principal do Diário de Bordo
-            if(logbookList) {
-                logbookList.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Diário vazio.</p>';
-                
-                let todayCount = 0;
-                const todayStr = new Date().toDateString();
+            // Cores
+            if(category === 'Manutenção') { colorClass = 'text-amber-400'; bgClass = 'bg-amber-400'; bgLightClass = 'bg-amber-400/10'; }
+            if(category === 'Incidente') { colorClass = 'text-error'; bgClass = 'bg-error'; bgLightClass = 'bg-error-container/20'; }
+            if(category === 'Logística') { colorClass = 'text-tertiary'; bgClass = 'bg-tertiary'; bgLightClass = 'bg-tertiary-container/20'; }
 
-                logs.forEach(dt => {
-                    const dateObj = new Date(dt.ts);
-                    if(dateObj.toDateString() === todayStr) todayCount++;
+            const userL = app.getUserData(dt.author);
+            let avatarHtml = `<div class="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface text-[10px] font-bold">${(dt.author || 'S').substring(0,2).toUpperCase()}</div>`;
+            if(userL.foto) { avatarHtml = `<img src="${userL.foto}" class="w-full h-full object-cover">`; }
 
-                    const time = dt.ts ? dateObj.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                    
-                    // Identifica automaticamente a categoria caso seja log do sistema (pelos emojis)
-                    let category = dt.category || 'Logistics';
-                    let title = 'Registro Manual';
-                    let colorClass = 'text-primary';
-                    let bgClass = 'bg-primary';
-                    let bgLightClass = 'bg-primary-container/10';
+            // Botões de Editar e Excluir APENAS para registros manuais
+            let actionBtns = '';
+            if (dt.isManual) {
+                actionBtns = `
+                    <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="app.openEditLog('${dt.id}')" class="p-1 text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                        <button onclick="app.deleteLog('${dt.id}')" class="p-1 text-on-surface-variant hover:text-error transition-colors" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                    </div>
+                `;
+            }
 
-                    const isAction = dt.text && dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
-                    if(isAction) {
-                        const icon = isAction[0];
-                        if(icon === '➕') { title = 'Nova Demanda'; category = 'Logistics'; }
-                        else if(icon === '✏️' || icon === '🔄') { title = 'Atualização no Sistema'; category = 'Maintenance'; }
-                        else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incident'; }
-                        else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logistics'; }
-                        else { title = 'Ação de Sistema'; }
-                    }
-
-                    // Define as cores com base na categoria
-                    if(category === 'Maintenance') { colorClass = 'text-amber-400'; bgClass = 'bg-amber-400'; bgLightClass = 'bg-amber-400/10'; }
-                    if(category === 'Incident') { colorClass = 'text-error'; bgClass = 'bg-error'; bgLightClass = 'bg-error-container/20'; }
-                    if(category === 'Logistics') { colorClass = 'text-tertiary'; bgClass = 'bg-tertiary'; bgLightClass = 'bg-tertiary-container/20'; }
-
-                    const userL = app.getUserData(dt.author);
-                    let avatarHtml = `<div class="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface text-[10px] font-bold">${(dt.author || 'S').substring(0,2).toUpperCase()}</div>`;
-                    if(userL.foto) { avatarHtml = `<img src="${userL.foto}" class="w-full h-full object-cover">`; }
-
-                    logbookList.innerHTML += `
-                        <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-outline transition-colors">
-                            <div class="absolute left-0 top-0 bottom-0 w-1 ${bgClass}"></div>
-                            <div class="flex justify-between items-start mb-sm pl-xs">
-                                <div class="flex items-center gap-sm">
-                                    <span class="font-code-data text-on-surface-variant bg-surface-container px-2 py-1 rounded text-sm">${time}</span>
-                                    <div class="flex items-center gap-xs">
-                                        <div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant overflow-hidden">
-                                            ${avatarHtml}
-                                        </div>
-                                        <span class="font-body-sm text-on-surface font-medium">${dt.author || 'Sistema'}</span>
-                                    </div>
+            logbookHtml += `
+                <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-outline transition-colors">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 ${bgClass}"></div>
+                    ${actionBtns}
+                    <div class="flex justify-between items-start mb-sm pl-xs pr-8">
+                        <div class="flex items-center gap-sm">
+                            <span class="font-code-data text-on-surface-variant bg-surface-container px-2 py-1 rounded text-sm">${time}</span>
+                            <div class="flex items-center gap-xs">
+                                <div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant overflow-hidden">
+                                    ${avatarHtml}
                                 </div>
-                                <span class="font-label-caps ${colorClass} ${bgLightClass} px-2 py-1 rounded flex items-center gap-xs">
-                                    <span class="w-1.5 h-1.5 rounded-full ${bgClass}"></span>
-                                    ${category}
-                                </span>
+                                <span class="font-body-sm text-on-surface font-medium">${dt.author || 'Sistema'}</span>
                             </div>
-                            <h3 class="font-title-md text-on-surface mb-xs pl-xs">${title}</h3>
-                            <p class="font-body-sm text-on-surface-variant pl-xs">${dt.text}</p>
                         </div>
-                    `;
-                });
-                
-                if(countBadge) countBadge.innerText = todayCount;
+                        <span class="font-label-caps ${colorClass} ${bgLightClass} px-2 py-1 rounded flex items-center gap-xs">
+                            <span class="w-1.5 h-1.5 rounded-full ${bgClass}"></span>
+                            ${category}
+                        </span>
+                    </div>
+                    <h3 class="font-title-md text-on-surface mb-xs pl-xs">${title}</h3>
+                    <p class="font-body-sm text-on-surface-variant pl-xs whitespace-pre-wrap">${dt.text}</p>
+                </div>
+            `;
+        });
+
+        logbookList.innerHTML = logbookHtml || '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Diário vazio.</p>';
+        if(countBadge) countBadge.innerText = todayCount;
+    },
+
+    setLogFilter(filter) {
+        this.logFilter = filter;
+        document.querySelectorAll('.log-filter-btn').forEach(b => {
+            if(b.id === `filter-${filter}`) {
+                b.className = "log-filter-btn px-sm py-1 rounded-full border border-primary text-primary bg-primary-container/10 font-label-caps whitespace-nowrap";
+            } else {
+                b.className = "log-filter-btn px-sm py-1 rounded-full border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface font-label-caps whitespace-nowrap transition-colors";
             }
         });
+        this.renderLogbook(); 
+    },
+
+    openNewLogModal() {
+        document.getElementById('edit-log-id').value = '';
+        document.getElementById('log-text-inp').value = '';
+        document.getElementById('log-category-inp').value = 'Logística';
+        document.getElementById('modal-log-form').classList.remove('hidden');
+    },
+
+    openEditLog(id) {
+        const log = app.allLogs.find(l => l.id === id);
+        if(!log) return;
+        document.getElementById('edit-log-id').value = id;
+        document.getElementById('log-category-inp').value = log.category || 'Logística';
+        document.getElementById('log-text-inp').value = log.text;
+        document.getElementById('modal-log-form').classList.remove('hidden');
+    },
+
+    async saveManualLog() {
+        const text = document.getElementById('log-text-inp').value;
+        const cat = document.getElementById('log-category-inp').value;
+        const editId = document.getElementById('edit-log-id').value;
+
+        if(!text.trim()) { app.showToast("Escreva algo no registro", "error"); return; }
+        
+        try {
+            if (editId) {
+                await updateDoc(doc(db, "notificacoes", editId), {
+                    text: text,
+                    category: cat
+                });
+                app.showToast("Registro atualizado!");
+            } else {
+                await addDoc(collection(db, "notificacoes"), { 
+                    text: text, 
+                    author: auth.currentUser.displayName || auth.currentUser.email, 
+                    ts: Date.now(),
+                    category: cat,
+                    isManual: true 
+                }); 
+                app.showToast("Registro adicionado ao Diário!");
+            }
+            document.getElementById('modal-log-form').classList.add('hidden');
+        } catch(e) {
+            console.error(e); app.showToast("Erro ao salvar", "error");
+        }
+    },
+
+    async deleteLog(id) {
+        if(confirm("Deseja realmente excluir este registro manual?")) {
+            try {
+                await deleteDoc(doc(db, "notificacoes", id));
+                app.showToast("Registro excluído.");
+            } catch(e) {
+                console.error(e); app.showToast("Erro ao excluir", "error");
+            }
+        }
     },
 
     listenToTasks() { 
