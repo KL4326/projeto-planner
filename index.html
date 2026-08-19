@@ -480,42 +480,17 @@
                         </div>
                     </div>
 
-                    <!-- Quadro Kanban (4 Colunas) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
-                        <!-- Coluna Em Aberto -->
-                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm">
-                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
-                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-Aberto"></span>Em aberto</h3>
-                                <span id="count-aberto" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
+                    <!-- Lista de Tarefas (Modelo Horizontal) -->
+                    <div class="bg-surface-container-low border border-outline-variant rounded-xl p-2 sm:p-4 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-outline-variant/50 pb-3 mb-4 px-2">
+                            <h3 class="font-title-md font-bold text-on-surface">Relação de Tarefas</h3>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-on-surface-variant font-medium uppercase">Total exibido:</span>
+                                <span id="total-tasks-count" class="bg-primary-container text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">0</span>
                             </div>
-                            <div id="col-aberto" class="flex flex-col gap-3 min-h-[100px]"></div>
                         </div>
-
-                        <!-- Coluna Em Andamento -->
-                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm">
-                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
-                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-Em-Progresso"></span>Em andamento</h3>
-                                <span id="count-progresso" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
-                            </div>
-                            <div id="col-progresso" class="flex flex-col gap-3 min-h-[100px]"></div>
-                        </div>
-
-                        <!-- Coluna Concluídas -->
-                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm">
-                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
-                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-Concluído"></span>Concluídas</h3>
-                                <span id="count-concluido" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
-                            </div>
-                            <div id="col-concluido" class="flex flex-col gap-3 min-h-[100px]"></div>
-                        </div>
-
-                        <!-- Coluna Canceladas -->
-                        <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-4 shadow-sm opacity-80">
-                            <div class="flex items-center justify-between border-b border-outline-variant/50 pb-2">
-                                <h3 class="font-title-md font-bold flex items-center gap-2 text-on-surface"><span class="w-3 h-3 rounded-full bg-error"></span>Canceladas</h3>
-                                <span id="count-cancelado" class="bg-surface-container-highest px-2 py-0.5 rounded text-xs font-bold text-on-surface-variant">0</span>
-                            </div>
-                            <div id="col-cancelado" class="flex flex-col gap-3 min-h-[100px]"></div>
+                        <div id="task-list-container" class="flex flex-col gap-3">
+                            <!-- Renderizado via JS -->
                         </div>
                     </div>
                 </div>
