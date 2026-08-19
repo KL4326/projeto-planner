@@ -46,11 +46,21 @@ const app = {
         return u || { nome: val, foto: null, uid: val };
     },
 
-    navigate(pageId) {
+   navigate(pageId) {
+        // Esconde todas as seções que possuem a classe .page-section
         document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
-        const target = document.getElementById(`page-${pageId}`);
-        if(target) target.classList.remove('hidden');
         
+        // Remove a classe 'active' de todas as seções (se ainda estiver usando)
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+
+        // Mostra apenas a seção solicitada
+        const target = document.getElementById(`page-${pageId}`);
+        if(target) {
+            target.classList.remove('hidden');
+            target.classList.add('active');
+        }
+        
+        // Gerencia o estilo visual dos botões do menu lateral
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors";
         });
@@ -59,7 +69,9 @@ const app = {
             activeBtn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all";
         }
         
+        // Executa funções de renderização específicas se necessário
         if(pageId === 'dashboard') { this.renderDashboard(); }
+        
         window.scrollTo(0,0);
     },
 
