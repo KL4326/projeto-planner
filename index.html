@@ -1,366 +1,311 @@
 <!DOCTYPE html>
-<html class="dark" lang="pt-br">
+<html lang="pt-BR" class="dark">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Logística - Tarefas</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
-    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WORKSPACE LOGÍSTICA</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
-                    colors: {
-                        "primary": "var(--color-primary, #124343)",
-                        "secondary": "#994529",
-                        "surface": "#fbf9f6",
-                        "surface-container": "#efeeeb",
-                        "surface-container-low": "#f5f3f0",
-                        "surface-container-high": "#eae8e5",
-                        "on-surface": "#1b1c1a",
-                        "on-surface-variant": "#404848",
-                        "error": "#ba1a1a",
-                        "outline-variant": "#c0c8c7"
+                    "colors": {
+                        "secondary-container": "#42485e",
+                        "primary-fixed-dim": "#9ecaff",
+                        "surface": "#131313",
+                        "on-primary-container": "#002c4f",
+                        "surface-container-high": "#2a2a2a",
+                        "on-background": "#e4e2e1",
+                        "inverse-primary": "#0061a4",
+                        "surface-container-low": "#1b1c1c",
+                        "primary-fixed": "#d1e4ff",
+                        "background": "#131313",
+                        "primary": "#9ecaff",
+                        "surface-tint": "#9ecaff",
+                        "inverse-surface": "#e4e2e1",
+                        "on-primary-fixed-variant": "#00497d",
+                        "on-surface": "#e4e2e1",
+                        "on-secondary": "#293044",
+                        "tertiary": "#78dc77",
+                        "tertiary-fixed": "#94f990",
+                        "outline-variant": "#404752",
+                        "primary-container": "#2196f3",
+                        "secondary": "#bfc6e0",
+                        "inverse-on-surface": "#303030",
+                        "on-primary-fixed": "#001d36",
+                        "on-tertiary-fixed": "#002204",
+                        "on-tertiary-container": "#003308",
+                        "surface-dim": "#131313",
+                        "surface-container-lowest": "#0e0e0e",
+                        "tertiary-container": "#42a547",
+                        "surface-variant": "#353535",
+                        "outline": "#89919d",
+                        "on-tertiary-fixed-variant": "#005313",
+                        "surface-bright": "#393939",
+                        "secondary-fixed-dim": "#bfc6e0",
+                        "on-tertiary": "#00390a",
+                        "on-surface-variant": "#bfc7d4",
+                        "on-error": "#690005",
+                        "surface-container": "#1f2020",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#353535",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#78dc77",
+                        "error-container": "#93000a",
+                        "secondary-fixed": "#dbe2fc",
+                        "on-primary": "#003258",
+                        "on-secondary-container": "#b1b8d1",
+                        "on-secondary-fixed-variant": "#3f465b",
+                        "on-secondary-fixed": "#141b2e"
                     },
-                    fontFamily: { "sans": ["Inter", "sans-serif"], "display": ["Sora", "sans-serif"] }
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "20px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "container-max": "1440px",
+                        "base": "4px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter", "sans-serif"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "code-data": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "display-lg": ["Inter", "sans-serif"],
+                        "label-caps": ["Inter", "sans-serif"],
+                        "title-md": ["Inter", "sans-serif"]
+                    }
                 },
             },
         }
     </script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .glass-panel { background: rgba(251, 249, 246, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.4), 0 4px 20px rgba(0, 0, 0, 0.03); }
-        .dark .glass-panel { background: rgba(18, 24, 38, 0.6); box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.3); }
+        body { font-family: 'Inter', sans-serif; }
+        .bg-level-0 { background-color: #1A1A1A; }
+        .bg-level-1 { background-color: #2D2D2D; border: 1px solid #3D3D3D; box-shadow: 0px 4px 12px rgba(0,0,0,0.4); }
+        .bg-level-2 { background-color: #333333; box-shadow: 0px 12px 32px rgba(0,0,0,0.6); }
+        .text-primary-brand { color: #2196F3; }
+        .bg-primary-brand { background-color: #2196F3; }
+        .bg-primary-brand:hover { background-color: #1976D2; }
+        .border-primary-glow:focus { border-color: #2196F3; box-shadow: 0 0 0 1px #2196F3; }
+        
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background-color: #404752; border-radius: 20px; }
+        
         .page-section { display: none; }
-        .page-section.active { display: block !important; }
-        #page-login.active { display: flex !important; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 9999; background-color: #0f172a; }
-        .subtask-done { text-decoration: line-through; opacity: 0.4; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #c0c8c7; border-radius: 20px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
-        .bento-highlight { box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.8); }
-        .dark .bento-highlight { box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05); }
+        .page-section.active { display: block; }
+        
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 24px; border-radius: 8px; color: white; display: flex; align-items: center; gap: 8px; font-size: 14px; animation: slideUp 0.3s ease-out; }
+        .toast.success { background-color: #42a547; }
+        .toast.error { background-color: #ffb4ab; color: #690005; }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; } }
     </style>
 </head>
-<body class="bg-surface dark:bg-[#0b0f19] text-on-surface dark:text-gray-100 font-sans overflow-x-hidden transition-colors duration-200">
+<body class="bg-level-0 text-on-surface min-h-screen antialiased selection:bg-primary-container selection:text-on-primary-container">
 
-<header id="main-header" class="hidden fixed top-0 flex justify-between items-center w-full px-6 md:px-12 h-20 z-40 bg-surface/80 dark:bg-[#0b0f19]/80 backdrop-blur-xl border-b dark:border-white/5 shadow-sm">
-    <div class="flex items-center gap-4">
-        <h1 class="font-display text-2xl font-bold text-primary dark:text-white tracking-tight cursor-pointer" onclick="app.navigate('dashboard')">Planner</h1>
-    </div>
-    <div class="flex items-center gap-6">
-        <div class="relative hidden md:block">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 dark:text-gray-400">search</span>
-            <input id="search-input" class="pl-10 pr-4 py-2 bg-surface-container dark:bg-white/5 rounded-full border-none focus:ring-2 focus:ring-primary/20 text-on-surface dark:text-white w-64 transition-all focus:w-80 placeholder:text-on-surface-variant/40 dark:placeholder:text-gray-500 outline-none text-sm" placeholder="Pesquisar tarefas..." type="text"/>
-        </div>
-        <div class="relative">
-            <button id="notif-btn" class="p-2 text-on-surface-variant dark:text-gray-300 hover:bg-surface-container-high/50 dark:hover:bg-white/10 rounded-full transition-colors relative flex items-center justify-center">
-                <span class="material-symbols-outlined">notifications</span>
-                <span id="notif-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full border-2 border-surface dark:border-[#0b0f19] shadow-sm">0</span>
-            </button>
-            <div id="notif-menu" class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-[#151c2c] border dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden text-left">
-                <div class="p-4 border-b dark:border-white/5 bg-surface-container-low dark:bg-black/20 font-bold text-xs uppercase text-primary dark:text-gray-400 tracking-wider">Atividade da Equipe</div>
-                <div id="notif-list" class="max-h-96 overflow-y-auto custom-scrollbar divide-y dark:divide-white/5"></div>
-            </div>
-        </div>
-        <div id="profile-trigger" class="relative flex items-center gap-3 cursor-pointer p-1 rounded-full hover:bg-surface-container-high/40 dark:hover:bg-white/5 transition-all">
-            <div id="header-avatar" class="w-10 h-10 rounded-full bg-primary border-2 border-white dark:border-[#0b0f19] text-white flex items-center justify-center font-bold bg-cover bg-center shadow-sm">...</div>
-            <div id="profile-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#151c2c] border dark:border-white/10 rounded-2xl shadow-2xl z-50 p-4 text-left">
-                <p id="user-display-name" class="text-sm font-bold text-on-surface dark:text-white truncate">...</p>
-                <p id="user-display-role" class="text-xs text-on-surface-variant/80 dark:text-gray-400 truncate mt-0.5">Colaborador</p>
-                <div class="mt-4 pt-4 border-t dark:border-white/5 flex flex-col gap-1">
-                    <button onclick="app.navigate('configuracoes')" class="w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 transition-all flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">settings</span> Configurações</button>
-                    <button onclick="app.signOut()" class="w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">logout</span> Sair</button>
+    <div id="toast-container"></div>
+
+    <!-- PÁGINA DE LOGIN -->
+    <section id="page-login" class="page-section active flex w-full min-h-screen">
+        <!-- Background Imagem -->
+        <div class="hidden lg:flex lg:w-1/2 relative bg-surface-container-highest overflow-hidden border-r border-outline-variant">
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCPu2rNHBlaNVPJURoQsuczm1PIxw-bIdGIrIpyis6uXzPRZvFbuSriRRDImkZCJuDwGQm5wKbLqQeFlsmRiEOpEybbBcbwyMaQcoQF_qkvqMHsr-MscRLSGemTUhXMDshlH5AXi-2udEgZCohFwy5x6ZdCMli-v8aprL9gtrsdrASRbOk9yFwdP0DfXSUorbCK5XJGhHxd7xIAcCEDXk440CZkB4EgGs6bnq0b0StL3gp5ctx3Uh8')"></div>
+            <div class="absolute inset-0 bg-[#0a121c]/80 mix-blend-multiply"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-90"></div>
+            <div class="relative z-10 flex flex-col justify-end p-xl w-full h-full text-on-surface">
+                <div class="max-w-lg mb-xl">
+                    <span class="material-symbols-outlined text-primary-container text-[48px] mb-lg block" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+                    <h2 class="font-headline-lg text-headline-lg text-inverse-surface mb-sm">Sistema de Controle Logístico</h2>
+                    <p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">Plataforma unificada para gerenciamento de atividades, tarefas, organização e comunicação em tempo real.</p>
                 </div>
             </div>
         </div>
-    </div>
-</header>
-
-<main id="main-content" class="pt-28 pb-40 px-6 md:px-12 max-w-[1600px] mx-auto">
-    <section id="page-login" class="page-section active">
-        <div class="w-full max-w-md bg-white dark:bg-[#151c2c] p-10 rounded-3xl shadow-2xl border dark:border-white/5 text-center">
-            <span class="material-symbols-outlined text-6xl text-primary dark:text-white font-bold mb-4">layers</span>
-            <h2 class="text-2xl font-display font-bold mb-8 text-on-surface dark:text-white tracking-tight text-left">Acesso Restrito</h2>
-            <form id="login-form" class="flex flex-col gap-4 text-left">
-                <input id="login-email" type="email" placeholder="E-mail corporativo" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
-                <input id="login-password" type="password" placeholder="Senha" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-on-surface dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
-                <button type="submit" class="bg-primary dark:bg-primary/90 text-white font-bold py-4 rounded-2xl hover:opacity-90 shadow-lg uppercase text-sm tracking-wider mt-2 transition-all">Entrar</button>
-            </form>
-        </div>
-    </section>
-
-    <section id="page-dashboard" class="page-section">
-        <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-            <div>
-                <p class="text-xs uppercase tracking-widest text-on-surface-variant/60 dark:text-gray-400 font-semibold mb-1">Visão Geral do Workspace</p>
-                <h2 class="font-display text-3xl font-bold text-primary dark:text-white" id="boas-vindas-texto">Olá, Equipe</h2>
-            </div>
-            <button onclick="app.navigate('nova-tarefa')" class="bg-primary text-white px-6 py-3 rounded-full text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-all shadow-md shadow-primary/20">
-                <span class="material-symbols-outlined text-[18px]">add</span> Nova Tarefa
-            </button>
-        </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10" id="statsContainer"></div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-3 flex flex-col gap-6">
-                <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight">
-                    <div class="flex items-center justify-between mb-4 border-b dark:border-white/5 pb-2">
-                        <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400">Filtros Avançados</h3>
-                        <button id="clear-filters-btn" onclick="app.clearFilters()" class="hidden text-red-500 text-[10px] font-black uppercase tracking-wider items-center gap-0.5 hover:text-red-400">
-                            <span class="material-symbols-outlined text-sm">filter_alt_off</span> Limpar
-                        </button>
+        <!-- Formulário -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-md sm:p-xl bg-background">
+            <div class="w-full max-w-[440px] bg-[#2d2d2d] border border-[#3d3d3d] rounded-xl shadow-[0px_12px_32px_rgba(0,0,0,0.6)] p-lg sm:p-xl flex flex-col relative z-20">
+                <div class="flex flex-col items-center mb-xl text-center">
+                    <div class="w-16 h-16 bg-surface-container flex items-center justify-center rounded-lg border border-outline-variant mb-md shadow-sm">
+                        <span class="material-symbols-outlined text-primary-container text-[32px]" style="font-variation-settings: 'FILL' 1;">radar</span>
                     </div>
-                    <div class="space-y-6">
-                        <div>
-                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="assignee-filter-count">Equipe</p>
-                            <div id="assignee-filter-list" class="flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1"></div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="priority-filter-count">Prioridade</p>
-                            <div id="priority-filter-menu" class="flex gap-2 flex-wrap">
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-primary/30 dark:has-[:checked]:text-primary">
-                                    <input type="checkbox" value="Alta" onchange="app.applyFilters()" class="hidden"> Alta
-                                </label>
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-primary/30 dark:has-[:checked]:text-primary">
-                                    <input type="checkbox" value="Média" onchange="app.applyFilters()" class="hidden"> Média
-                                </label>
-                                <label class="px-4 py-1.5 rounded-full text-xs font-bold bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-gray-300 border border-transparent cursor-pointer transition-all hover:bg-surface-container-high has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary/30 dark:has-[:checked]:bg-primary/30 dark:has-[:checked]:text-primary">
-                                    <input type="checkbox" value="Baixa" onchange="app.applyFilters()" class="hidden"> Baixa
-                                </label>
-                            </div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-on-surface/80 dark:text-gray-300 mb-3" id="date-filter-label">Prazo Específico</p>
-                            <div class="relative">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">calendar_today</span>
-                                <input type="date" id="dashboard-date-filter" onchange="app.applyFilters()" class="w-full pl-10 pr-4 py-2.5 text-xs font-bold rounded-xl bg-surface-container dark:bg-white/5 border-none dark:text-white outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
-                            </div>
-                        </div>
-                    </div>
+                    <h1 class="font-headline-lg-mobile md:font-headline-lg text-primary font-bold">CARA DO T.I</h1>
+                    <p class="font-label-caps text-on-surface-variant uppercase tracking-widest mt-xs">Workspace Logística</p>
                 </div>
-            </div>
-
-            <div class="lg:col-span-6 flex flex-col gap-4">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 class="font-display text-xl font-bold text-primary dark:text-white">Explorador de Tarefas <span id="taskCount" class="text-on-surface-variant/50 text-sm ml-1 font-medium">(0)</span></h2>
+                <div class="mb-lg text-center">
+                    <h2 class="font-title-md text-inverse-surface">Bem-vindo ao Workspace</h2>
                 </div>
-                <div id="taskTableBody" class="flex flex-col gap-4"></div>
-            </div>
-
-            <div class="lg:col-span-3">
-                <div class="flex flex-col gap-6 sticky top-28">
-                    <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight">
-                        <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400 mb-6 border-b dark:border-white/5 pb-2">Ranking da Equipe</h3>
-                        <div id="rankingContainer" class="space-y-5"></div>
-                    </div>
-
-                    <div class="glass-panel rounded-2xl p-6 border dark:border-white/5 text-left bento-highlight">
-                        <div class="flex items-center justify-between mb-4 border-b dark:border-white/5 pb-2">
-                            <h3 class="text-xs uppercase font-bold tracking-wider text-on-surface-variant/80 dark:text-gray-400">Lembretes</h3>
-                            <div class="flex items-center gap-2">
-                                <input type="date" id="reminder-date-filter" onchange="app.filterReminders(this.value)" class="text-[10px] p-1.5 font-bold rounded-lg border-none bg-surface-container dark:bg-white/5 dark:text-white cursor-pointer outline-none focus:ring-1 focus:ring-primary text-primary">
-                                <button onclick="app.openLembreteForm()" class="text-on-surface-variant dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-all flex items-center">
-                                    <span class="material-symbols-outlined text-[20px]">add</span>
-                                </button>
-                            </div>
+                <form id="login-form" class="flex flex-col gap-lg">
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-caps text-on-surface-variant">E-mail Corporativo</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute inset-y-0 left-0 pl-sm flex items-center text-outline text-[20px] pointer-events-none">badge</span>
+                            <input id="login-email" type="email" placeholder="email@delta.corp" required class="w-full bg-[#232323] border border-outline-variant rounded-lg py-sm pl-[40px] pr-sm font-body-lg text-on-surface focus:ring-1 focus:ring-primary-container focus:border-primary-container placeholder-outline/50">
                         </div>
-                        <div id="remindersContainer" class="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar pr-1"></div>
                     </div>
-                </div>
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-caps text-on-surface-variant">Senha</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute inset-y-0 left-0 pl-sm flex items-center text-outline text-[20px] pointer-events-none">lock</span>
+                            <input id="login-password" type="password" placeholder="••••••••" required class="w-full bg-[#232323] border border-outline-variant rounded-lg py-sm pl-[40px] pr-sm font-body-lg text-on-surface focus:ring-1 focus:ring-primary-container focus:border-primary-container placeholder-outline/50">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-primary-container text-white font-title-md rounded-lg py-sm mt-md shadow-[inset_0_-2px_0_rgba(0,0,0,0.2)] hover:bg-inverse-primary hover:shadow-[inset_0_-1px_0_rgba(0,0,0,0.3)] active:scale-[0.99] transition-all flex justify-center items-center gap-sm">
+                        <span>Entrar no Sistema</span>
+                        <span class="material-symbols-outlined text-[20px]">login</span>
+                    </button>
+                </form>
             </div>
         </div>
     </section>
 
-    <section id="page-calendario" class="page-section">
-        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 text-left mb-6 max-w-[1400px] mx-auto bento-highlight">
-            <div class="flex items-center justify-between mb-8">
-                <h2 id="calendar-month-year" class="font-display text-2xl font-bold text-primary dark:text-white capitalize flex items-center gap-3">...</h2>
-                <div class="flex gap-2">
-                    <button onclick="app.changeMonth(-1)" class="p-2.5 bg-surface-container dark:bg-white/5 hover:bg-surface-container-high dark:hover:bg-white/10 rounded-xl transition-all"><span class="material-symbols-outlined">chevron_left</span></button>
-                    <button onclick="app.changeMonth(1)" class="p-2.5 bg-surface-container dark:bg-white/5 hover:bg-surface-container-high dark:hover:bg-white/10 rounded-xl transition-all"><span class="material-symbols-outlined">chevron_right</span></button>
+    <!-- SISTEMA LOGADO -->
+    <div id="app-layout" class="hidden min-h-screen flex w-full">
+        
+        <!-- Navbar Lateral Compartilhada -->
+        <nav class="hidden md:flex flex-col h-full py-lg px-md fixed left-0 top-0 w-[260px] bg-surface-container-lowest border-r border-outline-variant/30 z-20">
+            <div class="flex items-center gap-3 mb-xl">
+                <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(33,150,243,0.3)]">
+                    <span class="material-symbols-outlined text-on-primary-container font-variation-settings: 'FILL' 1;">deployed_code</span>
+                </div>
+                <div>
+                    <h1 class="font-title-md font-bold text-primary">CARA DO T.I</h1>
+                    <p class="font-label-caps text-on-surface-variant uppercase tracking-wider mt-1">Workspace Logística</p>
                 </div>
             </div>
-            <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 dark:text-gray-500 mb-4">
-                <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+            <ul class="flex flex-col gap-2 flex-grow">
+                <li>
+                    <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span class="font-body-sm">Dashboard</span>
+                    </button>
+                </li>
+            </ul>
+            <div class="mt-auto pt-4 border-t border-outline-variant/30 flex items-center justify-between px-2 cursor-pointer hover:opacity-80 transition-opacity" onclick="app.signOut()">
+                <div class="flex items-center gap-3">
+                    <div id="sidebar-avatar" class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline-variant font-bold text-xs bg-cover bg-center text-white"></div>
+                    <div class="flex flex-col text-left">
+                        <span id="sidebar-name" class="font-code-data text-on-surface truncate w-24">Operador</span>
+                        <span class="font-label-caps text-[10px] text-tertiary">ONLINE (SAIR)</span>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined text-on-surface-variant text-sm">logout</span>
             </div>
-            <div id="calendar-grid" class="grid grid-cols-7 gap-3 min-h-[700px]"></div>
-        </div>
-    </section>
+        </nav>
 
-    <section id="page-configuracoes" class="page-section max-w-5xl mx-auto text-left">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="glass-panel rounded-3xl p-5 border dark:border-white/5 flex flex-col gap-2 bento-highlight">
-                <button onclick="app.showConfigTab('profile')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">person</span>Perfil</button>
-                <button onclick="app.showConfigTab('users')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">group</span>Usuários</button>
-                <button onclick="app.showConfigTab('appearance')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">palette</span>Aparência</button>
-                <button onclick="app.showConfigTab('security')" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-on-surface-variant dark:text-gray-300 hover:bg-surface-container dark:hover:bg-white/5 focus:text-primary dark:focus:text-primary transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">security</span>Segurança</button>
-                <div class="mt-auto pt-4 border-t dark:border-white/5">
-                    <button onclick="app.signOut()" class="w-full text-left px-5 py-3.5 rounded-2xl font-bold text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">logout</span>Sair</button>
-                </div>
-            </div>
+        <!-- Main Workspace -->
+        <div class="flex-1 ml-0 md:ml-[260px] flex flex-col relative w-full h-screen overflow-hidden">
             
-            <div class="md:col-span-3 glass-panel rounded-3xl p-8 border dark:border-white/5 bento-highlight">
-                
-                <div id="config-tab-profile" class="config-subtab space-y-6">
-                    <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Editar Perfil</h3>
-                    <div class="flex items-center gap-6 mb-2">
-                        <div id="profile-page-avatar" class="w-24 h-24 rounded-full bg-primary border-4 border-white dark:border-[#151c2c] text-white flex items-center justify-center text-3xl font-bold bg-cover bg-center shadow-lg"></div>
-                        <div class="flex flex-col gap-2">
-                            <button onclick="document.getElementById('profile-upload').click()" class="text-xs font-bold bg-surface-container dark:bg-white/10 px-5 py-2.5 rounded-xl hover:opacity-80 transition-all dark:text-white shadow-sm">Alterar Foto</button>
-                            <button onclick="app.removeProfilePhoto()" class="text-[10px] font-bold text-red-500 hover:underline text-left pl-1">Remover atual</button>
-                        </div>
-                        <input type="file" id="profile-upload" class="hidden" accept="image/*">
-                    </div>
-                    <div class="flex flex-col gap-5">
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Nome Completo</label><input id="profile-name-input" type="text" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none text-sm dark:text-white focus:ring-2 focus:ring-primary/50"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Cargo / Função</label><input id="profile-role-input" type="text" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none text-sm dark:text-white focus:ring-2 focus:ring-primary/50"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Biografia</label><textarea id="profile-bio-input" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 h-28 outline-none text-sm dark:text-white focus:ring-2 focus:ring-primary/50"></textarea></div>
-                        <button onclick="app.handleSaveProfile()" class="bg-primary text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 w-48 shadow-md mt-2">Salvar Alterações</button>
+            <!-- TopNavBar Compartilhado -->
+            <header class="flex justify-between items-center w-full px-lg h-[64px] border-b border-outline-variant bg-surface dark:bg-surface-dim sticky top-0 z-10 shrink-0">
+                <div class="flex-1 max-w-xl flex items-center bg-[#232323] rounded-lg border border-outline-variant/50 focus-within:border-primary-brand focus-within:ring-1 focus-within:ring-primary-brand transition-all overflow-hidden h-10 px-3">
+                    <span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+                    <input type="text" placeholder="Pesquisar..." class="bg-transparent border-none outline-none text-body-sm text-on-surface w-full placeholder:text-on-surface-variant/50 focus:ring-0">
+                </div>
+                <div class="flex items-center gap-6 ml-6">
+                    <div class="hidden lg:flex items-center gap-4 text-on-surface-variant font-code-data">
+                        <div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-primary-fixed-dim">rainy</span><span>19°C</span></div>
+                        <div class="w-px h-4 bg-outline-variant/50"></div>
+                        <div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-tertiary">traffic</span><span class="text-tertiary">Fluxo Livre</span></div>
                     </div>
                 </div>
-                
-                <div id="config-tab-users" class="config-subtab hidden space-y-6">
-                    <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Diretório de Usuários</h3>
-                    <div id="config-users-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2"></div>
-                </div>
+            </header>
 
-                <div id="config-tab-appearance" class="config-subtab hidden space-y-6">
-                    <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Personalizar Aparência</h3>
-                    <div class="flex flex-col gap-8">
+            <!-- TELA INICIAL (DASHBOARD) -->
+            <section id="page-dashboard" class="page-section flex-1 overflow-auto bg-level-0 p-md md:p-lg">
+                <div class="max-w-container-max mx-auto space-y-gutter pb-24">
+                    
+                    <div class="flex items-end justify-between mb-2">
                         <div>
-                            <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-2 block">Tema do Sistema</label>
-                            <button onclick="app.toggleTheme()" class="bg-surface-container dark:bg-white/5 text-on-surface dark:text-white font-bold py-3.5 px-6 rounded-xl text-sm transition-all hover:opacity-80 flex items-center gap-2 shadow-sm border border-gray-200 dark:border-white/10">
-                                <span class="material-symbols-outlined text-[18px]">dark_mode</span> Alternar Modo Claro / Escuro
-                            </button>
+                            <h2 class="font-headline-lg-mobile md:font-headline-lg text-on-surface">Visão Operacional</h2>
+                            <p class="font-body-sm text-on-surface-variant mt-1" id="dash-time-sync">Sincronizado: Agora</p>
                         </div>
-                        <div>
-                            <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-3 block">Cor de Destaque (Botões e Ações)</label>
-                            <div class="flex flex-wrap gap-4">
-                                <button onclick="app.changePrimaryColor('#124343')" class="w-12 h-12 rounded-full bg-[#124343] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#124343]" title="Verde Escuro Original"></button>
-                                <button onclick="app.changePrimaryColor('#059669')" class="w-12 h-12 rounded-full bg-[#059669] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#059669]" title="Esmeralda"></button>
-                                <button onclick="app.changePrimaryColor('#2563eb')" class="w-12 h-12 rounded-full bg-[#2563eb] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#2563eb]" title="Azul Royal"></button>
-                                <button onclick="app.changePrimaryColor('#7c3aed')" class="w-12 h-12 rounded-full bg-[#7c3aed] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#7c3aed]" title="Roxo"></button>
-                                <button onclick="app.changePrimaryColor('#e11d48')" class="w-12 h-12 rounded-full bg-[#e11d48] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#e11d48]" title="Carmesim"></button>
-                                <button onclick="app.changePrimaryColor('#ea580c')" class="w-12 h-12 rounded-full bg-[#ea580c] border-4 border-transparent focus:border-white dark:focus:border-[#151c2c] shadow-md transition-all hover:scale-110 ring-2 ring-transparent focus:ring-[#ea580c]" title="Laranja"></button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter auto-rows-[minmax(180px,_auto)]">
+                        
+                        <!-- 1. Acessos Rápidos -->
+                        <section class="bg-level-1 rounded-xl flex flex-col md:col-span-8 overflow-hidden">
+                            <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">bolt</span>Acessos Rápidos</h3>
                             </div>
-                        </div>
+                            <div class="p-6 flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <button class="bg-surface hover:bg-surface-variant border border-outline-variant/30 rounded-lg p-4 flex flex-col items-center justify-center gap-3 text-center transition-all hover:-translate-y-1 hover:shadow-lg focus:border-primary-glow">
+                                    <div class="w-12 h-12 rounded-full bg-[#293044] text-[#9ecaff] flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">support_agent</span></div>
+                                    <span class="font-code-data text-on-surface">Desk Manager<br><span class="text-on-surface-variant text-[11px] font-normal">(Chamados)</span></span>
+                                </button>
+                                <button class="bg-surface hover:bg-surface-variant border border-outline-variant/30 rounded-lg p-4 flex flex-col items-center justify-center gap-3 text-center transition-all hover:-translate-y-1 hover:shadow-lg focus:border-primary-glow">
+                                    <div class="w-12 h-12 rounded-full bg-[#003308] text-[#78dc77] flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">dns</span></div>
+                                    <span class="font-code-data text-on-surface">CMDB<br><span class="text-on-surface-variant text-[11px] font-normal">(Estoque de Máquinas)</span></span>
+                                </button>
+                                <a href="https://www.n-able.com/pt" target="_blank" class="bg-surface hover:bg-surface-variant border border-outline-variant/30 rounded-lg p-4 flex flex-col items-center justify-center gap-3 text-center transition-all hover:-translate-y-1 hover:shadow-lg focus:border-primary-glow">
+                                    <div class="w-12 h-12 rounded-full bg-[#3f465b] text-[#bfc6e0] flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">monitor_heart</span></div>
+                                    <span class="font-code-data text-on-surface">RMM N-able<br><span class="text-on-surface-variant text-[11px] font-normal">(Monitoramento)</span></span>
+                                </a>
+                            </div>
+                        </section>
+
+                        <!-- Visão Armários (Placeholder para futura view) -->
+                        <section class="bg-level-1 rounded-xl flex flex-col md:col-span-4 overflow-hidden">
+                            <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets</h3>
+                            </div>
+                            <div class="p-6 flex-1 flex flex-col items-center justify-center relative">
+                                <div class="w-32 h-32 rounded-full border-[12px] border-surface-container relative flex items-center justify-center mb-6 shadow-inner" style="background: conic-gradient(#78dc77 0% 62.5%, #ffb4ab 62.5% 87.5%, #fbbf24 87.5% 100%); border-color: transparent;">
+                                    <div class="absolute inset-0 m-auto w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center">
+                                        <span class="font-display-lg text-[28px] leading-none font-bold text-on-surface">40</span>
+                                        <span class="font-label-caps text-[10px] text-on-surface-variant">TOTAL</span>
+                                    </div>
+                                </div>
+                                <div class="w-full space-y-2 font-code-data text-xs">
+                                    <div class="flex justify-between p-2 rounded bg-surface"><span class="text-on-surface">Disponíveis</span><span class="text-tertiary font-bold">25</span></div>
+                                    <div class="flex justify-between p-2 rounded bg-surface"><span class="text-on-surface">Em Uso</span><span class="text-error font-bold">10</span></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 2. Diário de Bordo Preview -->
+                        <section class="bg-level-1 rounded-xl flex flex-col md:col-span-7 row-span-2 overflow-hidden">
+                            <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary-fixed">history_edu</span>Diário de Bordo (Feed)</h3>
+                                <span class="px-2 py-1 bg-surface-container text-on-surface-variant font-label-caps text-[10px] rounded border border-outline-variant/30">RECORTE</span>
+                            </div>
+                            <div class="flex-1 overflow-auto p-0">
+                                <ul id="dashboard-log-list" class="divide-y divide-outline-variant/20"></ul>
+                            </div>
+                        </section>
+
+                        <!-- 4. Minhas Tarefas do Dia -->
+                        <section class="bg-level-1 rounded-xl flex flex-col md:col-span-5 row-span-2 overflow-hidden">
+                            <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-tertiary-fixed-dim">rule</span>Minhas Pendências</h3>
+                            </div>
+                            <div class="p-4 flex-1 overflow-y-auto">
+                                <ul id="my-tasks-list" class="space-y-2"></ul>
+                            </div>
+                        </section>
+
                     </div>
                 </div>
-
-                <div id="config-tab-security" class="config-subtab hidden space-y-6">
-                    <h3 class="font-display text-2xl font-bold text-primary dark:text-white border-b dark:border-white/5 pb-4">Segurança e Acesso</h3>
-                    <div class="flex flex-col gap-5 max-w-md">
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Senha Atual</label><input id="current-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white focus:ring-2 focus:ring-primary/50"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Nova Senha</label><input id="new-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white focus:ring-2 focus:ring-primary/50"></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1">Confirme a Senha</label><input id="confirm-password-input" type="password" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 mt-1 outline-none dark:text-white focus:ring-2 focus:ring-primary/50"></div>
-                        <button onclick="app.handlePasswordUpdate()" class="bg-primary text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 shadow-md mt-2">Atualizar Senha</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="page-nova-tarefa" class="page-section max-w-4xl mx-auto text-left">
-        <div class="glass-panel rounded-3xl p-8 border dark:border-white/5 shadow-2xl bento-highlight">
-            <h3 class="font-display text-2xl font-bold text-primary dark:text-white mb-8 border-b dark:border-white/5 pb-4">Criar Nova Tarefa</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="space-y-6">
-                    <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Título da Tarefa</label><input type="text" id="nova-titulo" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></div>
-                    <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Descrição / Escopo</label><textarea id="nova-desc" class="w-full h-48 rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></textarea></div>
-                </div>
-                <div class="space-y-6">
-                    <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Responsáveis</label><div id="task-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar"></div></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prioridade</label><select id="nova-prio" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30 cursor-pointer"><option value="Alta">Alta</option><option value="Média" selected>Média</option><option value="Baixa">Baixa</option></select></div>
-                        <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prazo Final</label><input type="date" id="nova-fim" class="w-full rounded-xl border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30 cursor-pointer"></div>
-                    </div>
-                    <div class="flex gap-3 pt-6 mt-2 border-t dark:border-white/5">
-                        <button onclick="app.navigate('dashboard')" class="flex-1 bg-surface-container-high dark:bg-white/5 py-4 rounded-xl font-bold text-on-surface-variant dark:text-gray-300 text-sm hover:opacity-80 transition-all">Cancelar</button>
-                        <button onclick="app.criarTarefa()" class="flex-[2] bg-primary text-white py-4 rounded-xl font-bold shadow-lg text-sm transition-all hover:opacity-90">Salvar Tarefa</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="page-detalhes" class="page-section"><div id="details-view-content" class="max-w-6xl mx-auto flex flex-col gap-6 text-left"></div></section>
-</main>
-
-<nav id="bottom-nav" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-2 items-center p-2.5 bg-white/80 dark:bg-[#151c2c]/80 backdrop-blur-2xl border border-outline-variant/30 dark:border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.15)] rounded-full max-w-full">
-    <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all font-display text-[11px] font-semibold w-24 h-14 rounded-full">
-        <span class="material-symbols-outlined mb-0.5 text-[22px]">grid_view</span> Tarefas
-    </button>
-    <button onclick="app.navigate('calendario')" id="nav-btn-calendario" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all font-display text-[11px] font-semibold w-24 h-14 rounded-full">
-        <span class="material-symbols-outlined mb-0.5 text-[22px]">calendar_today</span> Calendário
-    </button>
-    <button onclick="app.navigate('configuracoes')" id="nav-btn-configuracoes" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all font-display text-[11px] font-semibold w-24 h-14 rounded-full">
-        <span class="material-symbols-outlined mb-0.5 text-[22px]">settings</span> Ajustes
-    </button>
-</nav>
-
-<div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
-    <div id="modal-subtask-form" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-xl rounded-3xl p-8 text-left border dark:border-white/5 shadow-2xl">
-        <h3 id="subtask-form-title" class="font-display text-xl font-bold text-primary dark:text-white mb-6 border-b dark:border-white/5 pb-3">Adicionar Subtarefa</h3>
-        <div class="flex flex-col gap-5">
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Título</label><input id="sub-title-inp" type="text" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></div>
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Instruções</label><textarea id="sub-desc-inp" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 min-h-[100px] outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></textarea></div>
-            <div class="grid grid-cols-2 gap-4">
-                <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prioridade</label><select id="sub-priority-inp" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"><option value="Baixa">Baixa</option><option value="Média" selected>Média</option><option value="Alta">Alta</option></select></div>
-                <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prazo</label><input id="sub-date-inp" type="date" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-3.5 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></div>
-            </div>
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Equipe Alocada</label><div id="sub-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar text-on-surface dark:text-white"></div></div>
-            <div class="flex justify-end gap-3 mt-4 pt-4 border-t dark:border-white/5"><button onclick="app.closeModal()" class="px-6 py-2.5 font-bold text-on-surface-variant text-sm hover:bg-surface-container dark:hover:bg-white/5 rounded-xl transition-all">Cancelar</button><button id="submit-subtask-form" class="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-md text-sm hover:opacity-90 transition-all">Gravar</button></div>
-        </div>
-    </div>
-    
-    <div id="modal-edit-task" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-2xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar border dark:border-white/5 text-left shadow-2xl">
-        <h3 class="font-display text-xl font-bold text-primary dark:text-white mb-6 border-b dark:border-white/5 pb-3">Editar Escopo da Tarefa</h3>
-        <div class="flex flex-col gap-5">
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Título</label><input id="edit-task-title" type="text" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 font-bold outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></div>
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Descrição</label><textarea id="edit-task-desc" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 min-h-[180px] outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></textarea></div>
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Equipe</label><div id="edit-assignees-checkboxes" class="rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar text-on-surface dark:text-white"></div></div>
-            <div class="grid grid-cols-2 gap-4">
-                <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prioridade</label><select id="edit-task-priority" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"><option value="Alta">Alta</option><option value="Média">Média</option><option value="Baixa">Baixa</option></select></div>
-                <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Prazo Final</label><input id="edit-task-date" type="date" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6 pt-6 border-t dark:border-white/5"><button onclick="app.closeModal()" class="font-bold text-on-surface-variant text-sm px-6 py-3 hover:bg-surface-container dark:hover:bg-white/5 rounded-xl transition-all">Voltar</button><button id="submit-edit-task" class="bg-primary text-white px-8 py-3 rounded-xl font-bold shadow-lg text-sm hover:opacity-90 transition-all">Salvar Alterações</button></div>
-        </div>
-    </div>
-    
-    <div id="modal-subtask-view" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-6xl rounded-3xl h-[85vh] overflow-hidden flex flex-col text-left shadow-2xl border dark:border-white/5">
-        <div id="subtask-view-content" class="flex flex-col md:flex-row flex-1 overflow-hidden"></div>
-    </div>
-
-    <div id="modal-lembrete-form" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-md rounded-3xl p-8 text-left border dark:border-white/5 shadow-2xl">
-        <h3 class="font-display text-xl font-bold text-primary dark:text-white mb-6 border-b dark:border-white/5 pb-3">Lembrete</h3>
-        <div class="flex flex-col gap-5">
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Data de visualização</label><input id="lembrete-date-inp" type="date" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></div>
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Anotação rápida</label><input id="lembrete-title-inp" type="text" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm outline-none dark:text-white focus:ring-2 focus:ring-primary/30" placeholder="Ex: Fazer backup às 15h"></div>
-            <div><label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 ml-1 mb-1 block">Contexto (Opcional)</label><textarea id="lembrete-desc-inp" class="w-full rounded-xl border border-gray-200 dark:border-white/10 dark:bg-white/5 p-4 text-sm min-h-[80px] outline-none dark:text-white focus:ring-2 focus:ring-primary/30"></textarea></div>
-            <div class="flex justify-end gap-3 mt-4 pt-4 border-t dark:border-white/5"><button onclick="app.closeModal()" class="px-6 py-2.5 font-bold text-on-surface-variant text-sm hover:bg-surface-container dark:hover:bg-white/5 rounded-xl transition-all">Cancelar</button><button onclick="app.saveReminder()" class="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-md text-sm hover:opacity-90 transition-all">Salvar</button></div>
+            </section>
+            
         </div>
     </div>
 
-    <div id="modal-user-detail" class="modal-box hidden bg-surface dark:bg-[#151c2c] w-full max-w-md rounded-3xl p-8 text-center border dark:border-white/5 shadow-2xl">
-        <div id="modal-user-avatar" class="w-28 h-28 rounded-full mx-auto bg-cover bg-center border-4 border-white dark:border-[#0b0f19] shadow-xl bg-primary text-white flex items-center justify-center font-black text-3xl"></div>
-        <h3 id="modal-user-name" class="font-display text-2xl font-bold text-primary dark:text-white mt-5">...</h3>
-        <p id="modal-user-role" class="text-xs uppercase font-bold tracking-widest text-secondary mt-1">...</p>
-        <div class="mt-8 p-5 bg-white dark:bg-white/5 rounded-2xl text-left border border-gray-100 dark:border-white/5 shadow-sm">
-            <p class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/70 border-b dark:border-white/5 pb-2 mb-2">Biografia</p>
-            <p id="modal-user-bio" class="text-sm text-on-surface dark:text-gray-300 whitespace-pre-line leading-relaxed">...</p>
-        </div>
-        <button onclick="app.closeModal()" class="mt-8 w-full bg-surface-container-high dark:bg-white/10 dark:text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-80">Fechar Janela</button>
-    </div>
-</div>
-
-<div id="toast-container"></div>
-<script type="module" src="script.js"></script>
+    <!-- Script Application -->
+    <script type="module" src="script.js"></script>
 </body>
 </html>
