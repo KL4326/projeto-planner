@@ -440,36 +440,50 @@
                         </button>
                     </div>
 
-                    <!-- Barra de Filtros -->
+                    <!-- Barra de Filtros (Multi-select) -->
                     <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex flex-wrap gap-md items-center shadow-sm">
+                        
                         <!-- Status -->
-                        <div class="flex flex-col gap-1">
+                        <div class="relative flex flex-col gap-1 filter-dropdown-container">
                             <label class="text-[10px] font-bold text-on-surface-variant uppercase">Status</label>
-                            <select id="task-filter-status" onchange="app.updateTaskFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
-                                <option value="Todas">Todas</option>
-                                <option value="Em aberto">Em aberto</option>
-                                <option value="Em andamento">Em andamento</option>
-                                <option value="Concluídas">Concluídas</option>
-                                <option value="Canceladas">Canceladas</option>
-                            </select>
+                            <button onclick="app.toggleFilter('status-menu')" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm flex justify-between items-center w-40 hover:border-primary transition-colors">
+                                <span id="label-status-menu" class="truncate">Todos</span>
+                                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                            </button>
+                            <div id="status-menu" class="filter-dropdown-menu hidden absolute top-[100%] mt-1 left-0 w-48 bg-surface-container-high border border-outline-variant rounded-lg shadow-xl z-50 py-2 flex flex-col gap-1">
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Em aberto" class="cb-status rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Em aberto</span></label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Em andamento" class="cb-status rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Em andamento</span></label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Concluídas" class="cb-status rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Concluídas</span></label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Canceladas" class="cb-status rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Canceladas</span></label>
+                            </div>
                         </div>
+
                         <!-- Prioridade -->
-                        <div class="flex flex-col gap-1">
+                        <div class="relative flex flex-col gap-1 filter-dropdown-container">
                             <label class="text-[10px] font-bold text-on-surface-variant uppercase">Prioridade</label>
-                            <select id="task-filter-priority" onchange="app.updateTaskFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
-                                <option value="Todas">Todas</option>
-                                <option value="Baixa">Baixa</option>
-                                <option value="Média">Média</option>
-                                <option value="Alta">Alta</option>
-                            </select>
+                            <button onclick="app.toggleFilter('priority-menu')" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm flex justify-between items-center w-32 hover:border-primary transition-colors">
+                                <span id="label-priority-menu" class="truncate">Todas</span>
+                                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                            </button>
+                            <div id="priority-menu" class="filter-dropdown-menu hidden absolute top-[100%] mt-1 left-0 w-40 bg-surface-container-high border border-outline-variant rounded-lg shadow-xl z-50 py-2 flex flex-col gap-1">
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Baixa" class="cb-priority rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Baixa</span></label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Média" class="cb-priority rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Média</span></label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"><input type="checkbox" value="Alta" class="cb-priority rounded bg-surface border-outline-variant text-primary" onchange="app.updateTaskFilters()"><span class="text-sm text-on-surface">Alta</span></label>
+                            </div>
                         </div>
+
                         <!-- Operador -->
-                        <div class="flex flex-col gap-1">
+                        <div class="relative flex flex-col gap-1 filter-dropdown-container">
                             <label class="text-[10px] font-bold text-on-surface-variant uppercase">Operador</label>
-                            <select id="task-filter-assignee" onchange="app.updateTaskFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
-                                <option value="Todos">Todos</option>
-                            </select>
+                            <button onclick="app.toggleFilter('assignee-menu')" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm flex justify-between items-center w-48 hover:border-primary transition-colors">
+                                <span id="label-assignee-menu" class="truncate">Todos</span>
+                                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                            </button>
+                            <div id="assignee-menu" class="filter-dropdown-menu hidden absolute top-[100%] mt-1 left-0 w-56 bg-surface-container-high border border-outline-variant rounded-lg shadow-xl z-50 py-2 flex flex-col gap-1 max-h-60 overflow-y-auto">
+                                <!-- Injetado via JS -->
+                            </div>
                         </div>
+
                         <!-- Data -->
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold text-on-surface-variant uppercase">Data do Prazo</label>
@@ -666,6 +680,53 @@
             <div class="flex justify-end gap-3 mt-6">
                 <button onclick="app.closeMoveModal()" class="px-5 py-2.5 font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-xl">Cancelar</button>
                 <button onclick="app.confirmMove()" class="px-5 py-2.5 bg-primary-container text-white font-bold rounded-xl hover:bg-inverse-primary transition-colors">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes da Tarefa (Com Chat) -->
+    <div id="task-details-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeTaskDetails()"></div>
+        <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-4xl h-[80vh] rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden">
+            
+            <!-- Lado Esquerdo: Info da Tarefa -->
+            <div class="w-full md:w-1/2 h-full flex flex-col border-r border-outline-variant/30 bg-surface-container-low p-6 overflow-y-auto">
+                <div class="flex justify-between items-start mb-4">
+                    <span id="det-status" class="px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider">Status</span>
+                    <button onclick="app.closeTaskDetails()" class="md:hidden text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <h2 id="det-title" class="font-headline-lg text-2xl font-bold text-on-surface mb-2">Título da Tarefa</h2>
+                <div class="flex items-center gap-4 text-sm text-on-surface-variant mb-6 pb-4 border-b border-outline-variant/30">
+                    <div class="flex items-center gap-1" id="det-date-container"><span class="material-symbols-outlined text-[16px]">calendar_today</span> <span id="det-date">Prazo</span></div>
+                    <div id="det-priority-container"></div>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-xs font-bold text-on-surface-variant uppercase mb-2">Descrição</h4>
+                    <p id="det-desc" class="text-sm text-on-surface whitespace-pre-wrap leading-relaxed opacity-90">Descrição aqui...</p>
+                </div>
+            </div>
+
+            <!-- Lado Direito: Chat de Comentários -->
+            <div class="w-full md:w-1/2 h-full flex flex-col bg-surface">
+                <div class="h-14 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container shrink-0">
+                    <h3 class="font-title-md font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">forum</span> Atualizações</h3>
+                    <button onclick="app.closeTaskDetails()" class="hidden md:block text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                
+                <!-- Área de Mensagens -->
+                <div id="task-comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll">
+                    <!-- Comentários via JS -->
+                </div>
+
+                <!-- Input do Chat -->
+                <div class="p-3 border-t border-outline-variant/30 bg-surface-container-low">
+                    <div class="flex items-center gap-2 bg-[#232323] rounded-lg border border-outline-variant/50 px-3 py-2 focus-within:border-primary transition-colors">
+                        <input type="text" id="task-comment-inp" placeholder="Adicionar comentário..." class="bg-transparent border-none outline-none text-sm text-on-surface w-full focus:ring-0" onkeypress="if(event.key === 'Enter') app.addTaskComment()">
+                        <button onclick="app.addTaskComment()" class="text-primary hover:text-primary-fixed shrink-0 flex items-center justify-center p-1.5 rounded hover:bg-primary-container/10 transition-colors">
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
