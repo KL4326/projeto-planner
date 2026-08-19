@@ -32,13 +32,6 @@ const app = {
         if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
         const savedColor = localStorage.getItem('primaryColor');
         if (savedColor) document.documentElement.style.setProperty('--color-primary', savedColor);
-        
-        if(!document.getElementById('dark-select-fix')) {
-            const style = document.createElement('style');
-            style.id = 'dark-select-fix';
-            style.innerHTML = `.dark option { background-color: #151c2c; color: #ffffff; }`;
-            document.head.appendChild(style);
-        }
     },
 
     getTodayStr() {
@@ -58,13 +51,12 @@ const app = {
         const target = document.getElementById(`page-${pageId}`);
         if(target) target.classList.remove('hidden');
         
-        // Handle Sidebar Buttons active state
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors";
+            btn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors";
         });
         const activeBtn = document.getElementById(`nav-btn-${pageId}`);
         if(activeBtn) {
-            activeBtn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all";
+            activeBtn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all";
         }
         
         if(pageId === 'dashboard') { this.renderDashboard(); }
@@ -137,36 +129,123 @@ const app = {
         } 
     },
 
-    async addLog(msg) { 
+    async addLog(msg, manualCategory = null) { 
         try { 
-            await addDoc(collection(db, "notificacoes"), { text: msg, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now() }); 
+            await addDoc(collection(db, "notificacoes"), { 
+                text: msg, 
+                author: auth.currentUser.displayName || auth.currentUser.email, 
+                ts: Date.now(),
+                category: manualCategory 
+            }); 
         } catch(e) { console.error(e); } 
+    },
+
+    async saveManualLog() {
+        const text = document.getElementById('log-text-inp').value;
+        const cat = document.getElementById('log-category-inp').value;
+        if(!text.trim()) { app.showToast("Escreva algo no registro", "error"); return; }
+        
+        await app.addLog(text, cat);
+        document.getElementById('log-text-inp').value = '';
+        document.getElementById('modal-log-form').classList.add('hidden');
+        app.showToast("Registro adicionado ao Diário!");
     },
     
     listenToNotifications() {
         if (app.globalNotifsUnsub) return;
         app.globalNotifsUnsub = onSnapshot(collection(db, "notificacoes"), snap => {
-            const list = document.getElementById('dashboard-log-list'); if(!list) return;
+            const dashList = document.getElementById('dashboard-log-list'); 
+            const logbookList = document.getElementById('logbook-feed-list');
+            const countBadge = document.getElementById('logbook-today-count');
+            
             const logs = snap.docs.map(d => d.data()).sort((a,b) => (b.ts || 0) - (a.ts || 0));
             
-            list.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum log recente.</p>';
-            
-            logs.slice(0, 5).forEach(dt => {
-                const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                list.innerHTML += `
-                    <li class="p-4 hover:bg-[#333333] transition-colors flex gap-4">
-                        <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/50">
-                            <span class="font-code-data text-xs text-primary-fixed-dim">${time}</span>
-                        </div>
-                        <div class="flex-1 pt-1">
-                            <div class="flex items-baseline gap-2 mb-1">
-                                <span class="font-code-data text-sm font-semibold text-on-surface">${dt.author || 'Sistema'}</span>
+            // Popula Widget do Dashboard
+            if(dashList) {
+                dashList.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Nenhum log recente.</p>';
+                logs.slice(0, 5).forEach(dt => {
+                    const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                    dashList.innerHTML += `
+                        <li class="p-4 hover:bg-[#333333] transition-colors flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/50">
+                                <span class="font-code-data text-xs text-primary-fixed-dim">${time}</span>
                             </div>
-                            <p class="font-body-sm text-body-sm text-on-surface-variant">${dt.text || ''}</p>
+                            <div class="flex-1 pt-1">
+                                <div class="flex items-baseline gap-2 mb-1">
+                                    <span class="font-code-data text-sm font-semibold text-on-surface">${dt.author || 'Sistema'}</span>
+                                </div>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant">${dt.text || ''}</p>
+                            </div>
+                        </li>
+                    `;
+                });
+            }
+
+            // Popula Tela Principal do Diário de Bordo
+            if(logbookList) {
+                logbookList.innerHTML = logs.length ? '' : '<p class="p-6 text-center text-xs text-on-surface-variant/50 italic">Diário vazio.</p>';
+                
+                let todayCount = 0;
+                const todayStr = new Date().toDateString();
+
+                logs.forEach(dt => {
+                    const dateObj = new Date(dt.ts);
+                    if(dateObj.toDateString() === todayStr) todayCount++;
+
+                    const time = dt.ts ? dateObj.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                    
+                    // Identifica automaticamente a categoria caso seja log do sistema (pelos emojis)
+                    let category = dt.category || 'Logistics';
+                    let title = 'Registro Manual';
+                    let colorClass = 'text-primary';
+                    let bgClass = 'bg-primary';
+                    let bgLightClass = 'bg-primary-container/10';
+
+                    const isAction = dt.text && dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
+                    if(isAction) {
+                        const icon = isAction[0];
+                        if(icon === '➕') { title = 'Nova Demanda'; category = 'Logistics'; }
+                        else if(icon === '✏️' || icon === '🔄') { title = 'Atualização no Sistema'; category = 'Maintenance'; }
+                        else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incident'; }
+                        else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logistics'; }
+                        else { title = 'Ação de Sistema'; }
+                    }
+
+                    // Define as cores com base na categoria
+                    if(category === 'Maintenance') { colorClass = 'text-amber-400'; bgClass = 'bg-amber-400'; bgLightClass = 'bg-amber-400/10'; }
+                    if(category === 'Incident') { colorClass = 'text-error'; bgClass = 'bg-error'; bgLightClass = 'bg-error-container/20'; }
+                    if(category === 'Logistics') { colorClass = 'text-tertiary'; bgClass = 'bg-tertiary'; bgLightClass = 'bg-tertiary-container/20'; }
+
+                    const userL = app.getUserData(dt.author);
+                    let avatarHtml = `<div class="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface text-[10px] font-bold">${(dt.author || 'S').substring(0,2).toUpperCase()}</div>`;
+                    if(userL.foto) { avatarHtml = `<img src="${userL.foto}" class="w-full h-full object-cover">`; }
+
+                    logbookList.innerHTML += `
+                        <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-outline transition-colors">
+                            <div class="absolute left-0 top-0 bottom-0 w-1 ${bgClass}"></div>
+                            <div class="flex justify-between items-start mb-sm pl-xs">
+                                <div class="flex items-center gap-sm">
+                                    <span class="font-code-data text-on-surface-variant bg-surface-container px-2 py-1 rounded text-sm">${time}</span>
+                                    <div class="flex items-center gap-xs">
+                                        <div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant overflow-hidden">
+                                            ${avatarHtml}
+                                        </div>
+                                        <span class="font-body-sm text-on-surface font-medium">${dt.author || 'Sistema'}</span>
+                                    </div>
+                                </div>
+                                <span class="font-label-caps ${colorClass} ${bgLightClass} px-2 py-1 rounded flex items-center gap-xs">
+                                    <span class="w-1.5 h-1.5 rounded-full ${bgClass}"></span>
+                                    ${category}
+                                </span>
+                            </div>
+                            <h3 class="font-title-md text-on-surface mb-xs pl-xs">${title}</h3>
+                            <p class="font-body-sm text-on-surface-variant pl-xs">${dt.text}</p>
                         </div>
-                    </li>
-                `;
-            });
+                    `;
+                });
+                
+                if(countBadge) countBadge.innerText = todayCount;
+            }
         });
     },
 
