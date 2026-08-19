@@ -30,16 +30,16 @@ const app = {
     editingLockerId: null,
     editingNotebookIndex: -1,
     movingNotebookIndex: -1,
-    
-    globalTasksUnsub: null,
-    globalNotifsUnsub: null,
-    globalUsersUnsub: null,
-    lockersUnsub: null,
 
     taskFilterStatus: 'Todas',
     taskFilterPriority: 'Todas',
     taskFilterAssignee: 'Todos',
     taskFilterDate: '',
+    
+    globalTasksUnsub: null,
+    globalNotifsUnsub: null,
+    globalUsersUnsub: null,
+    lockersUnsub: null,
 
     init() { 
         this.bindEvents(); 
@@ -66,20 +66,17 @@ const app = {
     },
 
     navigate(pageId) {
-        // Esconde todas as seções e remove a classe active
         document.querySelectorAll('.page-section').forEach(s => {
             s.classList.remove('active');
             s.classList.add('hidden');
         });
         
-        // Mostra apenas a seção alvo
         const target = document.getElementById(`page-${pageId}`);
         if(target) {
             target.classList.add('active');
             target.classList.remove('hidden');
         }
         
-        // Atualiza a cor/estilo do botão ativo no menu lateral
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.className = "nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors";
         });
@@ -92,6 +89,7 @@ const app = {
         if(pageId === 'armarios') { this.renderLockers(); }
         if(pageId === 'logbook') { this.renderLogbook(); }
         if(pageId === 'tarefas') { this.renderTasksPage(); }
+        
         window.scrollTo(0,0);
     },
 
@@ -459,23 +457,15 @@ const app = {
         `);
     },
 
-    openLockerForm(id, event) {
-        if(event) event.stopPropagation(); 
-        app.editingLockerId = id;
+    openLocker(id) {
+        app.currentLockerId = id;
+        const locker = app.allLockers.find(l => l.id === id);
+        if(!locker) return;
         
-        if (id) {
-            const locker = app.allLockers.find(l => l.id === id);
-            document.getElementById('locker-form-title').innerText = "Editar Armário";
-            document.getElementById('locker-form-name').value = locker.name;
-            document.getElementById('locker-form-desc').value = locker.desc || "";
-            document.getElementById('locker-form-floor').value = locker.zone;
-        } else {
-            document.getElementById('locker-form-title').innerText = "Novo Armário";
-            document.getElementById('locker-form-name').value = "";
-            document.getElementById('locker-form-desc').value = "";
-            document.getElementById('locker-form-floor').value = "1º Andar";
-        }
-        document.getElementById('locker-form-modal').classList.remove('hidden');
+        document.getElementById('modal-title').innerText = locker.name;
+        document.getElementById('modal-subtitle').innerText = locker.zone;
+        document.getElementById('locker-modal').classList.remove('hidden');
+        app.renderNotebooks();
     },
 
     closeLocker() {
@@ -491,10 +481,12 @@ const app = {
             const locker = app.allLockers.find(l => l.id === id);
             document.getElementById('locker-form-title').innerText = "Editar Armário";
             document.getElementById('locker-form-name').value = locker.name;
+            document.getElementById('locker-form-desc').value = locker.desc || "";
             document.getElementById('locker-form-floor').value = locker.zone;
         } else {
             document.getElementById('locker-form-title').innerText = "Novo Armário";
             document.getElementById('locker-form-name').value = "";
+            document.getElementById('locker-form-desc').value = "";
             document.getElementById('locker-form-floor').value = "1º Andar";
         }
         document.getElementById('locker-form-modal').classList.remove('hidden');
@@ -705,17 +697,6 @@ const app = {
     },
 
     /* =======================================
-       TAREFAS E OUTRAS ROTINAS (Mantidas)
-    ======================================= */
-    listenToTasks() { 
-        if (app.globalTasksUnsub) return;
-        app.globalTasksUnsub = onSnapshot(collection(db, "tarefas"), snap => { 
-            app.allTasks = snap.docs.map(d => ({id: d.id, ...d.data()})); 
-            app.renderDashboard(); 
-        }); 
-    },
-
-  /* =======================================
        LISTA DE TAREFAS / PLANNER KANBAN
     ======================================= */
     listenToTasks() { 
@@ -752,7 +733,6 @@ const app = {
         let cAberto = 0, cProgresso = 0, cConcluido = 0, cCancelado = 0;
         const hoje = app.getTodayStr();
 
-        // Aplicar Filtros
         let filteredTasks = app.allTasks;
         if(this.taskFilterStatus !== 'Todas') {
             filteredTasks = filteredTasks.filter(t => t.status === this.taskFilterStatus);
@@ -786,7 +766,6 @@ const app = {
                 }
             }
 
-            // Gerar botões de movimentação rápida baseados no status atual
             let moveBtns = '';
             if(t.status === 'Em aberto') {
                 moveBtns = `<button onclick="app.changeTaskStatus('${t.id}', 'Em andamento')" class="w-6 h-6 rounded-md border border-outline-variant flex items-center justify-center hover:bg-[#FFDD00]/20 hover:text-[#FFDD00] hover:border-[#FFDD00] transition-colors" title="Mover para Em andamento"><span class="material-symbols-outlined text-[14px]">keyboard_double_arrow_right</span></button>`;
@@ -826,7 +805,7 @@ const app = {
             else if(t.status === 'Em andamento') { colProgresso.innerHTML += cardHtml; cProgresso++; }
             else if(t.status === 'Concluídas') { colConcluido.innerHTML += cardHtml; cConcluido++; }
             else if(t.status === 'Canceladas') { colCancelado.innerHTML += cardHtml; cCancelado++; }
-            else { colAberto.innerHTML += cardHtml; cAberto++; } // Fallback
+            else { colAberto.innerHTML += cardHtml; cAberto++; } 
         });
 
         document.getElementById('count-aberto').innerText = cAberto;
@@ -958,7 +937,7 @@ const app = {
                 app.addLog(`✅ Concluiu a tarefa: ${t.title}`, 'Logística');
             }
         } catch(e) { console.error(e); app.showToast("Erro", "error"); }
-    }
+    },
 
     loadUsers() { 
         if (app.globalUsersUnsub) return;
@@ -966,7 +945,6 @@ const app = {
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
             
-            // Popula filtros do Diário de Bordo
             const opSelect = document.getElementById('log-operator-filter');
             if(opSelect) {
                 const currentOp = opSelect.value;
@@ -975,7 +953,6 @@ const app = {
                 opSelect.value = currentOp;
             }
             
-            // Popula os Responsáveis do modal de Tarefas E Filtros
             const assignFormSelect = document.getElementById('task-assignee');
             const assignFilterSelect = document.getElementById('task-filter-assignee');
             
