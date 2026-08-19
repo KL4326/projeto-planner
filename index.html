@@ -186,39 +186,39 @@
             </div>
             <ul class="flex flex-col gap-2 flex-grow">
                 <li>
-                    <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all">
-                        <span class="material-symbols-outlined">dashboard</span>
-                        <span class="font-body-sm">Visão Geral</span>
+                    <button onclick="app.navigate('dashboard')" id="nav-btn-dashboard" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-high text-primary font-bold scale-95 transition-all">
+                        <span class="material-symbols-outlined shrink-0">dashboard</span>
+                        <span class="font-body-sm leading-tight">Visão Geral</span>
                     </button>
                 </li>
                 <li>
-                    <button onclick="app.navigate('logbook')" id="nav-btn-logbook" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">menu_book</span>
-                        <span class="font-body-sm">Diário de Bordo</span>
+                    <button onclick="app.navigate('logbook')" id="nav-btn-logbook" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined shrink-0">menu_book</span>
+                        <span class="font-body-sm leading-tight">Diário de Bordo</span>
                     </button>
                 </li>
                 <li>
-                    <button onclick="app.navigate('armarios')" id="nav-btn-armarios" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">lock</span>
-                        <span class="font-body-sm">Gerenciador de Armários</span>
+                    <button onclick="app.navigate('armarios')" id="nav-btn-armarios" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined shrink-0">lock</span>
+                        <span class="font-body-sm leading-tight">Gerenciador de Armários</span>
                     </button>
                 </li>
                 <li>
-                    <button onclick="app.navigate('tarefas')" id="nav-btn-tarefas" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">checklist</span>
-                        <span class="font-body-sm">Tarefas</span>
+                    <button onclick="app.navigate('tarefas')" id="nav-btn-tarefas" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined shrink-0">checklist</span>
+                        <span class="font-body-sm leading-tight">Tarefas</span>
                     </button>
                 </li>
                 <li>
-                    <button onclick="app.navigate('calculadoras')" id="nav-btn-calculadoras" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">calculate</span>
-                        <span class="font-body-sm">Calculadora</span>
+                    <button onclick="app.navigate('calculadoras')" id="nav-btn-calculadoras" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined shrink-0">calculate</span>
+                        <span class="font-body-sm leading-tight">Calculadora</span>
                     </button>
                 </li>
                 <li>
-                    <button onclick="app.navigate('configuracoes')" id="nav-btn-configuracoes" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">settings</span>
-                        <span class="font-body-sm">Configurações</span>
+                    <button onclick="app.navigate('configuracoes')" id="nav-btn-configuracoes" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined shrink-0">settings</span>
+                        <span class="font-body-sm leading-tight">Configurações</span>
                     </button>
                 </li>
             </ul>
@@ -292,14 +292,14 @@
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets</h3>
                             </div>
                             <div class="p-6 flex-1 flex flex-col items-center justify-center relative">
-                                <!-- Hard Stops no background para deixar a borda afiada e sem blur -->
-                                <div class="w-32 h-32 rounded-full border-[12px] border-surface-container relative flex items-center justify-center mb-6 shadow-inner" style="background: conic-gradient(#78dc77 0deg 225deg, #ffb4ab 225deg 315deg, #fbbf24 315deg 360deg); border-color: transparent;">
-                                    <div class="absolute inset-0 m-auto w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center">
+                                <div class="w-32 h-32 rounded-full relative flex items-center justify-center mb-6 shadow-sm overflow-hidden" style="background: conic-gradient(#78dc77 0% 62.5%, #ffb4ab 62.5% 87.5%, #fbbf24 87.5% 100%);">
+                                    <!-- Círculo central (O Furo da Rosca) -->
+                                    <div class="w-[104px] h-[104px] rounded-full bg-level-1 flex flex-col items-center justify-center relative z-10 shadow-inner">
                                         <span class="font-display-lg text-[28px] leading-none font-bold text-on-surface">40</span>
-                                        <span class="font-label-caps text-[10px] text-on-surface-variant">TOTAL</span>
+                                        <span class="font-label-caps text-[10px] text-on-surface-variant mt-1">TOTAL</span>
                                     </div>
                                 </div>
-                                <div class="w-full space-y-2 font-code-data text-xs">
+                                <div class="w-full space-y-2 font-code-data text-xs mt-2">
                                     <div class="flex justify-between p-2 rounded bg-surface"><span class="text-on-surface">Disponíveis</span><span class="text-tertiary font-bold">25</span></div>
                                     <div class="flex justify-between p-2 rounded bg-surface"><span class="text-on-surface">Em Uso</span><span class="text-error font-bold">10</span></div>
                                 </div>
