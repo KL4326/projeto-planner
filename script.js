@@ -48,6 +48,10 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
 
+    calcCurrent: '0',
+    calcPrevious: '',
+    calcOperation: null,
+
     init() { 
         this.bindEvents(); 
         this.checkAuth(); 
@@ -127,6 +131,7 @@ const app = {
         if(pageId === 'armarios') { this.renderLockers(); }
         if(pageId === 'logbook') { this.renderLogbook(); }
         if(pageId === 'tarefas') { this.renderTasksPage(); }
+        if(pageId === 'calculadora') { this.updateCalcDisplay(); }
         
         window.scrollTo(0,0);
     },
@@ -1389,6 +1394,59 @@ const app = {
                 text: text, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now()
             });
         } catch(e) { console.error(e); }
+    },
+
+
+  /* =======================================
+       CALCULADORA OPERACIONAL
+    ======================================= */
+    calcAppend(val) {
+        if (this.calcCurrent === '0' && val !== '.') {
+            this.calcCurrent = val;
+        } else {
+            this.calcCurrent += val;
+        }
+        this.updateCalcDisplay();
+    },
+
+    calcClear() {
+        this.calcCurrent = '0';
+        this.calcPrevious = '';
+        this.updateCalcDisplay();
+    },
+
+    calcDelete() {
+        if (this.calcCurrent.length > 1) {
+            this.calcCurrent = this.calcCurrent.slice(0, -1);
+        } else {
+            this.calcCurrent = '0';
+        }
+        this.updateCalcDisplay();
+    },
+
+    calcCompute() {
+        try {
+            // Substitui símbolos visuais por operadores de cálculo do JS
+            let expr = this.calcCurrent.replace(/×/g, '*').replace(/÷/g, '/');
+            
+            // Tratamento seguro básico de cálculo
+            let result = eval(expr);
+            if (!isFinite(result)) result = 'Erro';
+            
+            this.calcPrevious = this.calcCurrent + ' =';
+            this.calcCurrent = String(result);
+            this.updateCalcDisplay();
+        } catch (e) {
+            this.calcCurrent = 'Erro';
+            this.updateCalcDisplay();
+        }
+    },
+
+    updateCalcDisplay() {
+        const curEl = document.getElementById('calc-current');
+        const prevEl = document.getElementById('calc-previous');
+        if (curEl) curEl.innerText = this.calcCurrent;
+        if (prevEl) prevEl.innerText = this.calcPrevious;
     },
 
     loadUsers() { 
