@@ -48,7 +48,7 @@ const app = {
     calcPrevious: '',
     calcOperation: null,
 
-    // Filtros de Lembretes
+    reminderFilterStatus: 'Em aberto',
     reminderFilterDate: '',
     reminderFilterOperator: 'Todos',
     activeAlertId: null,
@@ -66,7 +66,7 @@ const app = {
         this.initTheme(); 
         this.startClock();
         this.getWeather();
-        this.requestNotificationPermission(); // Pede permissão para chamar o usuário de volta
+        this.requestNotificationPermission(); 
     },
 
     requestNotificationPermission() {
@@ -279,20 +279,20 @@ const app = {
         });
 
         if(alertToShow && app.activeAlertId !== alertToShow.id) {
-            app.activeAlertId = alertToShow.id; // Evita loop infinito
+            app.activeAlertId = alertToShow.id; 
             document.getElementById('alert-rem-id').value = alertToShow.id;
             document.getElementById('alert-rem-title').innerText = alertToShow.title;
             document.getElementById('alert-rem-desc').innerText = alertToShow.desc || 'Hora do seu alerta!';
             document.getElementById('reminder-alert-overlay').classList.remove('hidden');
 
-            // PUXA O USUÁRIO DE VOLTA PARA A ABA
             if ("Notification" in window && Notification.permission === "granted") {
-                const notif = new Notification("ALERTA: " + alertToShow.title, {
+                const notif = new Notification("ALERTA T.I: " + alertToShow.title, {
                     body: alertToShow.desc || "Clique aqui para retornar ao Workspace.",
-                    requireInteraction: true
+                    requireInteraction: true,
+                    icon: "https://cdn-icons-png.flaticon.com/512/565/565422.png" 
                 });
                 notif.onclick = function() {
-                    window.focus();
+                    window.focus(); 
                     this.close();
                 };
             }
@@ -300,20 +300,29 @@ const app = {
     },
 
     updateReminderFilters() {
+        app.reminderFilterStatus = document.getElementById('rem-filter-status').value;
         app.reminderFilterDate = document.getElementById('rem-filter-date').value;
         app.reminderFilterOperator = document.getElementById('rem-filter-operator').value;
         app.renderRemindersPage();
     },
 
     clearReminderFilters() {
+        document.getElementById('rem-filter-status').value = 'Em aberto';
         document.getElementById('rem-filter-date').value = '';
         document.getElementById('rem-filter-operator').value = 'Todos';
+        app.reminderFilterStatus = 'Em aberto';
         app.reminderFilterDate = '';
         app.reminderFilterOperator = 'Todos';
         app.renderRemindersPage();
     },
 
     openReminderForm(id = null) {
+        // Popula o select de operadores, forçando se não existir
+        const opSelect = document.getElementById('rem-operator');
+        if(opSelect) {
+            opSelect.innerHTML = Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
+        }
+
         if (id) {
             const r = app.allReminders.find(x => x.id === id);
             if(!r) return;
@@ -324,6 +333,7 @@ const app = {
             document.getElementById('rem-date').value = r.date || "";
             document.getElementById('rem-time').value = r.time || "";
             document.getElementById('rem-type').value = r.type || "Nota";
+            if(opSelect) opSelect.value = r.author || auth.currentUser.uid;
         } else {
             document.getElementById('reminder-form-title').innerText = "Novo Lembrete";
             document.getElementById('rem-id').value = "";
@@ -332,6 +342,7 @@ const app = {
             document.getElementById('rem-date').value = app.getTodayStr();
             document.getElementById('rem-time').value = new Date().toTimeString().slice(0,5);
             document.getElementById('rem-type').value = "Nota";
+            if(opSelect) opSelect.value = auth.currentUser.uid;
         }
         document.getElementById('reminder-form-modal').classList.remove('hidden');
     },
@@ -347,13 +358,14 @@ const app = {
         const date = document.getElementById('rem-date').value;
         const time = document.getElementById('rem-time').value;
         const type = document.getElementById('rem-type').value;
+        const authorId = document.getElementById('rem-operator').value; // Agora pega do campo!
 
         if(!title) return app.showToast("O título é obrigatório.", "error");
 
         const remData = {
             title, desc, date, time, type,
             status: 'Em aberto',
-            author: auth.currentUser.uid,
+            author: authorId,
             ts_manual: Date.now()
         };
 
@@ -380,16 +392,18 @@ const app = {
 
     async completeReminder(id) {
         try {
-            await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
-            app.showToast("Lembrete concluído!");
+            const r = app.allReminders.find(x => x.id === id);
+            const newStatus = r.status === 'Concluído' ? 'Em aberto' : 'Concluído';
+            await updateDoc(doc(db, "lembretes", id), { status: newStatus });
+            app.showToast(newStatus === 'Concluído' ? "Concluído!" : "Reaberto!");
         } catch(e) { console.error(e); }
     },
 
     async completeAlert() {
         const id = document.getElementById('alert-rem-id').value;
         if(id) {
-            await app.completeReminder(id);
-            app.activeAlertId = null; // Reseta o bloqueio
+            await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
+            app.activeAlertId = null; 
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
         }
     },
@@ -411,7 +425,7 @@ const app = {
 
         try {
             await updateDoc(doc(db, "lembretes", id), { time: newTime });
-            app.activeAlertId = null; // Reseta para tocar depois
+            app.activeAlertId = null; 
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
             app.showToast(`Adiado para as ${newTime}`, "info");
         } catch(e) { console.error(e); }
@@ -422,14 +436,17 @@ const app = {
         const alertsList = document.getElementById('reminders-alerts-list');
         if(!notesList || !alertsList) return;
 
-        let myRems = app.allReminders.filter(r => r.status !== 'Concluído');
+        let myRems = app.allReminders;
 
-        // Filtra por Operador
+        // Filtro de Status (Histórico)
+        if(app.reminderFilterStatus !== 'Todos') {
+            myRems = myRems.filter(r => r.status === app.reminderFilterStatus);
+        }
+
         if (app.reminderFilterOperator !== 'Todos') {
             myRems = myRems.filter(r => r.author === app.reminderFilterOperator);
         }
 
-        // Filtra por Data
         if (app.reminderFilterDate) {
             myRems = myRems.filter(r => r.date === app.reminderFilterDate);
         }
@@ -447,29 +464,32 @@ const app = {
             const dStr = r.date ? r.date.split('-').reverse().join('/') : '--/--/----';
             const tStr = r.time ? r.time : '--:--';
             
-            // Avatar do dono do lembrete
             const u = app.getUserData(r.author);
             const avatarHtml = u.foto 
                 ? `<img src="${u.foto}" class="w-5 h-5 rounded-full object-cover shadow-sm border border-black/20" title="${u.nome}">` 
                 : `<div class="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-[8px] font-bold text-black" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
 
+            const isDone = r.status === 'Concluído';
+            const doneStyles = isDone ? 'opacity-60 grayscale' : '';
+            const doneBadge = isDone ? `<span class="text-[10px] font-black bg-green-500/20 text-green-700 px-2 py-0.5 rounded-full mb-2 inline-block border border-green-500/30">✅ CONCLUÍDO</span>` : '';
+
             if(r.type === 'Nota') {
                 notesHtml += `
-                    <div class="bg-yellow-200 text-yellow-900 p-4 pb-12 rounded-lg shadow-md relative group hover:-translate-y-1 transition-all border border-yellow-300">
+                    <div class="bg-yellow-200 text-yellow-900 p-4 pb-12 rounded-lg shadow-md relative group transition-all border border-yellow-300 ${doneStyles}">
                         <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl">push_pin</span>
                         
                         <div class="flex items-center gap-2 mb-2 mt-2">
                             ${avatarHtml}
-                            <h4 class="font-bold text-sm leading-tight flex-1 truncate">${r.title}</h4>
+                            <h4 class="font-bold text-sm leading-tight flex-1 truncate ${isDone ? 'line-through' : ''}">${r.title}</h4>
                         </div>
-                        
+                        ${doneBadge}
                         <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
                         
                         <div class="absolute bottom-0 left-0 w-full p-2 border-t border-yellow-400/30 flex justify-between items-center bg-yellow-300/30 rounded-b-lg">
                             <span class="text-[10px] font-bold opacity-80 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
                             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onclick="app.openReminderForm('${r.id}')" class="p-1 hover:bg-yellow-400/50 rounded text-yellow-800" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
-                                <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="Concluir"><span class="material-symbols-outlined text-[16px]">check</span></button>
+                                <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="Marcar/Desmarcar"><span class="material-symbols-outlined text-[16px]">${isDone ? 'replay' : 'check'}</span></button>
                                 <button onclick="app.deleteReminder('${r.id}')" class="p-1 hover:bg-red-500/30 rounded text-red-700" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
                             </div>
                         </div>
@@ -477,18 +497,21 @@ const app = {
                 `;
             } else {
                 alertsHtml += `
-                    <div class="glass-panel p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between shadow-sm hover:border-red-400/50 transition-colors group">
+                    <div class="glass-panel p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between shadow-sm transition-colors group ${isDone ? 'opacity-60 grayscale border-green-500/30' : 'hover:border-red-400/50'}">
                         <div class="flex-1 min-w-0 pr-4">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 flex items-center w-max gap-1 border border-red-500/20"><span class="material-symbols-outlined text-[12px]">notifications_active</span> ALERTA AGENDADO</span>
+                                ${isDone 
+                                    ? `<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-green-500/20 text-green-500 flex items-center w-max gap-1 border border-green-500/20">✅ CONCLUÍDO</span>`
+                                    : `<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 flex items-center w-max gap-1 border border-red-500/20"><span class="material-symbols-outlined text-[12px]">notifications_active</span> ALERTA</span>`
+                                }
                                 ${avatarHtml}
                             </div>
-                            <h4 class="font-bold text-base text-on-surface truncate">${r.title}</h4>
+                            <h4 class="font-bold text-base text-on-surface truncate ${isDone ? 'line-through text-on-surface-variant' : ''}">${r.title}</h4>
                             <span class="text-xs text-on-surface-variant font-code-data mt-1 block"><span class="material-symbols-outlined text-[14px] align-middle">schedule</span> Dispara em: ${dStr} às <span class="font-bold text-on-surface">${tStr}</span></span>
                         </div>
                         <div class="flex gap-1 border-l border-outline-variant/30 pl-3 shrink-0 flex-wrap justify-end max-w-[90px] sm:max-w-none">
                             <button onclick="app.openReminderForm('${r.id}')" class="p-1.5 hover:bg-surface-variant rounded-lg text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                            <button onclick="app.completeReminder('${r.id}')" class="p-1.5 hover:bg-green-500/20 rounded-lg text-on-surface-variant hover:text-green-500 transition-colors" title="Concluir (Parar)"><span class="material-symbols-outlined text-[18px]">check</span></button>
+                            <button onclick="app.completeReminder('${r.id}')" class="p-1.5 ${isDone ? 'hover:bg-yellow-500/20 text-yellow-500' : 'hover:bg-green-500/20 text-green-500'} rounded-lg transition-colors" title="Marcar/Desmarcar"><span class="material-symbols-outlined text-[18px]">${isDone ? 'replay' : 'check'}</span></button>
                             <button onclick="app.deleteReminder('${r.id}')" class="p-1.5 hover:bg-error-container/20 rounded-lg text-on-surface-variant hover:text-error transition-colors" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                         </div>
                     </div>
@@ -496,8 +519,8 @@ const app = {
             }
         });
 
-        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa. Nenhuma nota.</p>';
-        alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alarme agendado.</p>';
+        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa.</p>';
+        alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alerta listado.</p>';
     },
 
     /* =======================================
@@ -1793,7 +1816,6 @@ const app = {
                 `).join('');
             }
 
-            // Popula os novos filtros da aba Lembretes
             const remOpSelect = document.getElementById('rem-filter-operator');
             if(remOpSelect) {
                 const currentRemOp = remOpSelect.value;
