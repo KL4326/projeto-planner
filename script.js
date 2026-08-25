@@ -151,9 +151,27 @@ const app = {
         const lf = document.getElementById('login-form');
         if(lf) lf.addEventListener('submit', (e) => app.handleLogin(e));
 
+        // Fecha os menus de filtro ao clicar fora
         document.addEventListener('click', (e) => {
             if(!e.target.closest('.filter-dropdown-container')) {
                 document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
+            }
+        });
+
+        // Suporte ao Teclado Físico para a Calculadora
+        document.addEventListener('keydown', (e) => {
+            const calcPage = document.getElementById('page-calculadora');
+            if(calcPage && calcPage.classList.contains('active')) {
+                const key = e.key;
+                
+                // Mapeamento das teclas
+                if (/[0-9]/.test(key)) { app.calcAppend(key); }
+                else if (key === '.' || key === ',') { app.calcAppend('.'); }
+                else if (key === '+' || key === '-' || key === '*' || key === '/') { app.calcAppend(key); }
+                else if (key === '%') { app.calcAppend('%'); }
+                else if (key === 'Enter' || key === '=') { e.preventDefault(); app.calcCompute(); }
+                else if (key === 'Backspace') { app.calcDelete(); }
+                else if (key === 'Escape' || key === 'Delete') { app.calcClear(); }
             }
         });
     },
@@ -238,9 +256,32 @@ const app = {
 
     calcCompute() {
         try {
+            // 1. Troca os símbolos visuais por operadores reais
             let expr = this.calcCurrent.replace(/×/g, '*').replace(/÷/g, '/');
+            
+            // 2. Resolve Porcentagem de Adição/Subtração (ex: 150 - 15% vira 150 - (150 * 15 / 100))
+            expr = expr.replace(/(\d+(?:\.\d+)?)\s*([\+\-])\s*(\d+(?:\.\d+)?)%/g, (match, p1, p2, p3) => {
+                return `${p1}${p2}(${p1}*${p3}/100)`;
+            });
+            
+            // 3. Resolve Porcentagem de Multiplicação/Divisão (ex: 150 * 15% vira 150 * (15 / 100))
+            expr = expr.replace(/(\d+(?:\.\d+)?)\s*([\*\/])\s*(\d+(?:\.\d+)?)%/g, (match, p1, p2, p3) => {
+                return `${p1}${p2}(${p3}/100)`;
+            });
+
+            // 4. Resolve porcentagem isolada (ex: 15% vira 0.15)
+            expr = expr.replace(/(\d+(?:\.\d+)?)%/g, (match, p1) => {
+                return `(${p1}/100)`;
+            });
+
+            // 5. Calcula o resultado final
             let result = eval(expr);
             if (!isFinite(result)) result = 'Erro';
+            
+            // 6. Formata para evitar casas decimais infinitas (ex: 127.5000000001 vira 127.5)
+            if (result !== 'Erro') {
+                result = parseFloat(result.toFixed(6));
+            }
             
             this.calcPrevious = this.calcCurrent + ' =';
             this.calcCurrent = String(result);
