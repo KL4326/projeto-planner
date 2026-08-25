@@ -20,7 +20,7 @@ const app = {
     userMap: {},
     allLogs: [],
     allLockers: [],
-    allReminders: [], // NOVO: Armazena os lembretes
+    allReminders: [], 
     
     logFilter: 'Todos',
     logDateFilter: '',
@@ -48,12 +48,17 @@ const app = {
     calcPrevious: '',
     calcOperation: null,
 
+    // Filtros de Lembretes
+    reminderFilterDate: '',
+    reminderFilterOperator: 'Todos',
+    activeAlertId: null,
+
     globalTasksUnsub: null,
     globalNotifsUnsub: null,
     globalUsersUnsub: null,
     lockersUnsub: null,
-    remindersUnsub: null, // NOVO
-    alertCheckInterval: null, // NOVO: Relógio do alarme
+    remindersUnsub: null, 
+    alertCheckInterval: null, 
 
     init() { 
         this.bindEvents(); 
@@ -61,6 +66,15 @@ const app = {
         this.initTheme(); 
         this.startClock();
         this.getWeather();
+        this.requestNotificationPermission(); // Pede permissão para chamar o usuário de volta
+    },
+
+    requestNotificationPermission() {
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
     },
 
     startClock() {
@@ -204,7 +218,7 @@ const app = {
                 app.loadUsers(); 
                 app.listenToNotifications();
                 app.listenToLockers();
-                app.listenToReminders(); // Inicia o radar de lembretes e alarmes
+                app.listenToReminders(); 
                 
                 app.navigate('dashboard'); 
             } else { 
@@ -242,7 +256,6 @@ const app = {
             }
         });
 
-        // Relógio de Verificação de Alertas (Verifica a cada 10s)
         if (!app.alertCheckInterval) {
             app.alertCheckInterval = setInterval(() => {
                 app.checkAlerts();
@@ -251,14 +264,12 @@ const app = {
     },
 
     checkAlerts() {
-        // Se a tela vermelha gigante já estiver aberta, não faz nada
         if(!document.getElementById('reminder-alert-overlay').classList.contains('hidden')) return; 
 
         const now = new Date();
         const currentUid = auth.currentUser ? auth.currentUser.uid : null;
         if(!currentUid) return;
 
-        // Procura O PRIMEIRO alerta que já passou do horário e não foi concluído
         const alertToShow = app.allReminders.find(r => {
             if(r.type === 'Alerta' && r.status !== 'Concluído' && r.author === currentUid && r.date && r.time) {
                 const rDate = new Date(`${r.date}T${r.time}`);
@@ -267,12 +278,39 @@ const app = {
             return false;
         });
 
-        if(alertToShow) {
+        if(alertToShow && app.activeAlertId !== alertToShow.id) {
+            app.activeAlertId = alertToShow.id; // Evita loop infinito
             document.getElementById('alert-rem-id').value = alertToShow.id;
             document.getElementById('alert-rem-title').innerText = alertToShow.title;
             document.getElementById('alert-rem-desc').innerText = alertToShow.desc || 'Hora do seu alerta!';
             document.getElementById('reminder-alert-overlay').classList.remove('hidden');
+
+            // PUXA O USUÁRIO DE VOLTA PARA A ABA
+            if ("Notification" in window && Notification.permission === "granted") {
+                const notif = new Notification("ALERTA: " + alertToShow.title, {
+                    body: alertToShow.desc || "Clique aqui para retornar ao Workspace.",
+                    requireInteraction: true
+                });
+                notif.onclick = function() {
+                    window.focus();
+                    this.close();
+                };
+            }
         }
+    },
+
+    updateReminderFilters() {
+        app.reminderFilterDate = document.getElementById('rem-filter-date').value;
+        app.reminderFilterOperator = document.getElementById('rem-filter-operator').value;
+        app.renderRemindersPage();
+    },
+
+    clearReminderFilters() {
+        document.getElementById('rem-filter-date').value = '';
+        document.getElementById('rem-filter-operator').value = 'Todos';
+        app.reminderFilterDate = '';
+        app.reminderFilterOperator = 'Todos';
+        app.renderRemindersPage();
     },
 
     openReminderForm(id = null) {
@@ -351,6 +389,7 @@ const app = {
         const id = document.getElementById('alert-rem-id').value;
         if(id) {
             await app.completeReminder(id);
+            app.activeAlertId = null; // Reseta o bloqueio
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
         }
     },
@@ -362,7 +401,6 @@ const app = {
         const r = app.allReminders.find(x => x.id === id);
         if(!r || !r.time) return;
 
-        // Adiciona 10 minutos ao horário
         let [hours, minutes] = r.time.split(':').map(Number);
         minutes += 10;
         if(minutes >= 60) {
@@ -373,6 +411,7 @@ const app = {
 
         try {
             await updateDoc(doc(db, "lembretes", id), { time: newTime });
+            app.activeAlertId = null; // Reseta para tocar depois
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
             app.showToast(`Adiado para as ${newTime}`, "info");
         } catch(e) { console.error(e); }
@@ -383,10 +422,18 @@ const app = {
         const alertsList = document.getElementById('reminders-alerts-list');
         if(!notesList || !alertsList) return;
 
-        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
-        let myRems = app.allReminders.filter(r => r.author === currentUid && r.status !== 'Concluído');
+        let myRems = app.allReminders.filter(r => r.status !== 'Concluído');
 
-        // Ordena cronologicamente
+        // Filtra por Operador
+        if (app.reminderFilterOperator !== 'Todos') {
+            myRems = myRems.filter(r => r.author === app.reminderFilterOperator);
+        }
+
+        // Filtra por Data
+        if (app.reminderFilterDate) {
+            myRems = myRems.filter(r => r.date === app.reminderFilterDate);
+        }
+
         myRems.sort((a,b) => {
             const dA = new Date(`${a.date || '9999-12-31'}T${a.time || '23:59'}`);
             const dB = new Date(`${b.date || '9999-12-31'}T${b.time || '23:59'}`);
@@ -399,12 +446,23 @@ const app = {
         myRems.forEach(r => {
             const dStr = r.date ? r.date.split('-').reverse().join('/') : '--/--/----';
             const tStr = r.time ? r.time : '--:--';
+            
+            // Avatar do dono do lembrete
+            const u = app.getUserData(r.author);
+            const avatarHtml = u.foto 
+                ? `<img src="${u.foto}" class="w-5 h-5 rounded-full object-cover shadow-sm border border-black/20" title="${u.nome}">` 
+                : `<div class="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-[8px] font-bold text-black" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
 
             if(r.type === 'Nota') {
                 notesHtml += `
                     <div class="bg-yellow-200 text-yellow-900 p-4 pb-12 rounded-lg shadow-md relative group hover:-translate-y-1 transition-all border border-yellow-300">
                         <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl">push_pin</span>
-                        <h4 class="font-bold text-sm mb-2 mt-2 leading-tight">${r.title}</h4>
+                        
+                        <div class="flex items-center gap-2 mb-2 mt-2">
+                            ${avatarHtml}
+                            <h4 class="font-bold text-sm leading-tight flex-1 truncate">${r.title}</h4>
+                        </div>
+                        
                         <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
                         
                         <div class="absolute bottom-0 left-0 w-full p-2 border-t border-yellow-400/30 flex justify-between items-center bg-yellow-300/30 rounded-b-lg">
@@ -421,12 +479,16 @@ const app = {
                 alertsHtml += `
                     <div class="glass-panel p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between shadow-sm hover:border-red-400/50 transition-colors group">
                         <div class="flex-1 min-w-0 pr-4">
-                            <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 flex items-center w-max gap-1 mb-1 border border-red-500/20"><span class="material-symbols-outlined text-[12px]">notifications_active</span> ALERTA AGENDADO</span>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 flex items-center w-max gap-1 border border-red-500/20"><span class="material-symbols-outlined text-[12px]">notifications_active</span> ALERTA AGENDADO</span>
+                                ${avatarHtml}
+                            </div>
                             <h4 class="font-bold text-base text-on-surface truncate">${r.title}</h4>
                             <span class="text-xs text-on-surface-variant font-code-data mt-1 block"><span class="material-symbols-outlined text-[14px] align-middle">schedule</span> Dispara em: ${dStr} às <span class="font-bold text-on-surface">${tStr}</span></span>
                         </div>
-                        <div class="flex gap-1 border-l border-outline-variant/30 pl-3 shrink-0">
+                        <div class="flex gap-1 border-l border-outline-variant/30 pl-3 shrink-0 flex-wrap justify-end max-w-[90px] sm:max-w-none">
                             <button onclick="app.openReminderForm('${r.id}')" class="p-1.5 hover:bg-surface-variant rounded-lg text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                            <button onclick="app.completeReminder('${r.id}')" class="p-1.5 hover:bg-green-500/20 rounded-lg text-on-surface-variant hover:text-green-500 transition-colors" title="Concluir (Parar)"><span class="material-symbols-outlined text-[18px]">check</span></button>
                             <button onclick="app.deleteReminder('${r.id}')" class="p-1.5 hover:bg-error-container/20 rounded-lg text-on-surface-variant hover:text-error transition-colors" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                         </div>
                     </div>
@@ -435,7 +497,7 @@ const app = {
         });
 
         notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa. Nenhuma nota.</p>';
-        alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alarme disparado.</p>';
+        alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alarme agendado.</p>';
     },
 
     /* =======================================
@@ -1275,7 +1337,6 @@ const app = {
             const hoje = app.getTodayStr();
             const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
-            // 1. Pega as Tarefas normais do usuário
             let myTasks = app.allTasks.filter(t => { 
                 const matchAssignee = t.assignees && t.assignees.includes(currentUid);
                 let normStatus = (t.status || 'Em aberto').trim();
@@ -1285,7 +1346,6 @@ const app = {
                 return matchAssignee && notDone; 
             });
 
-            // 2. Transforma as tarefas para o formato unificado da lista
             let combinedList = [];
             myTasks.forEach(t => {
                 let taskDateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
@@ -1293,7 +1353,6 @@ const app = {
                 combinedList.push({ isTask: true, data: t, dateStr: taskDateStr, isAtrasada: isAtrasada });
             });
 
-            // 3. Pega as Notas (Lembretes) atrasadas e joga na lista
             let myOverdueNotes = app.allReminders.filter(r => r.type === 'Nota' && r.status !== 'Concluído' && r.author === currentUid && r.date);
             myOverdueNotes.forEach(r => {
                 const rDateTime = new Date(`${r.date}T${r.time || '23:59'}`);
@@ -1302,7 +1361,6 @@ const app = {
                 }
             });
 
-            // 4. Ordena tudo (Atrasados > Data de criação)
             combinedList.sort((a, b) => {
                 if (a.isAtrasada && !b.isAtrasada) return -1;
                 if (!a.isAtrasada && b.isAtrasada) return 1;
@@ -1314,7 +1372,6 @@ const app = {
                 return;
             }
             
-            // 5. Renderiza a lista mista
             let htmlStr = '';
             combinedList.forEach(item => {
                 try {
@@ -1322,9 +1379,9 @@ const app = {
                     const isAtrasada = item.isAtrasada;
                     
                     let pTag = '';
-                    if (!item.isTask) { // É uma Nota
+                    if (!item.isTask) {
                         pTag = `<span class="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 font-label-caps text-[9px] rounded border border-yellow-500/20 animate-pulse flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">sticky_note_2</span> NOTA ATRASADA</span>`;
-                    } else { // É uma Tarefa
+                    } else {
                         if(isAtrasada) {
                             pTag = `<span class="px-1.5 py-0.5 bg-red-500/20 text-red-400 font-label-caps text-[9px] rounded border border-red-500/20 animate-pulse">ATRASADA</span>`;
                         } else if(d.priority === 'Alta') {
@@ -1734,6 +1791,15 @@ const app = {
                         <span class="text-sm text-on-surface truncate">${u.nome}</span>
                     </label>
                 `).join('');
+            }
+
+            // Popula os novos filtros da aba Lembretes
+            const remOpSelect = document.getElementById('rem-filter-operator');
+            if(remOpSelect) {
+                const currentRemOp = remOpSelect.value;
+                remOpSelect.innerHTML = '<option value="Todos">Todos</option>' +
+                    Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
+                remOpSelect.value = currentRemOp || 'Todos';
             }
 
             app.renderDashboard();
