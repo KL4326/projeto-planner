@@ -20,6 +20,7 @@ const app = {
     userMap: {},
     allLogs: [],
     allLockers: [],
+    allReminders: [], // NOVO: Armazena os lembretes
     
     logFilter: 'Todos',
     logDateFilter: '',
@@ -51,6 +52,8 @@ const app = {
     globalNotifsUnsub: null,
     globalUsersUnsub: null,
     lockersUnsub: null,
+    remindersUnsub: null, // NOVO
+    alertCheckInterval: null, // NOVO: Relógio do alarme
 
     init() { 
         this.bindEvents(); 
@@ -132,6 +135,7 @@ const app = {
         if(pageId === 'logbook') { this.renderLogbook(); }
         if(pageId === 'tarefas') { this.renderTasksPage(); }
         if(pageId === 'calculadora') { this.updateCalcDisplay(); }
+        if(pageId === 'lembretes') { this.renderRemindersPage(); }
         
         window.scrollTo(0,0);
     },
@@ -151,20 +155,16 @@ const app = {
         const lf = document.getElementById('login-form');
         if(lf) lf.addEventListener('submit', (e) => app.handleLogin(e));
 
-        // Fecha os menus de filtro ao clicar fora
         document.addEventListener('click', (e) => {
             if(!e.target.closest('.filter-dropdown-container')) {
                 document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
             }
         });
 
-        // Suporte ao Teclado Físico para a Calculadora
         document.addEventListener('keydown', (e) => {
             const calcPage = document.getElementById('page-calculadora');
             if(calcPage && calcPage.classList.contains('active')) {
                 const key = e.key;
-                
-                // Mapeamento das teclas
                 if (/[0-9]/.test(key)) { app.calcAppend(key); }
                 else if (key === '.' || key === ',') { app.calcAppend('.'); }
                 else if (key === '+' || key === '-' || key === '*' || key === '/') { app.calcAppend(key); }
@@ -204,6 +204,7 @@ const app = {
                 app.loadUsers(); 
                 app.listenToNotifications();
                 app.listenToLockers();
+                app.listenToReminders(); // Inicia o radar de lembretes e alarmes
                 
                 app.navigate('dashboard'); 
             } else { 
@@ -225,6 +226,216 @@ const app = {
             av.innerText = nomeReal.substring(0,2).toUpperCase(); 
             av.style.backgroundImage = 'none';
         } 
+    },
+
+    /* =======================================
+       SISTEMA DE LEMBRETES & ALERTAS
+    ======================================= */
+    listenToReminders() {
+        if (app.remindersUnsub) return;
+        app.remindersUnsub = onSnapshot(collection(db, "lembretes"), snap => {
+            app.allReminders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            
+            app.renderDashboard(); 
+            if(document.getElementById('page-lembretes').classList.contains('active')) {
+                app.renderRemindersPage();
+            }
+        });
+
+        // Relógio de Verificação de Alertas (Verifica a cada 10s)
+        if (!app.alertCheckInterval) {
+            app.alertCheckInterval = setInterval(() => {
+                app.checkAlerts();
+            }, 10000);
+        }
+    },
+
+    checkAlerts() {
+        // Se a tela vermelha gigante já estiver aberta, não faz nada
+        if(!document.getElementById('reminder-alert-overlay').classList.contains('hidden')) return; 
+
+        const now = new Date();
+        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+        if(!currentUid) return;
+
+        // Procura O PRIMEIRO alerta que já passou do horário e não foi concluído
+        const alertToShow = app.allReminders.find(r => {
+            if(r.type === 'Alerta' && r.status !== 'Concluído' && r.author === currentUid && r.date && r.time) {
+                const rDate = new Date(`${r.date}T${r.time}`);
+                return now >= rDate;
+            }
+            return false;
+        });
+
+        if(alertToShow) {
+            document.getElementById('alert-rem-id').value = alertToShow.id;
+            document.getElementById('alert-rem-title').innerText = alertToShow.title;
+            document.getElementById('alert-rem-desc').innerText = alertToShow.desc || 'Hora do seu alerta!';
+            document.getElementById('reminder-alert-overlay').classList.remove('hidden');
+        }
+    },
+
+    openReminderForm(id = null) {
+        if (id) {
+            const r = app.allReminders.find(x => x.id === id);
+            if(!r) return;
+            document.getElementById('reminder-form-title').innerText = "Editar Lembrete";
+            document.getElementById('rem-id').value = r.id;
+            document.getElementById('rem-title').value = r.title || "";
+            document.getElementById('rem-desc').value = r.desc || "";
+            document.getElementById('rem-date').value = r.date || "";
+            document.getElementById('rem-time').value = r.time || "";
+            document.getElementById('rem-type').value = r.type || "Nota";
+        } else {
+            document.getElementById('reminder-form-title').innerText = "Novo Lembrete";
+            document.getElementById('rem-id').value = "";
+            document.getElementById('rem-title').value = "";
+            document.getElementById('rem-desc').value = "";
+            document.getElementById('rem-date').value = app.getTodayStr();
+            document.getElementById('rem-time').value = new Date().toTimeString().slice(0,5);
+            document.getElementById('rem-type').value = "Nota";
+        }
+        document.getElementById('reminder-form-modal').classList.remove('hidden');
+    },
+
+    closeReminderForm() {
+        document.getElementById('reminder-form-modal').classList.add('hidden');
+    },
+
+    async saveReminderForm() {
+        const id = document.getElementById('rem-id').value;
+        const title = document.getElementById('rem-title').value;
+        const desc = document.getElementById('rem-desc').value;
+        const date = document.getElementById('rem-date').value;
+        const time = document.getElementById('rem-time').value;
+        const type = document.getElementById('rem-type').value;
+
+        if(!title) return app.showToast("O título é obrigatório.", "error");
+
+        const remData = {
+            title, desc, date, time, type,
+            status: 'Em aberto',
+            author: auth.currentUser.uid,
+            ts_manual: Date.now()
+        };
+
+        try {
+            if(id) {
+                await updateDoc(doc(db, "lembretes", id), remData);
+                app.showToast("Lembrete atualizado!");
+            } else {
+                await addDoc(collection(db, "lembretes"), remData);
+                app.showToast("Lembrete agendado!");
+            }
+            app.closeReminderForm();
+        } catch(e) { console.error(e); app.showToast("Erro ao agendar.", "error"); }
+    },
+
+    async deleteReminder(id) {
+        if(confirm("Deseja realmente apagar este lembrete/alerta?")) {
+            try {
+                await deleteDoc(doc(db, "lembretes", id));
+                app.showToast("Lembrete apagado.");
+            } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
+        }
+    },
+
+    async completeReminder(id) {
+        try {
+            await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
+            app.showToast("Lembrete concluído!");
+        } catch(e) { console.error(e); }
+    },
+
+    async completeAlert() {
+        const id = document.getElementById('alert-rem-id').value;
+        if(id) {
+            await app.completeReminder(id);
+            document.getElementById('reminder-alert-overlay').classList.add('hidden');
+        }
+    },
+
+    async snoozeAlert() {
+        const id = document.getElementById('alert-rem-id').value;
+        if(!id) return;
+
+        const r = app.allReminders.find(x => x.id === id);
+        if(!r || !r.time) return;
+
+        // Adiciona 10 minutos ao horário
+        let [hours, minutes] = r.time.split(':').map(Number);
+        minutes += 10;
+        if(minutes >= 60) {
+            hours = (hours + 1) % 24;
+            minutes -= 60;
+        }
+        const newTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+        try {
+            await updateDoc(doc(db, "lembretes", id), { time: newTime });
+            document.getElementById('reminder-alert-overlay').classList.add('hidden');
+            app.showToast(`Adiado para as ${newTime}`, "info");
+        } catch(e) { console.error(e); }
+    },
+
+    renderRemindersPage() {
+        const notesList = document.getElementById('reminders-notes-list');
+        const alertsList = document.getElementById('reminders-alerts-list');
+        if(!notesList || !alertsList) return;
+
+        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+        let myRems = app.allReminders.filter(r => r.author === currentUid && r.status !== 'Concluído');
+
+        // Ordena cronologicamente
+        myRems.sort((a,b) => {
+            const dA = new Date(`${a.date || '9999-12-31'}T${a.time || '23:59'}`);
+            const dB = new Date(`${b.date || '9999-12-31'}T${b.time || '23:59'}`);
+            return dA - dB;
+        });
+
+        let notesHtml = '';
+        let alertsHtml = '';
+
+        myRems.forEach(r => {
+            const dStr = r.date ? r.date.split('-').reverse().join('/') : '--/--/----';
+            const tStr = r.time ? r.time : '--:--';
+
+            if(r.type === 'Nota') {
+                notesHtml += `
+                    <div class="bg-yellow-200 text-yellow-900 p-4 pb-12 rounded-lg shadow-md relative group hover:-translate-y-1 transition-all border border-yellow-300">
+                        <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl">push_pin</span>
+                        <h4 class="font-bold text-sm mb-2 mt-2 leading-tight">${r.title}</h4>
+                        <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
+                        
+                        <div class="absolute bottom-0 left-0 w-full p-2 border-t border-yellow-400/30 flex justify-between items-center bg-yellow-300/30 rounded-b-lg">
+                            <span class="text-[10px] font-bold opacity-80 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="app.openReminderForm('${r.id}')" class="p-1 hover:bg-yellow-400/50 rounded text-yellow-800" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                                <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="Concluir"><span class="material-symbols-outlined text-[16px]">check</span></button>
+                                <button onclick="app.deleteReminder('${r.id}')" class="p-1 hover:bg-red-500/30 rounded text-red-700" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                alertsHtml += `
+                    <div class="glass-panel p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between shadow-sm hover:border-red-400/50 transition-colors group">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 flex items-center w-max gap-1 mb-1 border border-red-500/20"><span class="material-symbols-outlined text-[12px]">notifications_active</span> ALERTA AGENDADO</span>
+                            <h4 class="font-bold text-base text-on-surface truncate">${r.title}</h4>
+                            <span class="text-xs text-on-surface-variant font-code-data mt-1 block"><span class="material-symbols-outlined text-[14px] align-middle">schedule</span> Dispara em: ${dStr} às <span class="font-bold text-on-surface">${tStr}</span></span>
+                        </div>
+                        <div class="flex gap-1 border-l border-outline-variant/30 pl-3 shrink-0">
+                            <button onclick="app.openReminderForm('${r.id}')" class="p-1.5 hover:bg-surface-variant rounded-lg text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                            <button onclick="app.deleteReminder('${r.id}')" class="p-1.5 hover:bg-error-container/20 rounded-lg text-on-surface-variant hover:text-error transition-colors" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa. Nenhuma nota.</p>';
+        alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alarme disparado.</p>';
     },
 
     /* =======================================
@@ -256,29 +467,21 @@ const app = {
 
     calcCompute() {
         try {
-            // 1. Troca os símbolos visuais por operadores reais
             let expr = this.calcCurrent.replace(/×/g, '*').replace(/÷/g, '/');
             
-            // 2. Resolve Porcentagem de Adição/Subtração (ex: 150 - 15% vira 150 - (150 * 15 / 100))
             expr = expr.replace(/(\d+(?:\.\d+)?)\s*([\+\-])\s*(\d+(?:\.\d+)?)%/g, (match, p1, p2, p3) => {
                 return `${p1}${p2}(${p1}*${p3}/100)`;
             });
-            
-            // 3. Resolve Porcentagem de Multiplicação/Divisão (ex: 150 * 15% vira 150 * (15 / 100))
             expr = expr.replace(/(\d+(?:\.\d+)?)\s*([\*\/])\s*(\d+(?:\.\d+)?)%/g, (match, p1, p2, p3) => {
                 return `${p1}${p2}(${p3}/100)`;
             });
-
-            // 4. Resolve porcentagem isolada (ex: 15% vira 0.15)
             expr = expr.replace(/(\d+(?:\.\d+)?)%/g, (match, p1) => {
                 return `(${p1}/100)`;
             });
 
-            // 5. Calcula o resultado final
             let result = eval(expr);
             if (!isFinite(result)) result = 'Erro';
             
-            // 6. Formata para evitar casas decimais infinitas (ex: 127.5000000001 vira 127.5)
             if (result !== 'Erro') {
                 result = parseFloat(result.toFixed(6));
             }
@@ -1072,60 +1275,79 @@ const app = {
             const hoje = app.getTodayStr();
             const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
+            // 1. Pega as Tarefas normais do usuário
             let myTasks = app.allTasks.filter(t => { 
                 const matchAssignee = t.assignees && t.assignees.includes(currentUid);
-                
                 let normStatus = (t.status || 'Em aberto').trim();
                 if(normStatus === 'Concluído' || normStatus === 'Concluída') normStatus = 'Concluídas';
                 if(normStatus === 'Cancelado' || normStatus === 'Cancelada') normStatus = 'Canceladas';
-                
                 const notDone = normStatus !== 'Concluídas' && normStatus !== 'Canceladas';
                 return matchAssignee && notDone; 
             });
 
-            myTasks.sort((a, b) => {
-                let aDateStr = typeof a.dueDate === 'string' ? a.dueDate : (a.dueDate ? a.dueDate.toDate().toISOString().split('T')[0] : '');
-                let bDateStr = typeof b.dueDate === 'string' ? b.dueDate : (b.dueDate ? b.dueDate.toDate().toISOString().split('T')[0] : '');
-                
-                const aAtrasada = aDateStr && aDateStr < hoje;
-                const bAtrasada = bDateStr && bDateStr < hoje;
-                
-                if (aAtrasada && !bAtrasada) return -1;
-                if (!aAtrasada && bAtrasada) return 1;
-                return (b.ts_manual || 0) - (a.ts_manual || 0);
+            // 2. Transforma as tarefas para o formato unificado da lista
+            let combinedList = [];
+            myTasks.forEach(t => {
+                let taskDateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
+                const isAtrasada = taskDateStr && taskDateStr < hoje;
+                combinedList.push({ isTask: true, data: t, dateStr: taskDateStr, isAtrasada: isAtrasada });
             });
 
-            if(myTasks.length === 0) {
+            // 3. Pega as Notas (Lembretes) atrasadas e joga na lista
+            let myOverdueNotes = app.allReminders.filter(r => r.type === 'Nota' && r.status !== 'Concluído' && r.author === currentUid && r.date);
+            myOverdueNotes.forEach(r => {
+                const rDateTime = new Date(`${r.date}T${r.time || '23:59'}`);
+                if (rDateTime < new Date()) {
+                    combinedList.push({ isTask: false, data: r, dateStr: r.date, isAtrasada: true });
+                }
+            });
+
+            // 4. Ordena tudo (Atrasados > Data de criação)
+            combinedList.sort((a, b) => {
+                if (a.isAtrasada && !b.isAtrasada) return -1;
+                if (!a.isAtrasada && b.isAtrasada) return 1;
+                return (b.data.ts_manual || 0) - (a.data.ts_manual || 0);
+            });
+
+            if(combinedList.length === 0) {
                 c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50 font-medium">Nenhuma pendência na sua fila hoje.</p>';
                 return;
             }
             
+            // 5. Renderiza a lista mista
             let htmlStr = '';
-            myTasks.forEach(t => {
+            combinedList.forEach(item => {
                 try {
-                    let taskDateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
-                    const isAtrasada = taskDateStr && taskDateStr < hoje;
+                    const d = item.data;
+                    const isAtrasada = item.isAtrasada;
                     
                     let pTag = '';
-                    if(isAtrasada) {
-                        pTag = `<span class="px-1.5 py-0.5 bg-red-500/20 text-red-400 font-label-caps text-[9px] rounded border border-red-500/20 animate-pulse">ATRASADA</span>`;
-                    } else if(t.priority === 'Alta') {
-                        pTag = `<span class="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 font-label-caps text-[9px] rounded border border-orange-500/20">ALTA</span>`;
-                    } else if(t.priority === 'Baixa') {
-                        pTag = `<span class="px-1.5 py-0.5 bg-green-500/20 text-green-400 font-label-caps text-[9px] rounded border border-green-500/20">BAIXA</span>`;
+                    if (!item.isTask) { // É uma Nota
+                        pTag = `<span class="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 font-label-caps text-[9px] rounded border border-yellow-500/20 animate-pulse flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">sticky_note_2</span> NOTA ATRASADA</span>`;
+                    } else { // É uma Tarefa
+                        if(isAtrasada) {
+                            pTag = `<span class="px-1.5 py-0.5 bg-red-500/20 text-red-400 font-label-caps text-[9px] rounded border border-red-500/20 animate-pulse">ATRASADA</span>`;
+                        } else if(d.priority === 'Alta') {
+                            pTag = `<span class="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 font-label-caps text-[9px] rounded border border-orange-500/20">ALTA</span>`;
+                        } else if(d.priority === 'Baixa') {
+                            pTag = `<span class="px-1.5 py-0.5 bg-green-500/20 text-green-400 font-label-caps text-[9px] rounded border border-green-500/20">BAIXA</span>`;
+                        }
                     }
                     
-                    let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : '';
+                    let displayDate = item.dateStr ? (item.dateStr.includes('-') ? item.dateStr.split('-').reverse().join('/') : item.dateStr) : '';
+                    let navClick = item.isTask ? `app.navigate('tarefas'); app.openTaskDetails('${d.id}')` : `app.navigate('lembretes'); app.openReminderForm('${d.id}')`;
+                    let borderClass = isAtrasada ? (item.isTask ? 'border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-yellow-500/50 shadow-[0_0_8px_rgba(234,179,8,0.2)]') : 'border-outline-variant/30';
+                    let textClass = isAtrasada ? (item.isTask ? 'text-red-400' : 'text-yellow-400') + ' font-bold' : 'text-on-surface-variant';
 
                     htmlStr += `
                         <li>
-                            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task" onclick="app.navigate('tarefas'); app.openTaskDetails('${t.id}')">
+                            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${borderClass} cursor-pointer transition-colors group/task" onclick="${navClick}">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title || 'Sem Título'}</span>
+                                        <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${d.title || 'Sem Título'}</span>
                                         ${pTag}
                                     </div>
-                                    ${displayDate ? `<span class="font-code-data text-[10px] ${isAtrasada ? 'text-red-400 font-bold' : 'text-on-surface-variant'} block mt-1">Prazo: ${displayDate}</span>` : ''}
+                                    ${displayDate ? `<span class="font-code-data text-[10px] ${textClass} block mt-1">Prazo: ${displayDate} ${d.time ? 'às '+d.time : ''}</span>` : ''}
                                 </div>
                             </label>
                         </li>
@@ -1527,6 +1749,8 @@ const app = {
         if (app.globalNotifsUnsub) { app.globalNotifsUnsub(); app.globalNotifsUnsub = null; }
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
+        if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
+        if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
         signOut(auth); 
     },
 
