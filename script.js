@@ -59,6 +59,11 @@ const app = {
     lockersUnsub: null,
     remindersUnsub: null, 
     alertCheckInterval: null, 
+    
+    // Controles de Alarme Sonoro e Visual
+    audioCtx: null,
+    beepInterval: null,
+    blinkInterval: null,
 
     init() { 
         this.bindEvents(); 
@@ -173,6 +178,10 @@ const app = {
             if(!e.target.closest('.filter-dropdown-container')) {
                 document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
             }
+            // Inicia o contexto de áudio em qualquer clique na tela (regra dos navegadores)
+            if(!app.audioCtx && window.AudioContext) {
+                app.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
         });
 
         document.addEventListener('keydown', (e) => {
@@ -259,8 +268,36 @@ const app = {
         if (!app.alertCheckInterval) {
             app.alertCheckInterval = setInterval(() => {
                 app.checkAlerts();
-            }, 10000);
+            }, 10000); // 10 segundos
         }
+    },
+
+    playAlarmEngine() {
+        // Bipe Sonoro
+        if(this.audioCtx) {
+            if(this.audioCtx.state === 'suspended') this.audioCtx.resume();
+            this.beepInterval = setInterval(() => {
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, this.audioCtx.currentTime); // Tom alto
+                gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                osc.start();
+                osc.stop(this.audioCtx.currentTime + 0.3); // Duração do bipe
+            }, 1000); // Bipe a cada 1 seg
+        }
+        
+        // Aba do navegador piscando
+        this.blinkInterval = setInterval(() => {
+            document.title = document.title === "🔴 ALERTA T.I!" ? "WORKSPACE LOGÍSTICA" : "🔴 ALERTA T.I!";
+        }, 1000);
+    },
+
+    stopAlarmEngine() {
+        if(this.beepInterval) { clearInterval(this.beepInterval); this.beepInterval = null; }
+        if(this.blinkInterval) { clearInterval(this.blinkInterval); this.blinkInterval = null; document.title = "WORKSPACE LOGÍSTICA"; }
     },
 
     checkAlerts() {
@@ -284,6 +321,8 @@ const app = {
             document.getElementById('alert-rem-title').innerText = alertToShow.title;
             document.getElementById('alert-rem-desc').innerText = alertToShow.desc || 'Hora do seu alerta!';
             document.getElementById('reminder-alert-overlay').classList.remove('hidden');
+
+            app.playAlarmEngine();
 
             if ("Notification" in window && Notification.permission === "granted") {
                 const notif = new Notification("ALERTA T.I: " + alertToShow.title, {
@@ -317,7 +356,6 @@ const app = {
     },
 
     openReminderForm(id = null) {
-        // Popula o select de operadores, forçando se não existir
         const opSelect = document.getElementById('rem-operator');
         if(opSelect) {
             opSelect.innerHTML = Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
@@ -358,7 +396,7 @@ const app = {
         const date = document.getElementById('rem-date').value;
         const time = document.getElementById('rem-time').value;
         const type = document.getElementById('rem-type').value;
-        const authorId = document.getElementById('rem-operator').value; // Agora pega do campo!
+        const authorId = document.getElementById('rem-operator').value;
 
         if(!title) return app.showToast("O título é obrigatório.", "error");
 
@@ -404,6 +442,7 @@ const app = {
         if(id) {
             await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
             app.activeAlertId = null; 
+            app.stopAlarmEngine();
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
         }
     },
@@ -426,6 +465,7 @@ const app = {
         try {
             await updateDoc(doc(db, "lembretes", id), { time: newTime });
             app.activeAlertId = null; 
+            app.stopAlarmEngine();
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
             app.showToast(`Adiado para as ${newTime}`, "info");
         } catch(e) { console.error(e); }
@@ -438,15 +478,12 @@ const app = {
 
         let myRems = app.allReminders;
 
-        // Filtro de Status (Histórico)
         if(app.reminderFilterStatus !== 'Todos') {
             myRems = myRems.filter(r => r.status === app.reminderFilterStatus);
         }
-
         if (app.reminderFilterOperator !== 'Todos') {
             myRems = myRems.filter(r => r.author === app.reminderFilterOperator);
         }
-
         if (app.reminderFilterDate) {
             myRems = myRems.filter(r => r.date === app.reminderFilterDate);
         }
@@ -519,7 +556,7 @@ const app = {
             }
         });
 
-        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa.</p>';
+        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa. Nenhuma nota.</p>';
         alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alerta listado.</p>';
     },
 
@@ -614,7 +651,13 @@ const app = {
                 await updateDoc(doc(db, "notificacoes", editId), { text: text, category: cat });
                 app.showToast("Registro atualizado!");
             } else {
-                await app.addLog(text, cat);
+                await addDoc(collection(db, "notificacoes"), { 
+                    text: text, 
+                    author: auth.currentUser.uid, 
+                    ts: Date.now(),
+                    category: cat,
+                    isManual: true 
+                }); 
                 app.showToast("Registro adicionado ao Diário!");
             }
             document.getElementById('modal-log-form').classList.add('hidden');
@@ -662,6 +705,9 @@ const app = {
         let dashHtml = '';
         app.allLogs.slice(0, 5).forEach(dt => {
             const time = dt.ts ? new Date(dt.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+            const userL = app.getUserData(dt.author);
+            const displayName = userL.nome !== 'Desconhecido' ? userL.nome : (dt.author || 'Sistema');
+            
             dashHtml += `
                 <li class="p-4 hover:bg-surface-variant/30 transition-colors flex gap-4 border-b border-outline-variant/30">
                     <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/50">
@@ -669,7 +715,7 @@ const app = {
                     </div>
                     <div class="flex-1 pt-1">
                         <div class="flex items-baseline gap-2 mb-1">
-                            <span class="font-code-data text-sm font-semibold text-on-surface">${dt.author || 'Sistema'}</span>
+                            <span class="font-code-data text-sm font-semibold text-on-surface">${displayName}</span>
                         </div>
                         <p class="font-body-sm text-body-sm text-on-surface-variant truncate">${dt.text || ''}</p>
                     </div>
@@ -773,7 +819,8 @@ const app = {
             if(category === 'Logística') { colorClass = 'text-tertiary'; bgClass = 'bg-tertiary'; bgLightClass = 'bg-tertiary-container/20'; }
 
             const userL = app.getUserData(dt.author);
-            let avatarHtml = `<div class="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface text-[10px] font-bold">${(dt.author || 'S').substring(0,2).toUpperCase()}</div>`;
+            const displayName = userL.nome !== 'Desconhecido' ? userL.nome : (dt.author || 'Sistema');
+            let avatarHtml = `<div class="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface text-[10px] font-bold">${displayName.substring(0,2).toUpperCase()}</div>`;
             if(userL.foto) { avatarHtml = `<img src="${userL.foto}" class="w-full h-full object-cover">`; }
 
             let actionBtns = '';
@@ -797,7 +844,7 @@ const app = {
                                 <div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant overflow-hidden">
                                     ${avatarHtml}
                                 </div>
-                                <span class="font-body-sm text-on-surface font-medium">${dt.author || 'Sistema'}</span>
+                                <span class="font-body-sm text-on-surface font-medium">${displayName}</span>
                             </div>
                         </div>
                         <span class="font-label-caps ${colorClass} ${bgLightClass} px-2 py-1 rounded flex items-center gap-xs">
@@ -822,9 +869,7 @@ const app = {
         if(app.lockersUnsub) return;
         app.lockersUnsub = onSnapshot(collection(db, "armarios"), snap => {
             app.allLockers = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.name.localeCompare(b.name));
-            
             app.updateDashboardStats(); 
-
             if(document.getElementById('page-armarios').classList.contains('active')) {
                 app.renderLockers();
                 if(app.currentLockerId) app.renderNotebooks();
@@ -876,10 +921,8 @@ const app = {
                     'Para venda': '#3b82f6', 'Descarte': '#ef4444', 'Garantia': '#c084fc', 
                     'Uso interno': '#2dd4bf', 'Repatrimoniar': '#9ca3af'
                 };
-                
                 let gradientStr = [];
                 let currentDeg = 0;
-                
                 for (const [key, count] of Object.entries(counts)) {
                     if (count > 0) {
                         const deg = (count / total) * 360;
@@ -889,7 +932,6 @@ const app = {
                         currentDeg = end;
                     }
                 }
-                
                 chart.style.background = `conic-gradient(${gradientStr.join(', ')})`;
             }
         }
@@ -1839,6 +1881,7 @@ const app = {
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
         if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
         if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
+        app.stopAlarmEngine();
         signOut(auth); 
     },
 
