@@ -661,6 +661,101 @@
                     </div>
                 </div>
             </section>
+
+            <!-- ========================================== -->
+            <!-- TELA 6: CONFIGURAÇÕES -->
+            <!-- ========================================== -->
+            <section id="page-configuracoes" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
+                <div class="max-w-container-max mx-auto pb-24">
+                    <!-- Cabeçalho -->
+                    <div class="mb-lg">
+                        <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Configurações</h2>
+                        <p class="font-body-sm text-on-surface-variant mt-xs">Ajustes da conta, segurança e interface do sistema</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl">
+                        
+                        <!-- Coluna 1: Perfil e Interface -->
+                        <div class="space-y-8">
+                            <!-- Card de Perfil -->
+                            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+                                <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
+                                    <span class="material-symbols-outlined text-primary">person</span> Perfil do Operador
+                                </h3>
+                                <div class="space-y-4">
+                                    <div class="flex items-center gap-4 mb-2">
+                                        <div id="conf-avatar-preview" class="w-16 h-16 rounded-full bg-surface-variant border-2 border-outline-variant/50 flex items-center justify-center font-bold text-xl text-on-surface bg-cover bg-center overflow-hidden"></div>
+                                        <div class="flex-1">
+                                            <p class="text-xs text-on-surface-variant">A foto de perfil é atualizada via URL externa.</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nome de Exibição</label>
+                                        <input type="text" id="conf-nome" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">URL da Foto de Perfil</label>
+                                        <input type="text" id="conf-foto" placeholder="https://link-da-imagem.com/foto.jpg" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-code-data text-sm">
+                                    </div>
+                                    <div class="pt-2">
+                                        <button onclick="app.saveProfileConfig()" class="w-full py-3 bg-primary-container text-white font-bold rounded-lg hover:bg-inverse-primary transition-colors shadow-sm">Atualizar Perfil</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card de Interface -->
+                            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+                                <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
+                                    <span class="material-symbols-outlined text-tertiary">palette</span> Interface
+                                </h3>
+                                <div class="flex items-center justify-between p-4 bg-[#232323] rounded-lg border border-outline-variant/50">
+                                    <div>
+                                        <h4 class="font-bold text-sm text-on-surface">Tema do Sistema</h4>
+                                        <p class="text-[11px] text-on-surface-variant">Alternar entre Modo Claro e Escuro</p>
+                                    </div>
+                                    <button onclick="app.toggleDarkMode()" class="p-3 bg-surface-container hover:bg-surface-variant border border-outline-variant/50 text-on-surface rounded-xl transition-colors flex items-center justify-center shadow-sm">
+                                        <span class="material-symbols-outlined">dark_mode</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna 2: Segurança e Sobre -->
+                        <div class="space-y-8">
+                            <!-- Card de Segurança -->
+                            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+                                <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
+                                    <span class="material-symbols-outlined text-error">lock</span> Segurança
+                                </h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nova Senha</label>
+                                        <input type="password" id="conf-pass1" placeholder="Mínimo 6 caracteres" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-error outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Confirmar Nova Senha</label>
+                                        <input type="password" id="conf-pass2" placeholder="Repita a senha" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-error outline-none">
+                                    </div>
+                                    <div class="pt-2">
+                                        <button onclick="app.savePasswordConfig()" class="w-full py-3 bg-error/20 text-error border border-error/50 font-bold rounded-lg hover:bg-error hover:text-white transition-colors shadow-sm">Alterar Senha</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Info -->
+                            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center text-center py-10 opacity-70">
+                                <div class="w-16 h-16 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(33,150,243,0.3)]">
+                                    <span class="material-symbols-outlined text-[32px] font-variation-settings: 'FILL' 1;">deployed_code</span>
+                                </div>
+                                <h4 class="font-bold text-on-surface text-lg">CARA DO T.I</h4>
+                                <p class="text-xs font-code-data text-on-surface-variant mt-1">Workspace Logística - v1.0.0</p>
+                                <p class="text-[10px] text-on-surface-variant mt-4 max-w-xs">Plataforma desenvolvida sob medida para operações de TI, otimizando o fluxo logístico e técnico da equipe.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
             
             <!-- Floating Chat Widget -->
             <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
