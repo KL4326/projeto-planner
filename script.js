@@ -451,35 +451,67 @@ const app = {
 
     updateDashboardStats() {
         let total = 0;
-        let disp = 0;
+        
+        // Objeto para contar quantos equipamentos há em cada status
+        const counts = {
+            'Disponível': 0, 'Laboratório': 0, 'Laboratório 2': 0, 'Para venda': 0,
+            'Descarte': 0, 'Garantia': 0, 'Uso interno': 0, 'Repatrimoniar': 0
+        };
         
         app.allLockers.forEach(locker => {
             if(locker.equipamentos) {
                 total += locker.equipamentos.length;
                 locker.equipamentos.forEach(e => {
-                    // Considera 'Disponível' para a cor verde do gráfico
-                    if(e.statusText === 'Disponível') disp++;
+                    const st = e.statusText;
+                    if(counts[st] !== undefined) counts[st]++;
                 });
             }
         });
         
-        const outros = total - disp;
-        
+        // Atualiza os Textos no HTML
         const elTot = document.getElementById('dash-tot-equips');
-        const elDisp = document.getElementById('dash-disp-equips');
-        const elOutros = document.getElementById('dash-outros-equips');
-        const chart = document.getElementById('dash-chart-bg');
-        
         if(elTot) elTot.innerText = total;
-        if(elDisp) elDisp.innerText = disp;
-        if(elOutros) elOutros.innerText = outros;
+
+        const updateDom = (id, count) => {
+            const el = document.getElementById(id);
+            if(el) el.innerText = count;
+        };
+
+        updateDom('dash-stat-disp', counts['Disponível']);
+        updateDom('dash-stat-lab1', counts['Laboratório']);
+        updateDom('dash-stat-lab2', counts['Laboratório 2']);
+        updateDom('dash-stat-venda', counts['Para venda']);
+        updateDom('dash-stat-desc', counts['Descarte']);
+        updateDom('dash-stat-gar', counts['Garantia']);
+        updateDom('dash-stat-uso', counts['Uso interno']);
+        updateDom('dash-stat-rep', counts['Repatrimoniar']);
         
+        // Renderiza o Gráfico de Pizza (Conic Gradient) dinamicamente
+        const chart = document.getElementById('dash-chart-bg');
         if(chart) {
             if(total === 0) {
                 chart.style.background = `conic-gradient(#353535 0% 100%)`;
             } else {
-                const degDisp = (disp / total) * 360;
-                chart.style.background = `conic-gradient(#4ade80 0deg ${degDisp}deg, #fb923c ${degDisp}deg 360deg)`;
+                const colors = {
+                    'Disponível': '#14b8a6', 'Laboratório': '#fbbf24', 'Laboratório 2': '#f97316', 
+                    'Para venda': '#3b82f6', 'Descarte': '#ef4444', 'Garantia': '#c084fc', 
+                    'Uso interno': '#2dd4bf', 'Repatrimoniar': '#9ca3af'
+                };
+                
+                let gradientStr = [];
+                let currentDeg = 0;
+                
+                for (const [key, count] of Object.entries(counts)) {
+                    if (count > 0) {
+                        const deg = (count / total) * 360;
+                        const start = currentDeg;
+                        const end = currentDeg + deg;
+                        gradientStr.push(`${colors[key]} ${start}deg ${end}deg`);
+                        currentDeg = end;
+                    }
+                }
+                
+                chart.style.background = `conic-gradient(${gradientStr.join(', ')})`;
             }
         }
     },
