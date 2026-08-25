@@ -64,6 +64,10 @@ const app = {
     beepInterval: null,
     blinkInterval: null,
 
+    // Chat Privado
+    currentChatId: null,
+    chatUnsub: null,
+
     init() { 
         this.bindEvents(); 
         this.checkAuth(); 
@@ -269,6 +273,114 @@ const app = {
         
         const cg = document.getElementById('sidebar-cargo');
         if(cg) cg.innerText = cargoDb || 'Membro da Equipe';
+    },
+
+    /* =======================================
+       SISTEMA DE CHAT DIRETO (DM)
+    ======================================= */
+    toggleChatPanel() {
+        const panel = document.getElementById('global-chat-panel');
+        panel.classList.toggle('hidden');
+        if(!panel.classList.contains('hidden')) {
+            app.closeChatView(); // Reseta para a lista toda vez que abre
+        }
+    },
+
+    openChatWith(targetUid) {
+        app.currentChatId = targetUid;
+        document.getElementById('chat-user-list-view').classList.add('hidden');
+        document.getElementById('chat-messages-view').classList.remove('hidden');
+        document.getElementById('chat-messages-view').classList.add('flex');
+        document.getElementById('chat-back-btn').classList.remove('hidden');
+        
+        const targetUser = app.getUserData(targetUid);
+        document.getElementById('chat-header-title').innerText = targetUser.nome;
+        
+        const avatar = document.getElementById('chat-header-avatar');
+        avatar.classList.remove('hidden');
+        if(targetUser.foto) {
+            avatar.innerHTML = '';
+            avatar.style.backgroundImage = `url('${targetUser.foto}')`;
+        } else {
+            avatar.style.backgroundImage = 'none';
+            avatar.innerHTML = targetUser.nome.substring(0,2).toUpperCase();
+        }
+
+        // Gera um ID Único para a conversa entre os dois
+        const myUid = auth.currentUser.uid;
+        const convId = myUid < targetUid ? `${myUid}_${targetUid}` : `${targetUid}_${myUid}`;
+        
+        if(app.chatUnsub) app.chatUnsub();
+        
+        const container = document.getElementById('chat-messages-container');
+        container.innerHTML = '<div class="text-center text-xs text-on-surface-variant mt-4">Carregando mensagens...</div>';
+        
+        app.chatUnsub = onSnapshot(collection(db, "chats", convId, "mensagens"), snap => {
+            const msgs = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (a.ts || 0) - (b.ts || 0));
+            container.innerHTML = '';
+            
+            if(msgs.length === 0) {
+                container.innerHTML = '<div class="text-center text-xs text-on-surface-variant mt-4">Inicie a conversa!</div>';
+                return;
+            }
+            
+            msgs.forEach(m => {
+                const isMe = m.authorId === myUid;
+                const time = new Date(m.ts).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+                
+                if(isMe) {
+                    container.innerHTML += `
+                        <div class="flex justify-end">
+                            <div class="bg-primary text-on-primary px-3 py-2 rounded-xl rounded-tr-sm max-w-[85%] shadow-sm">
+                                <p class="text-[13px] whitespace-pre-wrap">${m.text}</p>
+                                <span class="text-[9px] opacity-70 block text-right mt-1 font-code-data">${time}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML += `
+                        <div class="flex justify-start">
+                            <div class="bg-surface-container-high text-on-surface px-3 py-2 rounded-xl rounded-tl-sm max-w-[85%] border border-outline-variant/30 shadow-sm">
+                                <p class="text-[13px] whitespace-pre-wrap">${m.text}</p>
+                                <span class="text-[9px] text-on-surface-variant block mt-1 font-code-data">${time}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            setTimeout(() => container.scrollTop = container.scrollHeight, 100);
+        });
+    },
+
+    closeChatView() {
+        if(app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
+        app.currentChatId = null;
+        document.getElementById('chat-user-list-view').classList.remove('hidden');
+        document.getElementById('chat-messages-view').classList.add('hidden');
+        document.getElementById('chat-messages-view').classList.remove('flex');
+        document.getElementById('chat-back-btn').classList.add('hidden');
+        document.getElementById('chat-header-avatar').classList.add('hidden');
+        document.getElementById('chat-header-title').innerText = "Chat da Equipe";
+    },
+
+    async sendChatMessage() {
+        const inp = document.getElementById('chat-message-inp');
+        const text = inp.value.trim();
+        if(!text || !app.currentChatId) return;
+        
+        const myUid = auth.currentUser.uid;
+        const targetUid = app.currentChatId;
+        const convId = myUid < targetUid ? `${myUid}_${targetUid}` : `${targetUid}_${myUid}`;
+        
+        inp.value = '';
+        
+        try {
+            await addDoc(collection(db, "chats", convId, "mensagens"), {
+                text: text,
+                authorId: myUid,
+                ts: Date.now()
+            });
+        } catch(e) { console.error(e); }
     },
 
     /* =======================================
@@ -1673,7 +1785,7 @@ const app = {
         
         let normStatus = (t.status || 'Em aberto').trim();
         if(normStatus === 'Aberto') normStatus = 'Em aberto';
-        if(normStatus === 'Em Progresso' || normStatus === 'Em andamento') normStatus = 'Em andamento';
+        if(normStatus === 'Em Progresso') normStatus = 'Em andamento';
         if(normStatus === 'Concluído' || normStatus === 'Concluída' || normStatus === 'Concluídas') normStatus = 'Concluídas';
         if(normStatus === 'Cancelado' || normStatus === 'Cancelada' || normStatus === 'Canceladas') normStatus = 'Canceladas';
         
@@ -1923,6 +2035,7 @@ const app = {
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
             
+            // Popula filtros globais
             const opSelect = document.getElementById('log-operator-filter');
             if(opSelect) {
                 const currentOp = opSelect.value;
@@ -1959,6 +2072,39 @@ const app = {
                 remOpSelect.value = currentRemOp || 'Todos';
             }
 
+            // Popula lista de usuários em Configurações
+            const confList = document.getElementById('conf-users-list');
+            if(confList) {
+                confList.innerHTML = Object.values(app.userMap).map(u => {
+                    const foto = u.foto ? `<img src="${u.foto}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center font-bold text-xs">${u.nome.substring(0,2).toUpperCase()}</div>`;
+                    return `
+                    <div class="flex items-center gap-3 p-3 bg-surface border border-outline-variant/30 rounded-lg">
+                        ${foto}
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm text-on-surface">${u.nome}</span>
+                            <span class="text-[10px] text-on-surface-variant uppercase tracking-wider">${u.cargo || 'Membro da Equipe'}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            // Popula lista de usuários no Widget do Chat
+            const chatList = document.getElementById('chat-user-list-view');
+            if(chatList) {
+                const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+                const others = Object.values(app.userMap).filter(u => u.uid !== currentUid);
+                chatList.innerHTML = others.map(u => {
+                    const foto = u.foto ? `<img src="${u.foto}" class="w-8 h-8 rounded-full object-cover">` : `<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center font-bold text-[10px]">${u.nome.substring(0,2).toUpperCase()}</div>`;
+                    return `
+                    <div class="flex items-center gap-3 p-2 hover:bg-surface-variant/50 rounded-lg cursor-pointer transition-colors" onclick="app.openChatWith('${u.uid}')">
+                        ${foto}
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm text-on-surface">${u.nome}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
             app.renderDashboard();
         }); 
     },
@@ -1973,6 +2119,7 @@ const app = {
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
         if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
+        if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
         app.stopAlarmEngine();
         signOut(auth); 
