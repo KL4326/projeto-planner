@@ -43,14 +43,14 @@ const app = {
     subcommentsUnsub: null,
     allSubtasks: [],
     
+    calcCurrent: '0',
+    calcPrevious: '',
+    calcOperation: null,
+
     globalTasksUnsub: null,
     globalNotifsUnsub: null,
     globalUsersUnsub: null,
     lockersUnsub: null,
-
-    calcCurrent: '0',
-    calcPrevious: '',
-    calcOperation: null,
 
     init() { 
         this.bindEvents(); 
@@ -82,7 +82,7 @@ const app = {
                     const el = document.getElementById('weather-temp');
                     if(el) {
                         el.innerText = `${temp}°C`;
-                        el.previousElementSibling.innerText = 'thermostat'; // muda o ícone
+                        el.previousElementSibling.innerText = 'thermostat';
                     }
                 } catch(e) { console.log("Erro ao buscar clima", e); }
             });
@@ -207,6 +207,55 @@ const app = {
             av.innerText = nomeReal.substring(0,2).toUpperCase(); 
             av.style.backgroundImage = 'none';
         } 
+    },
+
+    /* =======================================
+       CALCULADORA OPERACIONAL
+    ======================================= */
+    calcAppend(val) {
+        if (this.calcCurrent === '0' && val !== '.') {
+            this.calcCurrent = val;
+        } else {
+            this.calcCurrent += val;
+        }
+        this.updateCalcDisplay();
+    },
+
+    calcClear() {
+        this.calcCurrent = '0';
+        this.calcPrevious = '';
+        this.updateCalcDisplay();
+    },
+
+    calcDelete() {
+        if (this.calcCurrent.length > 1) {
+            this.calcCurrent = this.calcCurrent.slice(0, -1);
+        } else {
+            this.calcCurrent = '0';
+        }
+        this.updateCalcDisplay();
+    },
+
+    calcCompute() {
+        try {
+            let expr = this.calcCurrent.replace(/×/g, '*').replace(/÷/g, '/');
+            let result = eval(expr);
+            if (!isFinite(result)) result = 'Erro';
+            
+            this.calcPrevious = this.calcCurrent + ' =';
+            this.calcCurrent = String(result);
+            this.updateCalcDisplay();
+        } catch (e) {
+            this.calcCurrent = 'Erro';
+            this.updateCalcDisplay();
+        }
+    },
+
+    updateCalcDisplay() {
+        const curEl = document.getElementById('calc-current');
+        const prevEl = document.getElementById('calc-previous');
+        if (curEl) curEl.innerText = this.calcCurrent;
+        if (prevEl) prevEl.innerText = this.calcPrevious;
     },
 
     /* =======================================
@@ -445,7 +494,7 @@ const app = {
         app.lockersUnsub = onSnapshot(collection(db, "armarios"), snap => {
             app.allLockers = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.name.localeCompare(b.name));
             
-            app.updateDashboardStats(); // Atualiza gráfico CMDB do Dashboard
+            app.updateDashboardStats(); 
 
             if(document.getElementById('page-armarios').classList.contains('active')) {
                 app.renderLockers();
@@ -456,8 +505,6 @@ const app = {
 
     updateDashboardStats() {
         let total = 0;
-        
-        // Objeto para contar quantos equipamentos há em cada status
         const counts = {
             'Disponível': 0, 'Laboratório': 0, 'Laboratório 2': 0, 'Para venda': 0,
             'Descarte': 0, 'Garantia': 0, 'Uso interno': 0, 'Repatrimoniar': 0
@@ -473,7 +520,6 @@ const app = {
             }
         });
         
-        // Atualiza os Textos no HTML
         const elTot = document.getElementById('dash-tot-equips');
         if(elTot) elTot.innerText = total;
 
@@ -491,7 +537,6 @@ const app = {
         updateDom('dash-stat-uso', counts['Uso interno']);
         updateDom('dash-stat-rep', counts['Repatrimoniar']);
         
-        // Renderiza o Gráfico de Pizza (Conic Gradient) dinamicamente
         const chart = document.getElementById('dash-chart-bg');
         if(chart) {
             if(total === 0) {
@@ -997,7 +1042,6 @@ const app = {
                 return matchAssignee && notDone; 
             });
 
-            // Ordena tarefas: atrasadas primeiro, depois data de criação
             myTasks.sort((a, b) => {
                 let aDateStr = typeof a.dueDate === 'string' ? a.dueDate : (a.dueDate ? a.dueDate.toDate().toISOString().split('T')[0] : '');
                 let bDateStr = typeof b.dueDate === 'string' ? b.dueDate : (b.dueDate ? b.dueDate.toDate().toISOString().split('T')[0] : '');
@@ -1246,7 +1290,6 @@ const app = {
         } catch(e) { console.error(e); app.showToast("Erro ao enviar mensagem", "error"); }
     },
 
-    // ======== LÓGICA DAS SUBTAREFAS ======== //
     listenToSubtasks(taskId) {
         if(app.subtasksUnsub) app.subtasksUnsub();
         const list = document.getElementById('subtasks-list');
@@ -1394,59 +1437,6 @@ const app = {
                 text: text, author: auth.currentUser.displayName || auth.currentUser.email, ts: Date.now()
             });
         } catch(e) { console.error(e); }
-    },
-
-
-  /* =======================================
-       CALCULADORA OPERACIONAL
-    ======================================= */
-    calcAppend(val) {
-        if (this.calcCurrent === '0' && val !== '.') {
-            this.calcCurrent = val;
-        } else {
-            this.calcCurrent += val;
-        }
-        this.updateCalcDisplay();
-    },
-
-    calcClear() {
-        this.calcCurrent = '0';
-        this.calcPrevious = '';
-        this.updateCalcDisplay();
-    },
-
-    calcDelete() {
-        if (this.calcCurrent.length > 1) {
-            this.calcCurrent = this.calcCurrent.slice(0, -1);
-        } else {
-            this.calcCurrent = '0';
-        }
-        this.updateCalcDisplay();
-    },
-
-    calcCompute() {
-        try {
-            // Substitui símbolos visuais por operadores de cálculo do JS
-            let expr = this.calcCurrent.replace(/×/g, '*').replace(/÷/g, '/');
-            
-            // Tratamento seguro básico de cálculo
-            let result = eval(expr);
-            if (!isFinite(result)) result = 'Erro';
-            
-            this.calcPrevious = this.calcCurrent + ' =';
-            this.calcCurrent = String(result);
-            this.updateCalcDisplay();
-        } catch (e) {
-            this.calcCurrent = 'Erro';
-            this.updateCalcDisplay();
-        }
-    },
-
-    updateCalcDisplay() {
-        const curEl = document.getElementById('calc-current');
-        const prevEl = document.getElementById('calc-previous');
-        if (curEl) curEl.innerText = this.calcCurrent;
-        if (prevEl) prevEl.innerText = this.calcPrevious;
     },
 
     loadUsers() { 
