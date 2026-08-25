@@ -550,11 +550,10 @@
             <!-- ========================================== -->
             <section id="page-lembretes" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
                 <div class="max-w-container-max mx-auto pb-24">
-                    <!-- Cabeçalho -->
                     <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
                         <div>
                             <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Lembretes & Alertas</h2>
-                            <p class="font-body-sm text-on-surface-variant mt-xs">Gerencie suas notas e alertas de tela cheia</p>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Gerencie suas notas, alertas de tela cheia e histórico</p>
                         </div>
                         <button onclick="app.openReminderForm()" class="bg-primary-container text-on-primary-container font-code-data px-md py-sm rounded-lg flex items-center gap-xs hover:bg-primary transition-colors shadow-sm active:scale-95">
                             <span class="material-symbols-outlined text-[18px]">add_alert</span> Novo Lembrete
@@ -569,6 +568,15 @@
                         </div>
                         <div class="w-px h-6 bg-outline-variant hidden sm:block mx-1"></div>
                         
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-on-surface-variant uppercase">Status</label>
+                            <select id="rem-filter-status" onchange="app.updateReminderFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                                <option value="Em aberto">Em aberto</option>
+                                <option value="Concluído">Concluídos (Histórico)</option>
+                                <option value="Todos">Todos</option>
+                            </select>
+                        </div>
+
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold text-on-surface-variant uppercase">Data</label>
                             <input type="date" id="rem-filter-date" onchange="app.updateReminderFilters()" class="bg-surface-container border border-outline-variant text-on-surface rounded py-1.5 px-3 text-body-sm focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark] cursor-pointer">
@@ -590,24 +598,18 @@
 
                     <!-- Grid de Listas -->
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                        <!-- Coluna 1: Post-its -->
                         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-4 sm:p-6 shadow-sm">
                             <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
                                 <span class="material-symbols-outlined text-yellow-400">sticky_note_2</span> Notas Rápidas
                             </h3>
-                            <div id="reminders-notes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                                <!-- Post-its renderizados via JS -->
-                            </div>
+                            <div id="reminders-notes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2"></div>
                         </div>
                         
-                        <!-- Coluna 2: Alertas -->
                         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-4 sm:p-6 shadow-sm">
                             <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
-                                <span class="material-symbols-outlined text-red-400 animate-pulse">notification_important</span> Alertas Agendados
+                                <span class="material-symbols-outlined text-red-400">notification_important</span> Alertas Agendados
                             </h3>
-                            <div id="reminders-alerts-list" class="flex flex-col gap-3 pt-2">
-                                <!-- Alertas renderizados via JS -->
-                            </div>
+                            <div id="reminders-alerts-list" class="flex flex-col gap-3 pt-2"></div>
                         </div>
                     </div>
                 </div>
@@ -1008,14 +1010,20 @@
                     <label class="block text-sm font-bold text-on-surface-variant mb-1">Descrição</label>
                     <textarea id="rem-desc" rows="3" placeholder="Informações adicionais..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none"></textarea>
                 </div>
+                <div>
+                    <label class="block text-sm font-bold text-on-surface-variant mb-1">Para quem é este lembrete?</label>
+                    <select id="rem-operator" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                        <!-- Injetado via JS -->
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Data</label>
-                        <input type="date" id="rem-date" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
+                        <input type="date" id="rem-date" onchange="this.blur()" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Hora exata</label>
-                        <input type="time" id="rem-time" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
+                        <input type="time" id="rem-time" onchange="this.blur()" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
                     </div>
                 </div>
                 <div>
