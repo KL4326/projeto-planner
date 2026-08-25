@@ -324,29 +324,73 @@
                         </section>
 
                         <!-- Visão Armários (CMDB) -->
-                        <section class="bg-level-1 rounded-xl flex flex-col md:col-span-4 overflow-hidden shadow-sm">
+                        <section class="bg-level-1 rounded-xl flex flex-col md:col-span-4 xl:col-span-2 overflow-hidden shadow-sm">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Inventário (CMDB)</h3>
                             </div>
-                            <div class="p-4 md:p-6 flex-1 flex flex-col xl:flex-row items-center justify-center gap-6 relative">
-                                <div class="relative w-32 h-32 md:w-40 md:h-40 shrink-0 rounded-full flex items-center justify-center">
+                            
+                            
+                            <div class="p-5 md:p-6 flex-1 flex flex-col items-center justify-center gap-6 relative">
+                                
+                                <!-- Gráfico de Pizza -->
+                                <div class="relative w-36 h-36 shrink-0 rounded-full flex items-center justify-center">
                                     <div id="dash-chart-bg" class="absolute inset-0 rounded-full overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.3)]" style="background: conic-gradient(#353535 0% 100%); transition: background 1s ease;"></div>
-                                    <div class="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
-                                        <span id="dash-tot-equips" class="font-display-lg text-[28px] md:text-[36px] leading-none font-bold text-on-surface">0</span>
-                                        <span class="font-label-caps text-[10px] text-on-surface-variant mt-1">EQUIPAMENTOS</span>
+                                    <div class="relative z-10 w-28 h-28 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
+                                        <span id="dash-tot-equips" class="font-display-lg text-[32px] leading-none font-bold text-on-surface">0</span>
+                                        <span class="font-label-caps text-[9px] text-on-surface-variant mt-1">TOTAL</span>
                                     </div>
                                 </div>
                                 
-                                <!-- Legenda com 8 Status -->
-                                <div class="w-full xl:w-auto flex-1 grid grid-cols-2 gap-x-4 gap-y-2 font-code-data text-[11px] mt-2 xl:mt-0">
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #14b8a6;"></span>Disponível</span><span id="dash-stat-disp" class="font-bold" style="color: #14b8a6">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #fbbf24;"></span>Laboratório</span><span id="dash-stat-lab1" class="font-bold" style="color: #fbbf24">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #f97316;"></span>Laboratório 2</span><span id="dash-stat-lab2" class="font-bold" style="color: #f97316">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #3b82f6;"></span>Para venda</span><span id="dash-stat-venda" class="font-bold" style="color: #3b82f6">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #ef4444;"></span>Descarte</span><span id="dash-stat-desc" class="font-bold" style="color: #ef4444">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #c084fc;"></span>Garantia</span><span id="dash-stat-gar" class="font-bold" style="color: #c084fc">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #2dd4bf;"></span>Uso interno</span><span id="dash-stat-uso" class="font-bold" style="color: #2dd4bf">0</span></div>
-                                    <div class="flex justify-between items-center p-1.5 rounded hover:bg-surface border border-transparent hover:border-outline-variant/30 transition-colors"><span class="text-on-surface flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: #9ca3af;"></span>Repatrimoniar</span><span id="dash-stat-rep" class="font-bold" style="color: #9ca3af">0</span></div>
+                                
+                                <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 font-code-data text-[11px]">
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #14b8a6;"></span><span class="truncate">Disponível</span>
+                                        </span>
+                                        <span id="dash-stat-disp" class="font-bold shrink-0 ml-2" style="color: #14b8a6">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #fbbf24;"></span><span class="truncate">Laboratório</span>
+                                        </span>
+                                        <span id="dash-stat-lab1" class="font-bold shrink-0 ml-2" style="color: #fbbf24">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #f97316;"></span><span class="truncate">Laboratório 2</span>
+                                        </span>
+                                        <span id="dash-stat-lab2" class="font-bold shrink-0 ml-2" style="color: #f97316">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #3b82f6;"></span><span class="truncate">Para venda</span>
+                                        </span>
+                                        <span id="dash-stat-venda" class="font-bold shrink-0 ml-2" style="color: #3b82f6">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #ef4444;"></span><span class="truncate">Descarte</span>
+                                        </span>
+                                        <span id="dash-stat-desc" class="font-bold shrink-0 ml-2" style="color: #ef4444">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #c084fc;"></span><span class="truncate">Garantia</span>
+                                        </span>
+                                        <span id="dash-stat-gar" class="font-bold shrink-0 ml-2" style="color: #c084fc">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #2dd4bf;"></span><span class="truncate">Uso interno</span>
+                                        </span>
+                                        <span id="dash-stat-uso" class="font-bold shrink-0 ml-2" style="color: #2dd4bf">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
+                                        <span class="text-on-surface flex items-center gap-2 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style="background-color: #9ca3af;"></span><span class="truncate">Repatrimoniar</span>
+                                        </span>
+                                        <span id="dash-stat-rep" class="font-bold shrink-0 ml-2" style="color: #9ca3af">0</span>
+                                    </div>
                                 </div>
                             </div>
                         </section>
