@@ -115,7 +115,7 @@ const app = {
         if (localStorage.getItem('theme') === 'light') {
             html.classList.remove('dark');
         } else {
-            html.classList.add('dark'); // Padrão
+            html.classList.add('dark'); 
         }
     },
 
@@ -226,16 +226,18 @@ const app = {
                     const ud = await getDoc(doc(db, "usuarios", u.uid));
                     let userName = u.displayName || u.email;
                     let userFoto = u.photoURL;
+                    let userCargo = 'Membro da Equipe';
 
                     if(ud.exists()) {
                         const data = ud.data();
                         if(data.nome) userName = data.nome;
                         if(data.foto) userFoto = data.foto; 
+                        if(data.cargo) userCargo = data.cargo;
                     }
                     
                     const sn = document.getElementById('sidebar-name');
                     if(sn) sn.innerText = userName;
-                    app.updateAvatar(u, userFoto, userName);
+                    app.updateAvatar(u, userFoto, userName, userCargo);
                 } catch(e) { console.error(e); }
                 
                 app.listenToTasks(); 
@@ -252,7 +254,7 @@ const app = {
         }); 
     },
 
-    updateAvatar(u, fotoDb, name) { 
+    updateAvatar(u, fotoDb, name, cargoDb) { 
         const av = document.getElementById('sidebar-avatar'); 
         if(!av) return;
         const fotoReal = fotoDb || u.photoURL;
@@ -264,6 +266,9 @@ const app = {
             av.innerText = nomeReal.substring(0,2).toUpperCase(); 
             av.style.backgroundImage = 'none';
         } 
+        
+        const cg = document.getElementById('sidebar-cargo');
+        if(cg) cg.innerText = cargoDb || 'Membro da Equipe';
     },
 
     /* =======================================
@@ -276,9 +281,11 @@ const app = {
         
         const nome = user.nome || auth.currentUser.displayName || '';
         const foto = user.foto || auth.currentUser.photoURL || '';
+        const cargo = user.cargo || '';
 
         document.getElementById('conf-nome').value = nome;
         document.getElementById('conf-foto').value = foto;
+        document.getElementById('conf-cargo').value = cargo;
         document.getElementById('conf-pass1').value = '';
         document.getElementById('conf-pass2').value = '';
 
@@ -295,22 +302,22 @@ const app = {
     async saveProfileConfig() {
         const nome = document.getElementById('conf-nome').value.trim();
         const foto = document.getElementById('conf-foto').value.trim();
+        const cargo = document.getElementById('conf-cargo').value.trim();
 
         if(!nome) return app.showToast("O Nome de exibição é obrigatório.", "error");
 
         try {
-            // Atualiza Auth nativo do Firebase
             await updateProfile(auth.currentUser, { displayName: nome, photoURL: foto });
             
-            // Atualiza ou cria o documento na coleção "usuarios"
             await setDoc(doc(db, "usuarios", auth.currentUser.uid), {
                 nome: nome,
-                foto: foto
+                foto: foto,
+                cargo: cargo
             }, { merge: true });
             
             app.showToast("Perfil atualizado!");
-            app.updateAvatar(auth.currentUser, foto, nome);
-            app.renderConfigPage(); // Atualiza preview
+            app.updateAvatar(auth.currentUser, foto, nome, cargo);
+            app.renderConfigPage(); 
         } catch(e) {
             console.error(e);
             app.showToast("Erro ao atualizar perfil.", "error");
@@ -955,9 +962,7 @@ const app = {
         if(app.lockersUnsub) return;
         app.lockersUnsub = onSnapshot(collection(db, "armarios"), snap => {
             app.allLockers = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.name.localeCompare(b.name));
-            
             app.updateDashboardStats(); 
-
             if(document.getElementById('page-armarios').classList.contains('active')) {
                 app.renderLockers();
                 if(app.currentLockerId) app.renderNotebooks();
@@ -1009,10 +1014,8 @@ const app = {
                     'Para venda': '#3b82f6', 'Descarte': '#ef4444', 'Garantia': '#c084fc', 
                     'Uso interno': '#2dd4bf', 'Repatrimoniar': '#9ca3af'
                 };
-                
                 let gradientStr = [];
                 let currentDeg = 0;
-                
                 for (const [key, count] of Object.entries(counts)) {
                     if (count > 0) {
                         const deg = (count / total) * 360;
@@ -1022,7 +1025,6 @@ const app = {
                         currentDeg = end;
                     }
                 }
-                
                 chart.style.background = `conic-gradient(${gradientStr.join(', ')})`;
             }
         }
