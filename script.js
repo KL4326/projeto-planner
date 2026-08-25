@@ -60,7 +60,6 @@ const app = {
     remindersUnsub: null, 
     alertCheckInterval: null, 
     
-    // Controles de Alarme Sonoro e Visual
     audioCtx: null,
     beepInterval: null,
     blinkInterval: null,
@@ -112,9 +111,25 @@ const app = {
     },
     
     initTheme() { 
-        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); 
-        const savedColor = localStorage.getItem('primaryColor');
-        if (savedColor) document.documentElement.style.setProperty('--color-primary', savedColor);
+        const html = document.documentElement;
+        if (localStorage.getItem('theme') === 'light') {
+            html.classList.remove('dark');
+        } else {
+            html.classList.add('dark'); // Padrão
+        }
+    },
+
+    toggleDarkMode() {
+        const html = document.documentElement;
+        if(html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            app.showToast("Modo Claro ativado", "info");
+        } else {
+            html.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            app.showToast("Modo Escuro ativado", "info");
+        }
     },
 
     getTodayStr() {
@@ -155,6 +170,7 @@ const app = {
         if(pageId === 'tarefas') { this.renderTasksPage(); }
         if(pageId === 'calculadora') { this.updateCalcDisplay(); }
         if(pageId === 'lembretes') { this.renderRemindersPage(); }
+        if(pageId === 'configuracoes') { this.renderConfigPage(); }
         
         window.scrollTo(0,0);
     },
@@ -178,7 +194,6 @@ const app = {
             if(!e.target.closest('.filter-dropdown-container')) {
                 document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
             }
-            // Inicia o contexto de áudio em qualquer clique na tela (regra dos navegadores)
             if(!app.audioCtx && window.AudioContext) {
                 app.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
@@ -252,6 +267,79 @@ const app = {
     },
 
     /* =======================================
+       CONFIGURAÇÕES (PERFIL E SENHA)
+    ======================================= */
+    renderConfigPage() {
+        if(!auth.currentUser) return;
+        const uid = auth.currentUser.uid;
+        const user = app.userMap[uid] || {};
+        
+        const nome = user.nome || auth.currentUser.displayName || '';
+        const foto = user.foto || auth.currentUser.photoURL || '';
+
+        document.getElementById('conf-nome').value = nome;
+        document.getElementById('conf-foto').value = foto;
+        document.getElementById('conf-pass1').value = '';
+        document.getElementById('conf-pass2').value = '';
+
+        const preview = document.getElementById('conf-avatar-preview');
+        if(foto) {
+            preview.innerText = '';
+            preview.style.backgroundImage = `url('${foto}')`;
+        } else {
+            preview.innerText = nome ? nome.substring(0,2).toUpperCase() : 'TI';
+            preview.style.backgroundImage = 'none';
+        }
+    },
+
+    async saveProfileConfig() {
+        const nome = document.getElementById('conf-nome').value.trim();
+        const foto = document.getElementById('conf-foto').value.trim();
+
+        if(!nome) return app.showToast("O Nome de exibição é obrigatório.", "error");
+
+        try {
+            // Atualiza Auth nativo do Firebase
+            await updateProfile(auth.currentUser, { displayName: nome, photoURL: foto });
+            
+            // Atualiza ou cria o documento na coleção "usuarios"
+            await setDoc(doc(db, "usuarios", auth.currentUser.uid), {
+                nome: nome,
+                foto: foto
+            }, { merge: true });
+            
+            app.showToast("Perfil atualizado!");
+            app.updateAvatar(auth.currentUser, foto, nome);
+            app.renderConfigPage(); // Atualiza preview
+        } catch(e) {
+            console.error(e);
+            app.showToast("Erro ao atualizar perfil.", "error");
+        }
+    },
+
+    async savePasswordConfig() {
+        const p1 = document.getElementById('conf-pass1').value;
+        const p2 = document.getElementById('conf-pass2').value;
+
+        if(!p1 || p1.length < 6) return app.showToast("A senha precisa ter no mínimo 6 caracteres.", "error");
+        if(p1 !== p2) return app.showToast("As senhas digitadas não coincidem.", "error");
+
+        try {
+            await updatePassword(auth.currentUser, p1);
+            app.showToast("Senha alterada com sucesso!");
+            document.getElementById('conf-pass1').value = '';
+            document.getElementById('conf-pass2').value = '';
+        } catch(e) {
+            console.error(e);
+            if(e.code === 'auth/requires-recent-login') {
+                app.showToast("Por segurança, faça login novamente antes de alterar a senha.", "error");
+            } else {
+                app.showToast("Erro ao alterar a senha.", "error");
+            }
+        }
+    },
+
+    /* =======================================
        SISTEMA DE LEMBRETES & ALERTAS
     ======================================= */
     listenToReminders() {
@@ -268,12 +356,11 @@ const app = {
         if (!app.alertCheckInterval) {
             app.alertCheckInterval = setInterval(() => {
                 app.checkAlerts();
-            }, 10000); // 10 segundos
+            }, 10000); 
         }
     },
 
     playAlarmEngine() {
-        // Bipe Sonoro
         if(this.audioCtx) {
             if(this.audioCtx.state === 'suspended') this.audioCtx.resume();
             this.beepInterval = setInterval(() => {
@@ -282,14 +369,13 @@ const app = {
                 osc.connect(gain);
                 gain.connect(this.audioCtx.destination);
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(800, this.audioCtx.currentTime); // Tom alto
+                osc.frequency.setValueAtTime(800, this.audioCtx.currentTime); 
                 gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
                 osc.start();
-                osc.stop(this.audioCtx.currentTime + 0.3); // Duração do bipe
-            }, 1000); // Bipe a cada 1 seg
+                osc.stop(this.audioCtx.currentTime + 0.3); 
+            }, 1000); 
         }
         
-        // Aba do navegador piscando
         this.blinkInterval = setInterval(() => {
             document.title = document.title === "🔴 ALERTA T.I!" ? "WORKSPACE LOGÍSTICA" : "🔴 ALERTA T.I!";
         }, 1000);
@@ -556,7 +642,7 @@ const app = {
             }
         });
 
-        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa. Nenhuma nota.</p>';
+        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa.</p>';
         alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alerta listado.</p>';
     },
 
@@ -869,7 +955,9 @@ const app = {
         if(app.lockersUnsub) return;
         app.lockersUnsub = onSnapshot(collection(db, "armarios"), snap => {
             app.allLockers = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.name.localeCompare(b.name));
+            
             app.updateDashboardStats(); 
+
             if(document.getElementById('page-armarios').classList.contains('active')) {
                 app.renderLockers();
                 if(app.currentLockerId) app.renderNotebooks();
@@ -921,8 +1009,10 @@ const app = {
                     'Para venda': '#3b82f6', 'Descarte': '#ef4444', 'Garantia': '#c084fc', 
                     'Uso interno': '#2dd4bf', 'Repatrimoniar': '#9ca3af'
                 };
+                
                 let gradientStr = [];
                 let currentDeg = 0;
+                
                 for (const [key, count] of Object.entries(counts)) {
                     if (count > 0) {
                         const deg = (count / total) * 360;
@@ -932,6 +1022,7 @@ const app = {
                         currentDeg = end;
                     }
                 }
+                
                 chart.style.background = `conic-gradient(${gradientStr.join(', ')})`;
             }
         }
