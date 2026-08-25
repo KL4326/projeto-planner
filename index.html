@@ -13,43 +13,28 @@
                     "colors": {
                         "secondary-container": "#42485e",
                         "primary-fixed-dim": "#9ecaff",
-                        "surface": "#131313",
                         "on-primary-container": "#002c4f",
-                        "surface-container-high": "#2a2a2a",
-                        "on-background": "#e4e2e1",
-                        "inverse-primary": "#0061a4",
-                        "surface-container-low": "#1b1c1c",
                         "primary-fixed": "#d1e4ff",
-                        "background": "#131313",
                         "primary": "#9ecaff",
                         "surface-tint": "#9ecaff",
-                        "inverse-surface": "#e4e2e1",
                         "on-primary-fixed-variant": "#00497d",
-                        "on-surface": "#e4e2e1",
                         "on-secondary": "#293044",
                         "tertiary": "#78dc77",
                         "tertiary-fixed": "#94f990",
-                        "outline-variant": "#404752",
                         "primary-container": "#2196f3",
                         "secondary": "#bfc6e0",
-                        "inverse-on-surface": "#303030",
                         "on-primary-fixed": "#001d36",
                         "on-tertiary-fixed": "#002204",
                         "on-tertiary-container": "#003308",
                         "surface-dim": "#131313",
                         "surface-container-lowest": "#0e0e0e",
                         "tertiary-container": "#42a547",
-                        "surface-variant": "#353535",
-                        "outline": "#89919d",
                         "on-tertiary-fixed-variant": "#005313",
                         "surface-bright": "#393939",
                         "secondary-fixed-dim": "#bfc6e0",
                         "on-tertiary": "#00390a",
-                        "on-surface-variant": "#bfc7d4",
                         "on-error": "#690005",
-                        "surface-container": "#1f2020",
                         "error": "#ffb4ab",
-                        "surface-container-highest": "#353535",
                         "on-error-container": "#ffdad6",
                         "tertiary-fixed-dim": "#78dc77",
                         "error-container": "#93000a",
@@ -57,36 +42,28 @@
                         "on-primary": "#003258",
                         "on-secondary-container": "#b1b8d1",
                         "on-secondary-fixed-variant": "#3f465b",
-                        "on-secondary-fixed": "#141b2e"
+                        "on-secondary-fixed": "#141b2e",
+                        
+                        /* Cores Variáveis (Modo Claro/Escuro) */
+                        "background": "var(--color-level-0)",
+                        "surface": "var(--color-surface)",
+                        "on-surface": "var(--color-on-surface)",
+                        "on-surface-variant": "var(--color-on-surface-variant)",
+                        "surface-variant": "var(--color-surface-variant)",
+                        "surface-container": "var(--color-surface-container)",
+                        "surface-container-low": "var(--color-surface-container-low)",
+                        "surface-container-high": "var(--color-surface-container-high)",
+                        "surface-container-highest": "var(--color-surface-container-highest)",
+                        "outline": "var(--color-outline)",
+                        "outline-variant": "var(--color-outline-variant)",
+                        "inverse-surface": "var(--color-inverse-surface)",
+                        "inverse-on-surface": "var(--color-inverse-on-surface)"
                     },
-                    "borderRadius": {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
-                    "spacing": {
-                        "gutter": "20px",
-                        "md": "16px",
-                        "xl": "32px",
-                        "sm": "8px",
-                        "xs": "4px",
-                        "container-max": "1440px",
-                        "base": "4px",
-                        "lg": "24px"
-                    },
-                    "fontFamily": {
-                        "body-sm": ["Inter", "sans-serif"],
-                        "headline-lg": ["Inter", "sans-serif"],
-                        "code-data": ["Inter", "sans-serif"],
-                        "headline-lg-mobile": ["Inter", "sans-serif"],
-                        "body-lg": ["Inter", "sans-serif"],
-                        "display-lg": ["Inter", "sans-serif"],
-                        "label-caps": ["Inter", "sans-serif"],
-                        "title-md": ["Inter", "sans-serif"]
-                    }
-                },
-            },
+                    "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    "spacing": { "gutter": "20px", "md": "16px", "xl": "32px", "sm": "8px", "xs": "4px", "container-max": "1440px", "base": "4px", "lg": "24px" },
+                    "fontFamily": { "body-sm": ["Inter", "sans-serif"], "headline-lg": ["Inter", "sans-serif"], "code-data": ["Inter", "sans-serif"], "headline-lg-mobile": ["Inter", "sans-serif"], "body-lg": ["Inter", "sans-serif"], "display-lg": ["Inter", "sans-serif"], "label-caps": ["Inter", "sans-serif"], "title-md": ["Inter", "sans-serif"] }
+                }
+            }
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -94,21 +71,59 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        .bg-level-0 { background-color: #1A1A1A; }
-        .bg-level-1 { background-color: #2D2D2D; border: 1px solid #3D3D3D; box-shadow: 0px 4px 12px rgba(0,0,0,0.4); }
-        .bg-level-2 { background-color: #333333; box-shadow: 0px 12px 32px rgba(0,0,0,0.6); }
-        
+        /* Paleta Dinâmica (Modo Claro) */
+        :root {
+            --color-level-0: #f4f5f7;
+            --color-level-1: #ffffff;
+            --color-level-2: #f9fafb;
+            --color-surface: #ffffff;
+            --color-on-surface: #111827;
+            --color-on-surface-variant: #4b5563;
+            --color-surface-variant: #e5e7eb;
+            --color-surface-container: #f9fafb;
+            --color-surface-container-low: #ffffff;
+            --color-surface-container-high: #f3f4f6;
+            --color-surface-container-highest: #e5e7eb;
+            --color-outline: #9ca3af;
+            --color-outline-variant: #d1d5db;
+            --color-inverse-surface: #1f2937;
+            --color-inverse-on-surface: #f3f4f6;
+        }
+
+        /* Paleta Dinâmica (Modo Escuro) */
+        .dark {
+            --color-level-0: #1A1A1A;
+            --color-level-1: #2D2D2D;
+            --color-level-2: #333333;
+            --color-surface: #131313;
+            --color-on-surface: #e4e2e1;
+            --color-on-surface-variant: #bfc7d4;
+            --color-surface-variant: #353535;
+            --color-surface-container: #232323;
+            --color-surface-container-low: #1b1c1c;
+            --color-surface-container-high: #2a2a2a;
+            --color-surface-container-highest: #353535;
+            --color-outline: #89919d;
+            --color-outline-variant: #404752;
+            --color-inverse-surface: #e4e2e1;
+            --color-inverse-on-surface: #303030;
+        }
+
+        /* Hack: Substitui fundos fixos pelas variáveis do tema */
+        .bg-\\[\\#232323\\] { background-color: var(--color-surface-container) !important; }
+        .bg-\\[\\#2d2d2d\\] { background-color: var(--color-level-1) !important; }
+        .bg-\\[\\#181818\\] { background-color: var(--color-level-2) !important; }
+        .border-\\[\\#3d3d3d\\] { border-color: var(--color-outline-variant) !important; }
+
+        .bg-level-0 { background-color: var(--color-level-0); }
+        .bg-level-1 { background-color: var(--color-level-1); border: 1px solid var(--color-outline-variant); box-shadow: 0px 4px 12px rgba(0,0,0,0.05); }
+        .dark .bg-level-1 { box-shadow: 0px 4px 12px rgba(0,0,0,0.4); }
+        .bg-level-2 { background-color: var(--color-level-2); box-shadow: 0px 12px 32px rgba(0,0,0,0.6); }
+
         .page-section { display: none; }
         .page-section.active { display: block; }
-        
-        .glass-panel { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); }
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
         .dark .glass-panel { background: #1a1c22; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .status-strip { width: 4px; height: 100%; position: absolute; left: 0; top: 0; }
-
-        .text-Atrasado { color: #FF3D6F !important; } .bg-Atrasado { background-color: #FF3D6F !important; }
-        .text-Aberto { color: #00aaff !important; } .bg-Aberto { background-color: #00aaff !important; }
-        .text-Em-Progresso { color: #FFDD00 !important; } .bg-Em-Progresso { background-color: #FFDD00 !important; }
-        .text-Concluído { color: #00E676 !important; } .bg-Concluído { background-color: #00E676 !important; }
 
         ::-webkit-scrollbar, .chat-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track, .chat-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -240,9 +255,10 @@
             <div class="mt-auto pt-4 border-t border-outline-variant/30 flex items-center justify-between px-2 cursor-pointer hover:opacity-80 transition-opacity" onclick="app.signOut()">
                 <div class="flex items-center gap-3">
                     <div id="sidebar-avatar" class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline-variant font-bold text-xs bg-cover bg-center text-white"></div>
-                    <div class="flex flex-col text-left">
-                        <span id="sidebar-name" class="font-code-data text-on-surface truncate w-24">Operador</span>
-                        <span class="font-label-caps text-[10px] text-tertiary">ONLINE (SAIR)</span>
+                    <div class="flex flex-col text-left min-w-0">
+                        <span id="sidebar-name" class="font-code-data font-bold text-on-surface truncate w-28">Operador</span>
+                        <span id="sidebar-cargo" class="font-label-caps text-[10px] text-on-surface-variant truncate w-28 mt-0.5">Membro da Equipe</span>
+                        <span class="font-label-caps text-[9px] text-tertiary mt-1">ONLINE (SAIR)</span>
                     </div>
                 </div>
                 <span class="material-symbols-outlined text-on-surface-variant text-sm">logout</span>
@@ -692,6 +708,10 @@
                                     <div>
                                         <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nome de Exibição</label>
                                         <input type="text" id="conf-nome" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Cargo / Função</label>
+                                        <input type="text" id="conf-cargo" placeholder="Ex: Analista N2..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-bold">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">URL da Foto de Perfil</label>
