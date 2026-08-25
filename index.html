@@ -538,6 +538,53 @@
                     </div>
                 </div>
             </section>
+
+            <!-- TELA CALCULADORA -->
+            <section id="page-calculadora" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
+                <div class="max-w-container-max mx-auto pb-24 flex flex-col items-center">
+                    <!-- Cabeçalho -->
+                    <div class="mb-lg text-center w-full max-w-md">
+                        <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Calculadora</h2>
+                        <p class="font-body-sm text-on-surface-variant mt-xs">Utilitário rápido para cálculos operacionais</p>
+                    </div>
+
+                    <!-- Corpo da Calculadora -->
+                    <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-xl w-full max-w-sm">
+                        <!-- Display -->
+                        <div class="bg-[#181818] border border-outline-variant/50 rounded-xl p-4 mb-6 text-right overflow-hidden shadow-inner">
+                            <div id="calc-previous" class="text-xs text-on-surface-variant font-code-data h-4 truncate"></div>
+                            <div id="calc-current" class="text-3xl font-bold text-on-surface font-code-data tracking-wider truncate mt-1">0</div>
+                        </div>
+
+                        <!-- Teclado -->
+                        <div class="grid grid-cols-4 gap-3">
+                            <button onclick="app.calcClear()" class="bg-error-container/20 text-error font-bold py-3 rounded-xl hover:bg-error-container/30 transition-colors">C</button>
+                            <button onclick="app.calcDelete()" class="bg-surface-container-high text-on-surface-variant font-bold py-3 rounded-xl hover:bg-surface-container-highest transition-colors flex items-center justify-center"><span class="material-symbols-outlined text-[18px]">backspace</span></button>
+                            <button onclick="app.calcAppend('%')" class="bg-surface-container-high text-on-surface-variant font-bold py-3 rounded-xl hover:bg-surface-container-highest transition-colors">%</button>
+                            <button onclick="app.calcAppend('/')" class="bg-primary-container text-on-primary-container font-bold py-3 rounded-xl hover:bg-primary hover:text-white transition-colors">÷</button>
+
+                            <button onclick="app.calcAppend('7')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">7</button>
+                            <button onclick="app.calcAppend('8')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">8</button>
+                            <button onclick="app.calcAppend('9')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">9</button>
+                            <button onclick="app.calcAppend('*')" class="bg-primary-container text-on-primary-container font-bold py-3 rounded-xl hover:bg-primary hover:text-white transition-colors">×</button>
+
+                            <button onclick="app.calcAppend('4')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">4</button>
+                            <button onclick="app.calcAppend('5')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">5</button>
+                            <button onclick="app.calcAppend('6')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">6</button>
+                            <button onclick="app.calcAppend('-')" class="bg-primary-container text-on-primary-container font-bold py-3 rounded-xl hover:bg-primary hover:text-white transition-colors">-</button>
+
+                            <button onclick="app.calcAppend('1')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">1</button>
+                            <button onclick="app.calcAppend('2')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">2</button>
+                            <button onclick="app.calcAppend('3')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">3</button>
+                            <button onclick="app.calcAppend('+')" class="bg-primary-container text-on-primary-container font-bold py-3 rounded-xl hover:bg-primary hover:text-white transition-colors">+</button>
+
+                            <button onclick="app.calcAppend('0')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl col-span-2 hover:bg-surface-container-high transition-colors">0</button>
+                            <button onclick="app.calcAppend('.')" class="bg-surface-container text-on-surface font-bold py-3 rounded-xl hover:bg-surface-container-high transition-colors">.</button>
+                            <button onclick="app.calcCompute()" class="bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary/90 transition-colors shadow-md">=</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
             
             <!-- Floating Chat Widget -->
             <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
