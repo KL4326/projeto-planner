@@ -52,6 +52,37 @@ const app = {
         this.bindEvents(); 
         this.checkAuth(); 
         this.initTheme(); 
+        this.startClock();
+        this.getWeather();
+    },
+
+    startClock() {
+        setInterval(() => {
+            const el = document.getElementById('header-clock');
+            if(el) {
+                const now = new Date();
+                el.innerText = now.toLocaleString('pt-BR');
+            }
+        }, 1000);
+    },
+
+    getWeather() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                    const data = await res.json();
+                    const temp = data.current_weather.temperature;
+                    const el = document.getElementById('weather-temp');
+                    if(el) {
+                        el.innerText = `${temp}°C`;
+                        el.previousElementSibling.innerText = 'thermostat'; // muda o ícone
+                    }
+                } catch(e) { console.log("Erro ao buscar clima", e); }
+            });
+        }
     },
     
     initTheme() { 
@@ -408,11 +439,49 @@ const app = {
         if(app.lockersUnsub) return;
         app.lockersUnsub = onSnapshot(collection(db, "armarios"), snap => {
             app.allLockers = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.name.localeCompare(b.name));
+            
+            app.updateDashboardStats(); // Atualiza gráfico CMDB do Dashboard
+
             if(document.getElementById('page-armarios').classList.contains('active')) {
                 app.renderLockers();
                 if(app.currentLockerId) app.renderNotebooks();
             }
         });
+    },
+
+    updateDashboardStats() {
+        let total = 0;
+        let disp = 0;
+        
+        app.allLockers.forEach(locker => {
+            if(locker.equipamentos) {
+                total += locker.equipamentos.length;
+                locker.equipamentos.forEach(e => {
+                    // Considera 'Disponível' para a cor verde do gráfico
+                    if(e.statusText === 'Disponível') disp++;
+                });
+            }
+        });
+        
+        const outros = total - disp;
+        
+        const elTot = document.getElementById('dash-tot-equips');
+        const elDisp = document.getElementById('dash-disp-equips');
+        const elOutros = document.getElementById('dash-outros-equips');
+        const chart = document.getElementById('dash-chart-bg');
+        
+        if(elTot) elTot.innerText = total;
+        if(elDisp) elDisp.innerText = disp;
+        if(elOutros) elOutros.innerText = outros;
+        
+        if(chart) {
+            if(total === 0) {
+                chart.style.background = `conic-gradient(#353535 0% 100%)`;
+            } else {
+                const degDisp = (disp / total) * 360;
+                chart.style.background = `conic-gradient(#4ade80 0deg ${degDisp}deg, #fb923c ${degDisp}deg 360deg)`;
+            }
+        }
     },
 
     setLockerFilter(filter) {
@@ -710,7 +779,7 @@ const app = {
     },
 
     /* =======================================
-       LISTA DE TAREFAS / PLANNER KANBAN
+       LISTA DE TAREFAS / PLANNER
     ======================================= */
     listenToTasks() { 
         if (app.globalTasksUnsub) return;
@@ -889,7 +958,20 @@ const app = {
                 
                 const notDone = normStatus !== 'Concluídas' && normStatus !== 'Canceladas';
                 return matchAssignee && notDone; 
-            }).sort((a,b) => (b.ts_manual || 0) - (a.ts_manual || 0));
+            });
+
+            // Ordena tarefas: atrasadas primeiro, depois data de criação
+            myTasks.sort((a, b) => {
+                let aDateStr = typeof a.dueDate === 'string' ? a.dueDate : (a.dueDate ? a.dueDate.toDate().toISOString().split('T')[0] : '');
+                let bDateStr = typeof b.dueDate === 'string' ? b.dueDate : (b.dueDate ? b.dueDate.toDate().toISOString().split('T')[0] : '');
+                
+                const aAtrasada = aDateStr && aDateStr < hoje;
+                const bAtrasada = bDateStr && bDateStr < hoje;
+                
+                if (aAtrasada && !bAtrasada) return -1;
+                if (!aAtrasada && bAtrasada) return 1;
+                return (b.ts_manual || 0) - (a.ts_manual || 0);
+            });
 
             if(myTasks.length === 0) {
                 c.innerHTML = '<p class="p-4 text-center text-xs text-on-surface-variant/50 font-medium">Nenhuma pendência na sua fila hoje.</p>';
@@ -900,17 +982,22 @@ const app = {
             myTasks.forEach(t => {
                 try {
                     let taskDateStr = typeof t.dueDate === 'string' ? t.dueDate : (t.dueDate ? t.dueDate.toDate().toISOString().split('T')[0] : '');
-
                     const isAtrasada = taskDateStr && taskDateStr < hoje;
+                    
                     let pTag = '';
-                    if(t.priority === 'Alta') pTag = `<span class="px-1.5 py-0.5 bg-red-500/20 text-red-400 font-label-caps text-[9px] rounded border border-red-500/20">URGENTE</span>`;
-                    if(t.priority === 'Baixa') pTag = `<span class="px-1.5 py-0.5 bg-green-500/20 text-green-400 font-label-caps text-[9px] rounded border border-green-500/20">BAIXA</span>`;
+                    if(isAtrasada) {
+                        pTag = `<span class="px-1.5 py-0.5 bg-red-500/20 text-red-400 font-label-caps text-[9px] rounded border border-red-500/20 animate-pulse">ATRASADA</span>`;
+                    } else if(t.priority === 'Alta') {
+                        pTag = `<span class="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 font-label-caps text-[9px] rounded border border-orange-500/20">ALTA</span>`;
+                    } else if(t.priority === 'Baixa') {
+                        pTag = `<span class="px-1.5 py-0.5 bg-green-500/20 text-green-400 font-label-caps text-[9px] rounded border border-green-500/20">BAIXA</span>`;
+                    }
                     
                     let displayDate = taskDateStr ? (taskDateStr.includes('-') ? taskDateStr.split('-').reverse().join('/') : taskDateStr) : '';
 
                     htmlStr += `
                         <li>
-                            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-red-500/50' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task" onclick="app.navigate('tarefas'); app.openTaskDetails('${t.id}')">
+                            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-variant border ${isAtrasada ? 'border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-outline-variant/30'} cursor-pointer transition-colors group/task" onclick="app.navigate('tarefas'); app.openTaskDetails('${t.id}')">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2">
                                         <span class="font-body-sm text-body-sm text-on-surface group-hover/task:text-primary transition-colors">${t.title || 'Sem Título'}</span>
