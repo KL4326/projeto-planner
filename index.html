@@ -254,9 +254,17 @@
                 </div>
                 <div class="flex items-center gap-6 ml-6">
                     <div class="hidden lg:flex items-center gap-4 text-on-surface-variant font-code-data">
-                        <div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-primary-fixed-dim">rainy</span><span>19°C</span></div>
+                        <!-- Clima -->
+                        <div id="header-weather" class="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors" onclick="app.getWeather()" title="Atualizar Clima">
+                            <span class="material-symbols-outlined text-primary-fixed-dim text-[18px]">thermostat</span>
+                            <span id="weather-temp">--°C</span>
+                        </div>
                         <div class="w-px h-4 bg-outline-variant/50"></div>
-                        <div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-tertiary">traffic</span><span class="text-tertiary">Fluxo Livre</span></div>
+                        <!-- Relógio -->
+                        <div class="flex items-center gap-1.5 text-tertiary">
+                            <span class="material-symbols-outlined text-[18px]">schedule</span>
+                            <span id="header-clock">--/--/---- --:--:--</span>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -298,19 +306,19 @@
                         <!-- Visão Armários -->
                         <section class="bg-level-1 rounded-xl flex flex-col md:col-span-4 overflow-hidden">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
-                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets</h3>
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Buckets (CMDB)</h3>
                             </div>
                             <div class="p-6 flex-1 flex flex-col items-center justify-center relative">
                                 <div class="relative w-32 h-32 rounded-full flex items-center justify-center mb-6">
-                                    <div class="absolute inset-0 rounded-full overflow-hidden" style="background: conic-gradient(#78dc77 0% 71.4%, #ffb4ab 71.4% 100%);"></div>
+                                    <div id="dash-chart-bg" class="absolute inset-0 rounded-full overflow-hidden" style="background: conic-gradient(#353535 0% 100%); transition: background 1s ease;"></div>
                                     <div class="relative z-10 w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
-                                        <span class="font-display-lg text-[28px] leading-none font-bold text-on-surface">35</span>
+                                        <span id="dash-tot-equips" class="font-display-lg text-[28px] leading-none font-bold text-on-surface">0</span>
                                         <span class="font-label-caps text-[10px] text-on-surface-variant mt-1">TOTAL</span>
                                     </div>
                                 </div>
                                 <div class="w-full space-y-2 font-code-data text-xs mt-2">
-                                    <div class="flex justify-between p-2 rounded bg-surface"><span class="text-on-surface">Disponíveis</span><span class="text-tertiary font-bold">25</span></div>
-                                    <div class="flex justify-between p-2 rounded bg-surface"><span class="text-on-surface">Em Uso</span><span class="text-error font-bold">10</span></div>
+                                    <div class="flex justify-between p-2 rounded bg-surface border border-outline-variant/30"><span class="text-on-surface flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400"></span>Disponíveis</span><span id="dash-disp-equips" class="text-green-400 font-bold">0</span></div>
+                                    <div class="flex justify-between p-2 rounded bg-surface border border-outline-variant/30"><span class="text-on-surface flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-400"></span>Em Uso/Outros</span><span id="dash-outros-equips" class="text-orange-400 font-bold">0</span></div>
                                 </div>
                             </div>
                         </section>
