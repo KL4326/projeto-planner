@@ -740,7 +740,7 @@
                             </div>
                         </div>
 
-                        <!-- Coluna 2: Segurança e Sobre -->
+                        <!-- Coluna 2: Segurança, Equipe e Sobre -->
                         <div class="space-y-8">
                             <!-- Card de Segurança -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
@@ -762,6 +762,16 @@
                                 </div>
                             </div>
 
+                            <!-- NOVO: Card da Equipe -->
+                            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+                                <h3 class="font-title-md font-bold text-on-surface mb-4 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
+                                    <span class="material-symbols-outlined text-secondary">groups</span> Equipe Cadastrada
+                                </h3>
+                                <div id="conf-users-list" class="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1 chat-scroll">
+                                    <!-- Lista de usuários injetada via JS -->
+                                </div>
+                            </div>
+
                             <!-- Card Info -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center text-center py-10 opacity-70">
                                 <div class="w-16 h-16 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(33,150,243,0.3)]">
@@ -769,49 +779,46 @@
                                 </div>
                                 <h4 class="font-bold text-on-surface text-lg">CARA DO T.I</h4>
                                 <p class="text-xs font-code-data text-on-surface-variant mt-1">Workspace Logística - v1.0.0</p>
-                                <p class="text-[10px] text-on-surface-variant mt-4 max-w-xs">Plataforma desenvolvida sob medida para operações de TI, otimizando o fluxo logístico e técnico da equipe.</p>
+                                <p class="text-[10px] text-on-surface-variant mt-4 max-w-xs">Plataforma desenvolvida sob medida para operações de TI.</p>
                             </div>
                         </div>
-
-                    </div>
-                </div>
-            </section>
             
             <!-- Floating Chat Widget -->
             <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
                 <div id="global-chat-panel" class="hidden bg-level-2 w-[320px] rounded-xl border border-outline-variant/50 overflow-hidden shadow-[0_12px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm bg-[#333333]/95 flex flex-col transition-all duration-300 transform origin-bottom-right pointer-events-auto">
-                    <div class="h-12 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-high cursor-pointer" onclick="document.getElementById('global-chat-panel').classList.toggle('hidden')">
+                    
+                    <!-- Cabeçalho Dinâmico do Chat -->
+                    <div class="h-12 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-high">
                         <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_5px_#78dc77]"></div>
-                            <span class="font-code-data text-sm font-semibold text-on-surface">Chat da Equipe</span>
+                            <button id="chat-back-btn" onclick="app.closeChatView()" class="hidden text-on-surface-variant hover:text-primary mr-1"><span class="material-symbols-outlined text-[18px]">arrow_back</span></button>
+                            <div id="chat-header-avatar" class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-white hidden bg-cover bg-center border border-outline-variant/50"></div>
+                            <span id="chat-header-title" class="font-code-data text-sm font-semibold text-on-surface">Chat da Equipe</span>
                         </div>
-                        <div class="flex gap-1 text-on-surface-variant">
-                            <button class="hover:text-primary"><span class="material-symbols-outlined text-[20px]">remove</span></button>
-                        </div>
+                        <button onclick="app.toggleChatPanel()" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
                     </div>
-                    <div class="h-[240px] p-4 flex flex-col gap-4 overflow-y-auto chat-scroll bg-surface/50">
-                        <div class="flex gap-2">
-                            <div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center shrink-0 border border-outline-variant/50 mt-1"><span class="font-label-caps text-[8px] text-on-surface">SI</span></div>
-                            <div class="flex-1">
-                                <div class="flex items-baseline gap-2">
-                                    <span class="font-code-data text-[11px] font-bold text-on-surface-variant">Sistema</span>
-                                </div>
-                                <div class="bg-surface-container border border-outline-variant/30 rounded-lg rounded-tl-none p-2 mt-1">
-                                    <p class="font-body-sm text-[13px] text-on-surface">Chat global será ativado na próxima atualização.</p>
-                                </div>
+
+                    <!-- TELA 1: Lista de Contatos -->
+                    <div id="chat-user-list-view" class="h-[280px] p-2 flex flex-col gap-1 overflow-y-auto chat-scroll bg-surface/50">
+                        <!-- Usuários renderizados via JS -->
+                    </div>
+
+                    <!-- TELA 2: Conversa Aberta (Oculto por padrão) -->
+                    <div id="chat-messages-view" class="hidden flex-col h-[280px]">
+                        <div id="chat-messages-container" class="flex-1 p-3 flex flex-col gap-3 overflow-y-auto chat-scroll bg-surface/50">
+                            <!-- Mensagens via JS -->
+                        </div>
+                        <div class="p-2 border-t border-outline-variant/30 bg-surface-container-high">
+                            <div class="flex items-center gap-2 bg-surface rounded-lg border border-outline-variant/50 px-2 py-1 focus-within:border-primary transition-colors">
+                                <input type="text" id="chat-message-inp" placeholder="Mensagem..." class="bg-transparent border-none outline-none text-[13px] font-body-sm text-on-surface w-full focus:ring-0 py-1" onkeypress="if(event.key === 'Enter') app.sendChatMessage()">
+                                <button onclick="app.sendChatMessage()" class="text-primary hover:text-primary-fixed shrink-0 flex items-center justify-center p-1 rounded hover:bg-primary-container/10 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">send</span>
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <div class="p-2 border-t border-outline-variant/30 bg-surface-container-high">
-                        <div class="flex items-center gap-2 bg-surface rounded-lg border border-outline-variant/50 px-2 py-1 focus-within:border-primary-brand transition-colors">
-                            <input type="text" placeholder="Escrever mensagem..." class="bg-transparent border-none outline-none text-[13px] font-body-sm text-on-surface w-full focus:ring-0 py-1" disabled>
-                            <button class="text-primary-brand hover:text-primary-fixed shrink-0 flex items-center justify-center p-1 rounded hover:bg-primary-container/10 transition-colors" disabled>
-                                <span class="material-symbols-outlined text-[18px]">send</span>
-                            </button>
-                        </div>
-                    </div>
                 </div>
-                <button onclick="document.getElementById('global-chat-panel').classList.toggle('hidden')" class="w-14 h-14 rounded-full bg-primary-brand text-white shadow-[0_4px_12px_rgba(33,150,243,0.4)] flex items-center justify-center hover:bg-[#1976D2] hover:scale-105 transition-all duration-200 pointer-events-auto border-2 border-surface">
+                
+                <button onclick="app.toggleChatPanel()" class="w-14 h-14 rounded-full bg-primary-brand text-white shadow-[0_4px_12px_rgba(33,150,243,0.4)] flex items-center justify-center hover:bg-[#1976D2] hover:scale-105 transition-all duration-200 pointer-events-auto border-2 border-surface">
                     <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
                 </button>
             </div>
