@@ -994,8 +994,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Modal Form Lembrete -->
+<!-- Modal Form Lembrete -->
     <div id="reminder-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeReminderForm()"></div>
         <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-md rounded-xl shadow-2xl p-6 md:p-8">
@@ -1019,11 +1018,17 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Data</label>
-                        <input type="date" id="rem-date" onchange="this.blur()" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
+                        <input type="date" id="rem-date" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Hora exata</label>
-                        <input type="time" id="rem-time" onchange="this.blur()" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
+                        <div class="flex gap-2">
+                            <input type="time" id="rem-time" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
+                            <!-- O Botão que fecha a caixa de seleção -->
+                            <button type="button" onclick="document.getElementById('rem-time').blur()" class="px-3 bg-surface-container border border-outline-variant/50 hover:bg-primary-container hover:border-primary-container text-on-surface-variant hover:text-white rounded-lg transition-colors flex items-center justify-center shadow-sm" title="Confirmar Hora">
+                                <span class="material-symbols-outlined text-[20px]">check</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div>
