@@ -15,13 +15,17 @@ const fb = initializeApp(firebaseConfig);
 const db = getFirestore(fb);
 const auth = getAuth(fb);
 
+// 👇 COLE SUA URL DO GOOGLE APPS SCRIPT AQUI DENTRO DAS ASPAS 👇
+const GOOGLE_SHEETS_API_URL = "SUA_URL_DO_APP_SCRIPT_VEM_AQUI";
+
+
 const app = {
     allTasks: [], 
     userMap: {},
     allLogs: [],
     allLockers: [],
     allReminders: [], 
-    allPecas: [], // NOVO: Controle de Estoque
+    allPecas: [], 
     
     logFilter: 'Todos',
     logDateFilter: '',
@@ -59,8 +63,8 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
     remindersUnsub: null, 
-    pecasUnsub: null, // NOVO
     alertCheckInterval: null, 
+    estoquePollInterval: null, 
     
     audioCtx: null,
     beepInterval: null,
@@ -251,7 +255,7 @@ const app = {
                 app.listenToNotifications();
                 app.listenToLockers();
                 app.listenToReminders(); 
-                app.listenToEstoque(); // NOVO
+                app.listenToEstoque(); // Inicia a conexão com Google Sheets
                 
                 app.navigate('dashboard'); 
             } else { 
@@ -279,18 +283,32 @@ const app = {
     },
 
     /* =======================================
-       SISTEMA DE ESTOQUE (PEÇAS)
+       SISTEMA DE ESTOQUE (PEÇAS) - VIA GOOGLE SHEETS
     ======================================= */
     listenToEstoque() {
-        if(app.pecasUnsub) return;
-        app.pecasUnsub = onSnapshot(collection(db, "estoque"), snap => {
-            app.allPecas = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.peca.localeCompare(b.peca));
+        if(app.estoquePollInterval) clearInterval(app.estoquePollInterval);
+        
+        app.fetchEstoqueSheet(); // Carrega na hora
+
+        // Atualiza a cada 15 segundos para não estourar a cota da API do Google
+        app.estoquePollInterval = setInterval(() => {
+            app.fetchEstoqueSheet();
+        }, 15000); 
+    },
+
+    async fetchEstoqueSheet() {
+        if(!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL === "SUA_URL_DO_APP_SCRIPT_VEM_AQUI") return;
+        
+        try {
+            const res = await fetch(GOOGLE_SHEETS_API_URL);
+            const data = await res.json();
+            app.allPecas = data;
             
-            app.updateDashboardStats(); // Atualiza painéis do Dash
+            app.updateDashboardStats();
             if(document.getElementById('page-estoque').classList.contains('active')) {
                 app.renderEstoquePage();
             }
-        });
+        } catch(e) { console.error("Erro ao ler Planilha", e); }
     },
 
     renderEstoquePage() {
@@ -320,7 +338,7 @@ const app = {
             
             let nomeExibicao = p.peca.toUpperCase();
             if (nomeExibicao === "TOPCOVER" && p.observacao && p.observacao !== "-") {
-                nomeExibicao = `${p.observacao.toUpperCase()} <span class="text-[10px] bg-[rgba(10,132,255,0.15)] text-[#64d2ff] px-2 py-0.5 rounded ml-2">TOPCOVER</span>`;
+                nomeExibicao = `${p.observacao.toUpperCase()} <span class="text-[10px] bg-[rgba(10,132,255,0.15)] text-[#64d2ff] px-2 py-0.5 rounded ml-2 font-bold border border-[rgba(10,132,255,0.3)]">TOPCOVER</span>`;
             }
 
             let obsHtml = '';
@@ -375,7 +393,7 @@ const app = {
         }
     },
 
-    openPecaForm(id = null) {
+    openPecaForm() {
         document.getElementById('peca-id').value = '';
         document.getElementById('peca-nome').value = '';
         document.getElementById('peca-modelo').value = '';
@@ -400,60 +418,85 @@ const app = {
 
         if(!peca || !modelo) return app.showToast("Informe a peça e o modelo.", "error");
 
+        app.closePecaForm();
+        app.showToast("Salvando na planilha...", "info");
+
         try {
-            await addDoc(collection(db, "estoque"), {
-                peca: peca,
-                modelo: modelo,
-                qtdNovas: novas,
-                qtdReuso: reuso,
-                observacao: obs,
-                ts: Date.now()
+            await fetch(GOOGLE_SHEETS_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: 'add', peca: peca, modelo: modelo, qtdNovas: novas, qtdReuso: reuso, observacao: obs })
             });
             app.showToast("Peça cadastrada!");
             app.addLog(`➕ Adicionou ${novas+reuso}x ${peca} (${modelo}) no Estoque`, 'Logística');
-            app.closePecaForm();
+            app.fetchEstoqueSheet(); // Força o recarregamento na hora
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
     },
 
     async updatePecaQtd(id, alteracao) {
         const tipoBox = document.getElementById(`tipo-${id}`);
         if(!tipoBox) return;
-        const tipo = tipoBox.value; // 'nova' ou 'reuso'
+        const tipo = tipoBox.value; 
 
-        const p = app.allPecas.find(x => x.id === id);
-        if(!p) return;
+        // Encontra a peça no cache atual
+        const pIndex = app.allPecas.findIndex(x => String(x.id) === String(id));
+        if(pIndex === -1) return;
 
-        let valNovas = parseInt(p.qtdNovas) || 0;
-        let valReuso = parseInt(p.qtdReuso) || 0;
+        // --- ATUALIZAÇÃO OTIMISTA (Muda na tela instantaneamente) ---
+        let valNovas = parseInt(app.allPecas[pIndex].qtdNovas) || 0;
+        let valReuso = parseInt(app.allPecas[pIndex].qtdReuso) || 0;
 
         if (tipo === 'nova') {
+            if (alteracao < 0 && valNovas === 0) return; // Não deixa ficar negativo
             valNovas += alteracao;
             if(valNovas < 0) valNovas = 0;
+            app.allPecas[pIndex].qtdNovas = valNovas;
         } else {
+            if (alteracao < 0 && valReuso === 0) return; // Não deixa ficar negativo
             valReuso += alteracao;
             if(valReuso < 0) valReuso = 0;
+            app.allPecas[pIndex].qtdReuso = valReuso;
         }
+        
+        app.allPecas[pIndex].total = valNovas + valReuso;
+        app.renderEstoquePage(); 
+        app.updateDashboardStats();
 
+        // --- ENVIA PARA A PLANILHA EM SEGUNDO PLANO ---
         try {
-            await updateDoc(doc(db, "estoque", id), {
-                qtdNovas: valNovas,
-                qtdReuso: valReuso
+            await fetch(GOOGLE_SHEETS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'update', id: id, alteracao: alteracao, tipo: tipo })
             });
-            
-            // Log de movimento
             const sinal = alteracao > 0 ? "+" : "";
-            app.addLog(`📦 Estoque: ${sinal}${alteracao} ${tipo === 'nova'?'Novas':'Usadas'} em ${p.peca} (${p.modelo})`, 'Logística');
-        } catch(e) { console.error(e); }
+            app.addLog(`📦 Estoque: ${sinal}${alteracao} ${tipo === 'nova'?'Novas':'Usadas'} em ${app.allPecas[pIndex].peca} (${app.allPecas[pIndex].modelo})`, 'Logística');
+        } catch(e) { 
+            console.error(e); 
+            app.showToast("Falha de conexão com a Planilha.", "error"); 
+            app.fetchEstoqueSheet(); // Desfaz a mudança se der erro
+        }
     },
 
     async deletePeca(id) {
-        if(confirm("Deseja EXCLUIR definitivamente esta peça do sistema?")) {
+        if(confirm("Deseja EXCLUIR definitivamente esta peça da Planilha?")) {
+            const p = app.allPecas.find(x => String(x.id) === String(id));
+            
+            // Otimista
+            app.allPecas = app.allPecas.filter(x => String(x.id) !== String(id));
+            app.renderEstoquePage();
+            app.updateDashboardStats();
+
             try {
-                const p = app.allPecas.find(x => x.id === id);
-                await deleteDoc(doc(db, "estoque", id));
+                await fetch(GOOGLE_SHEETS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'delete', id: id })
+                });
                 app.showToast("Peça excluída do estoque.");
                 if(p) app.addLog(`🗑️ Excluiu peça do estoque: ${p.peca} (${p.modelo})`, 'Incidente');
-            } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
+            } catch(e) { 
+                console.error(e); 
+                app.showToast("Erro.", "error"); 
+                app.fetchEstoqueSheet(); // Traz de volta se falhou
+            }
         }
     },
 
@@ -1349,68 +1392,67 @@ const app = {
     },
 
     updateDashboardStats() {
-        // Estatísticas dos Armários
-        let totalEq = 0;
-        const countsEq = {
+        let total = 0;
+        const counts = {
             'Disponível': 0, 'Laboratório': 0, 'Laboratório 2': 0, 'Para venda': 0,
             'Descarte': 0, 'Garantia': 0, 'Uso interno': 0, 'Repatrimoniar': 0
         };
         
         app.allLockers.forEach(locker => {
             if(locker.equipamentos) {
-                totalEq += locker.equipamentos.length;
+                total += locker.equipamentos.length;
                 locker.equipamentos.forEach(e => {
                     const st = e.statusText;
-                    if(countsEq[st] !== undefined) countsEq[st]++;
+                    if(counts[st] !== undefined) counts[st]++;
                 });
             }
         });
         
-        const elTotEq = document.getElementById('dash-tot-equips');
-        if(elTotEq) elTotEq.innerText = totalEq;
+        const elTot = document.getElementById('dash-tot-equips');
+        if(elTot) elTot.innerText = total;
 
-        const updateDomEq = (id, count) => {
+        const updateDom = (id, count) => {
             const el = document.getElementById(id);
             if(el) el.innerText = count;
         };
 
-        updateDomEq('dash-stat-disp', countsEq['Disponível']);
-        updateDomEq('dash-stat-lab1', countsEq['Laboratório']);
-        updateDomEq('dash-stat-lab2', countsEq['Laboratório 2']);
-        updateDomEq('dash-stat-venda', countsEq['Para venda']);
-        updateDomEq('dash-stat-desc', countsEq['Descarte']);
-        updateDomEq('dash-stat-gar', countsEq['Garantia']);
-        updateDomEq('dash-stat-uso', countsEq['Uso interno']);
-        updateDomEq('dash-stat-rep', countsEq['Repatrimoniar']);
+        updateDom('dash-stat-disp', counts['Disponível']);
+        updateDom('dash-stat-lab1', counts['Laboratório']);
+        updateDom('dash-stat-lab2', counts['Laboratório 2']);
+        updateDom('dash-stat-venda', counts['Para venda']);
+        updateDom('dash-stat-desc', counts['Descarte']);
+        updateDom('dash-stat-gar', counts['Garantia']);
+        updateDom('dash-stat-uso', counts['Uso interno']);
+        updateDom('dash-stat-rep', counts['Repatrimoniar']);
         
-        const chartEq = document.getElementById('dash-chart-bg');
-        if(chartEq) {
-            if(totalEq === 0) {
-                chartEq.style.background = `conic-gradient(#353535 0% 100%)`;
+        const chart = document.getElementById('dash-chart-bg');
+        if(chart) {
+            if(total === 0) {
+                chart.style.background = `conic-gradient(#353535 0% 100%)`;
             } else {
-                const colorsEq = {
+                const colors = {
                     'Disponível': '#14b8a6', 'Laboratório': '#fbbf24', 'Laboratório 2': '#f97316', 
                     'Para venda': '#3b82f6', 'Descarte': '#ef4444', 'Garantia': '#c084fc', 
                     'Uso interno': '#2dd4bf', 'Repatrimoniar': '#9ca3af'
                 };
                 let gradientStr = [];
                 let currentDeg = 0;
-                for (const [key, count] of Object.entries(countsEq)) {
+                for (const [key, count] of Object.entries(counts)) {
                     if (count > 0) {
-                        const deg = (count / totalEq) * 360;
+                        const deg = (count / total) * 360;
                         const start = currentDeg;
                         const end = currentDeg + deg;
-                        gradientStr.push(`${colorsEq[key]} ${start}deg ${end}deg`);
+                        gradientStr.push(`${colors[key]} ${start}deg ${end}deg`);
                         currentDeg = end;
                     }
                 }
-                chartEq.style.background = `conic-gradient(${gradientStr.join(', ')})`;
+                chart.style.background = `conic-gradient(${gradientStr.join(', ')})`;
             }
         }
 
         // Estatísticas de Peças (Estoque)
         let totalPecas = 0;
-        const pecasMap = {}; // Agrupa os totais pelo Nome da Peça
+        const pecasMap = {}; 
 
         app.allPecas.forEach(p => {
             const sum = (parseInt(p.qtdNovas) || 0) + (parseInt(p.qtdReuso) || 0);
@@ -1432,14 +1474,12 @@ const app = {
                 chartPecas.style.background = `conic-gradient(#353535 0% 100%)`;
                 legendPecas.innerHTML = '<span class="col-span-2 text-center text-[10px] text-on-surface-variant">Estoque Vazio</span>';
             } else {
-                // Cores dinâmicas e agradáveis para peças
                 const palette = ['#0a84ff', '#30d158', '#ff9f0a', '#ff453a', '#bf5af2', '#64d2ff', '#ffd60a', '#ff375f', '#32ade6'];
                 let gradientStr = [];
                 let currentDeg = 0;
                 let colorIdx = 0;
                 let legendHtml = '';
 
-                // Ordena do maior pro menor
                 const sortedPecas = Object.entries(pecasMap).sort((a,b) => b[1] - a[1]);
 
                 sortedPecas.forEach(([nome, count]) => {
@@ -2482,8 +2522,8 @@ const app = {
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
         if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
-        if (app.pecasUnsub) { app.pecasUnsub(); app.pecasUnsub = null; }
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
+        if (app.estoquePollInterval) { clearInterval(app.estoquePollInterval); app.estoquePollInterval = null; }
         if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
         app.stopAlarmEngine();
         signOut(auth); 
