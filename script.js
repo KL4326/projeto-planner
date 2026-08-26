@@ -64,7 +64,6 @@ const app = {
     beepInterval: null,
     blinkInterval: null,
 
-    // Chat Privado
     currentChatId: null,
     chatUnsub: null,
 
@@ -282,7 +281,7 @@ const app = {
         const panel = document.getElementById('global-chat-panel');
         panel.classList.toggle('hidden');
         if(!panel.classList.contains('hidden')) {
-            app.closeChatView(); // Reseta para a lista toda vez que abre
+            app.closeChatView(); 
         }
     },
 
@@ -306,7 +305,6 @@ const app = {
             avatar.innerHTML = targetUser.nome.substring(0,2).toUpperCase();
         }
 
-        // Gera um ID Único para a conversa entre os dois
         const myUid = auth.currentUser.uid;
         const convId = myUid < targetUid ? `${myUid}_${targetUid}` : `${targetUid}_${myUid}`;
         
@@ -616,9 +614,11 @@ const app = {
             if(id) {
                 await updateDoc(doc(db, "lembretes", id), remData);
                 app.showToast("Lembrete atualizado!");
+                app.addLog(`✏️ Atualizou o lembrete/alerta: ${title}`, 'Logística');
             } else {
                 await addDoc(collection(db, "lembretes"), remData);
                 app.showToast("Lembrete agendado!");
+                app.addLog(`➕ Criou um novo lembrete/alerta: ${title}`, 'Logística');
             }
             app.closeReminderForm();
         } catch(e) { console.error(e); app.showToast("Erro ao agendar.", "error"); }
@@ -627,8 +627,10 @@ const app = {
     async deleteReminder(id) {
         if(confirm("Deseja realmente apagar este lembrete/alerta?")) {
             try {
+                const r = app.allReminders.find(x => x.id === id);
                 await deleteDoc(doc(db, "lembretes", id));
                 app.showToast("Lembrete apagado.");
+                if(r) app.addLog(`🗑️ Excluiu o lembrete/alerta: ${r.title}`, 'Logística');
             } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
         }
     },
@@ -639,16 +641,24 @@ const app = {
             const newStatus = r.status === 'Concluído' ? 'Em aberto' : 'Concluído';
             await updateDoc(doc(db, "lembretes", id), { status: newStatus });
             app.showToast(newStatus === 'Concluído' ? "Concluído!" : "Reaberto!");
+            
+            if (newStatus === 'Concluído') {
+                app.addLog(`✅ Concluiu o lembrete/alerta: ${r.title}`, 'Logística');
+            } else {
+                app.addLog(`🔄 Reabriu o lembrete/alerta: ${r.title}`, 'Logística');
+            }
         } catch(e) { console.error(e); }
     },
 
     async completeAlert() {
         const id = document.getElementById('alert-rem-id').value;
         if(id) {
+            const r = app.allReminders.find(x => x.id === id);
             await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
             app.activeAlertId = null; 
             app.stopAlarmEngine();
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
+            if(r) app.addLog(`✅ Concluiu o alerta: ${r.title}`, 'Logística');
         }
     },
 
@@ -673,6 +683,7 @@ const app = {
             app.stopAlarmEngine();
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
             app.showToast(`Adiado para as ${newTime}`, "info");
+            app.addLog(`🔄 Adiou o alerta "${r.title}" para as ${newTime}`, 'Logística');
         } catch(e) { console.error(e); }
     },
 
@@ -1476,6 +1487,22 @@ const app = {
         this.renderTasksPage();
     },
 
+    clearTaskFilters() {
+        document.querySelectorAll('.cb-status, .cb-priority, .cb-assignee').forEach(cb => cb.checked = false);
+        document.getElementById('task-filter-date').value = '';
+        
+        document.getElementById('label-status-menu').innerText = 'Todos';
+        document.getElementById('label-priority-menu').innerText = 'Todas';
+        document.getElementById('label-assignee-menu').innerText = 'Todos';
+        
+        this.taskFilterStatus = [];
+        this.taskFilterPriority = [];
+        this.taskFilterAssignee = [];
+        this.taskFilterDate = '';
+        
+        this.renderTasksPage();
+    },
+
     renderTasksPage() {
         const listContainer = document.getElementById('task-list-container');
         const countBadge = document.getElementById('total-tasks-count');
@@ -1490,7 +1517,7 @@ const app = {
             filteredTasks = filteredTasks.filter(t => {
                 let s = (t.status || 'Em aberto').trim();
                 if(s === 'Aberto') s = 'Em aberto';
-                if(s === 'Em Progresso' || s === 'Em andamento') s = 'Em andamento';
+                if(s === 'Em Progresso') s = 'Em andamento';
                 if(s === 'Concluído' || s === 'Concluída' || s === 'Concluídas') s = 'Concluídas';
                 if(s === 'Cancelado' || s === 'Cancelada' || s === 'Canceladas') s = 'Canceladas';
                 return this.taskFilterStatus.includes(s);
@@ -2037,7 +2064,6 @@ const app = {
             app.userMap = {};
             snap.docs.forEach(d => { app.userMap[d.id] = { uid: d.id, ...d.data() }; });
             
-            // Popula filtros globais
             const opSelect = document.getElementById('log-operator-filter');
             if(opSelect) {
                 const currentOp = opSelect.value;
@@ -2074,7 +2100,6 @@ const app = {
                 remOpSelect.value = currentRemOp || 'Todos';
             }
 
-            // Popula lista de usuários em Configurações
             const confList = document.getElementById('conf-users-list');
             if(confList) {
                 confList.innerHTML = Object.values(app.userMap).map(u => {
@@ -2090,7 +2115,6 @@ const app = {
                 }).join('');
             }
 
-            // Popula lista de usuários no Widget do Chat
             const chatList = document.getElementById('chat-user-list-view');
             if(chatList) {
                 const currentUid = auth.currentUser ? auth.currentUser.uid : null;
