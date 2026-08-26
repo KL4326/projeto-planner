@@ -779,11 +779,11 @@ const app = {
             const doneStyles = isDone ? 'opacity-60 grayscale' : '';
             const doneBadge = isDone ? `<span class="text-[10px] font-black bg-green-500/20 text-green-700 px-2 py-0.5 rounded-full mb-2 inline-block border border-green-500/30">✅ CONCLUÍDO</span>` : '';
 
-            // Badge visual de Repetição
+            // Badge visual de Repetição com whitespace-nowrap
             let repeatIcon = '';
             if (r.repeat && r.repeat !== 'none') {
                 const repText = r.repeat === '5m' ? '5 min' : r.repeat === '10m' ? '10 min' : r.repeat === '30m' ? '30 min' : r.repeat === '1h' ? '1 hora' : '1 dia';
-                repeatIcon = `<span class="ml-2 text-[9px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-0.5 w-max" title="Repetir"><span class="material-symbols-outlined text-[10px]">repeat</span> ${repText}</span>`;
+                repeatIcon = `<span class="text-[9px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-0.5 w-max whitespace-nowrap" title="Repetir"><span class="material-symbols-outlined text-[10px]">repeat</span> ${repText}</span>`;
             }
 
             if(r.type === 'Nota') {
@@ -799,8 +799,11 @@ const app = {
                         <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
                         
                         <div class="absolute bottom-0 left-0 w-full p-2 border-t border-yellow-400/30 flex justify-between items-center bg-yellow-300/30 rounded-b-lg">
-                            <span class="text-[10px] font-bold opacity-80 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr} ${repeatIcon}</span>
-                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="text-[10px] font-bold opacity-80 flex items-center flex-wrap gap-1">
+                                <span class="flex items-center gap-1 whitespace-nowrap"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
+                                ${repeatIcon}
+                            </div>
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 <button onclick="app.openReminderForm('${r.id}')" class="p-1 hover:bg-yellow-400/50 rounded text-yellow-800" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                                 <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="${isDone ? 'Reabrir' : 'Concluir/Avançar'}"><span class="material-symbols-outlined text-[16px]">${isDone ? 'replay' : 'check'}</span></button>
                                 <button onclick="app.deleteReminder('${r.id}')" class="p-1 hover:bg-red-500/30 rounded text-red-700" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
@@ -820,8 +823,17 @@ const app = {
                                 ${avatarHtml}
                             </div>
                             <h4 class="font-bold text-base text-on-surface truncate ${isDone ? 'line-through text-on-surface-variant' : ''}">${r.title}</h4>
-                            <span class="text-xs text-on-surface-variant font-code-data mt-1 flex items-center"><span class="material-symbols-outlined text-[14px] align-middle mr-1">schedule</span> Dispara em: ${dStr} às <span class="font-bold text-on-surface mx-1">${tStr}</span> ${repeatIcon}</span>
+                            
+                            <!-- Nova estruturação de texto inquebrável -->
+                            <div class="text-xs text-on-surface-variant font-code-data mt-1 flex items-center flex-wrap gap-2">
+                                <span class="flex items-center gap-1 whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-[14px]">schedule</span> 
+                                    Dispara em: ${dStr} às <span class="font-bold text-on-surface">${tStr}</span>
+                                </span>
+                                ${repeatIcon}
+                            </div>
                         </div>
+                        
                         <div class="flex gap-1 border-l border-outline-variant/30 pl-3 shrink-0 flex-wrap justify-end max-w-[90px] sm:max-w-none">
                             <button onclick="app.openReminderForm('${r.id}')" class="p-1.5 hover:bg-surface-variant rounded-lg text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
                             <button onclick="app.completeReminder('${r.id}')" class="p-1.5 ${isDone ? 'hover:bg-yellow-500/20 text-yellow-500' : 'hover:bg-green-500/20 text-green-500'} rounded-lg transition-colors" title="${isDone ? 'Reabrir' : 'Concluir/Avançar'}"><span class="material-symbols-outlined text-[18px]">${isDone ? 'replay' : 'check'}</span></button>
