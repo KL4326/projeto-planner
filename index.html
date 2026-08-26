@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WORKSPACE LOGÍSTICA</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
         tailwind.config = {
@@ -1098,10 +1099,15 @@
                     <label class="block text-sm font-bold text-on-surface-variant mb-1">Descrição</label>
                     <textarea id="rem-desc" rows="3" placeholder="Informações adicionais..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none"></textarea>
                 </div>
+                
+                <!-- Nova Seleção Múltipla de Operadores -->
                 <div>
-                    <label class="block text-sm font-bold text-on-surface-variant mb-1">Para quem é este lembrete?</label>
-                    <select id="rem-operator" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer"></select>
+                    <label class="block text-sm font-bold text-on-surface-variant mb-2">Para quem é este lembrete?</label>
+                    <div id="rem-assignee-list" class="bg-[#232323] border border-outline-variant rounded-lg p-3 max-h-32 overflow-y-auto space-y-1">
+                        <!-- Injetado via JS -->
+                    </div>
                 </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Data</label>
