@@ -918,8 +918,17 @@
                 <input type="text" id="nb-tag" placeholder="TAG (Ex: #TAG-001)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
                 <input type="text" id="nb-sn" placeholder="Nº de Série (S/N)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
                 <input type="text" id="nb-model" placeholder="Modelo (Ex: Latitude 3420)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
+                
+                <!-- NOVO: Campo de Sistema Operacional -->
+                <select id="nb-os" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                    <option value="Windows">Windows</option>
+                    <option value="Linux">Linux</option>
+                    <option value="MacOS">MacOS</option>
+                    <option value="Sem S.O.">Sem S.O.</option>
+                </select>
+
                 <input type="text" id="nb-desc" placeholder="Descrição/Obs" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
-                <select id="nb-status" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
+                <select id="nb-status" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
                     <option value="Disponível|bg-tertiary-container/20 text-tertiary">Disponível</option>
                     <option value="Laboratório|bg-amber-400/10 text-amber-400">Laboratório</option>
                     <option value="Laboratório 2|bg-orange-500/10 text-orange-500">Laboratório 2</option>
