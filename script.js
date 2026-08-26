@@ -15,10 +15,6 @@ const fb = initializeApp(firebaseConfig);
 const db = getFirestore(fb);
 const auth = getAuth(fb);
 
-// 👇 COLE SUA URL DO GOOGLE APPS SCRIPT AQUI DENTRO DAS ASPAS 👇
-const GOOGLE_SHEETS_API_URL = "https://script.google.com/a/macros/omie.com.br/s/AKfycbwwVGsuETHgy_IUAiUEdxWkUHxuwk88uImMeDsGa21upz55Fh2yTaqtoOazeZqciiN3/exec";
-
-
 const app = {
     allTasks: [], 
     userMap: {},
@@ -63,8 +59,8 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
     remindersUnsub: null, 
+    pecasUnsub: null,
     alertCheckInterval: null, 
-    estoquePollInterval: null, 
     
     audioCtx: null,
     beepInterval: null,
@@ -255,7 +251,7 @@ const app = {
                 app.listenToNotifications();
                 app.listenToLockers();
                 app.listenToReminders(); 
-                app.listenToEstoque(); // Inicia a conexão com Google Sheets
+                app.listenToEstoque(); // Inicia escuta em tempo real do Firebase!
                 
                 app.navigate('dashboard'); 
             } else { 
@@ -283,32 +279,45 @@ const app = {
     },
 
     /* =======================================
-       SISTEMA DE ESTOQUE (PEÇAS) - VIA GOOGLE SHEETS
+       SISTEMA DE ESTOQUE (PEÇAS) - 100% FIREBASE
     ======================================= */
     listenToEstoque() {
-        if(app.estoquePollInterval) clearInterval(app.estoquePollInterval);
+        if(app.pecasUnsub) return;
         
-        app.fetchEstoqueSheet(); // Carrega na hora
-
-        // Atualiza a cada 15 segundos para não estourar a cota da API do Google
-        app.estoquePollInterval = setInterval(() => {
-            app.fetchEstoqueSheet();
-        }, 15000); 
-    },
-
-    async fetchEstoqueSheet() {
-        if(!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL === "SUA_URL_DO_APP_SCRIPT_VEM_AQUI") return;
-        
-        try {
-            const res = await fetch(GOOGLE_SHEETS_API_URL);
-            const data = await res.json();
-            app.allPecas = data;
+        // Escuta as peças direto no nosso Firebase
+        app.pecasUnsub = onSnapshot(collection(db, "estoque"), snap => {
+            app.allPecas = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.peca.localeCompare(b.peca));
             
             app.updateDashboardStats();
             if(document.getElementById('page-estoque').classList.contains('active')) {
                 app.renderEstoquePage();
             }
-        } catch(e) { console.error("Erro ao ler Planilha", e); }
+        });
+    },
+
+    exportarEstoqueCSV() {
+        // Gera arquivo CSV para a equipe de compras
+        let csv = "\uFEFF"; // BOM para caracteres acentuados no Excel
+        csv += "Peça;Modelo;Novas;Reuso;Total;Observação\n";
+        
+        app.allPecas.forEach(p => {
+            const novas = parseInt(p.qtdNovas) || 0;
+            const reuso = parseInt(p.qtdReuso) || 0;
+            const total = novas + reuso;
+            const obs = p.observacao || '-';
+            csv += `${p.peca};${p.modelo};${novas};${reuso};${total};${obs}\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Estoque_Pecas_${app.getTodayStr()}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        app.showToast("Planilha CSV baixada!", "success");
     },
 
     renderEstoquePage() {
@@ -418,17 +427,18 @@ const app = {
 
         if(!peca || !modelo) return app.showToast("Informe a peça e o modelo.", "error");
 
-        app.closePecaForm();
-        app.showToast("Salvando na planilha...", "info");
-
         try {
-            await fetch(GOOGLE_SHEETS_API_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: 'add', peca: peca, modelo: modelo, qtdNovas: novas, qtdReuso: reuso, observacao: obs })
+            await addDoc(collection(db, "estoque"), {
+                peca: peca,
+                modelo: modelo,
+                qtdNovas: novas,
+                qtdReuso: reuso,
+                observacao: obs,
+                ts: Date.now()
             });
-            app.showToast("Peça cadastrada!");
+            app.showToast("Peça cadastrada com sucesso!");
             app.addLog(`➕ Adicionou ${novas+reuso}x ${peca} (${modelo}) no Estoque`, 'Logística');
-            app.fetchEstoqueSheet(); // Força o recarregamento na hora
+            app.closePecaForm();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
     },
 
@@ -437,66 +447,41 @@ const app = {
         if(!tipoBox) return;
         const tipo = tipoBox.value; 
 
-        // Encontra a peça no cache atual
-        const pIndex = app.allPecas.findIndex(x => String(x.id) === String(id));
-        if(pIndex === -1) return;
+        const p = app.allPecas.find(x => x.id === id);
+        if(!p) return;
 
-        // --- ATUALIZAÇÃO OTIMISTA (Muda na tela instantaneamente) ---
-        let valNovas = parseInt(app.allPecas[pIndex].qtdNovas) || 0;
-        let valReuso = parseInt(app.allPecas[pIndex].qtdReuso) || 0;
+        let valNovas = parseInt(p.qtdNovas) || 0;
+        let valReuso = parseInt(p.qtdReuso) || 0;
 
         if (tipo === 'nova') {
-            if (alteracao < 0 && valNovas === 0) return; // Não deixa ficar negativo
+            if (alteracao < 0 && valNovas === 0) return; 
             valNovas += alteracao;
             if(valNovas < 0) valNovas = 0;
-            app.allPecas[pIndex].qtdNovas = valNovas;
         } else {
-            if (alteracao < 0 && valReuso === 0) return; // Não deixa ficar negativo
+            if (alteracao < 0 && valReuso === 0) return; 
             valReuso += alteracao;
             if(valReuso < 0) valReuso = 0;
-            app.allPecas[pIndex].qtdReuso = valReuso;
         }
-        
-        app.allPecas[pIndex].total = valNovas + valReuso;
-        app.renderEstoquePage(); 
-        app.updateDashboardStats();
 
-        // --- ENVIA PARA A PLANILHA EM SEGUNDO PLANO ---
         try {
-            await fetch(GOOGLE_SHEETS_API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'update', id: id, alteracao: alteracao, tipo: tipo })
+            await updateDoc(doc(db, "estoque", id), {
+                qtdNovas: valNovas,
+                qtdReuso: valReuso
             });
+            
             const sinal = alteracao > 0 ? "+" : "";
-            app.addLog(`📦 Estoque: ${sinal}${alteracao} ${tipo === 'nova'?'Novas':'Usadas'} em ${app.allPecas[pIndex].peca} (${app.allPecas[pIndex].modelo})`, 'Logística');
-        } catch(e) { 
-            console.error(e); 
-            app.showToast("Falha de conexão com a Planilha.", "error"); 
-            app.fetchEstoqueSheet(); // Desfaz a mudança se der erro
-        }
+            app.addLog(`📦 Estoque: ${sinal}${alteracao} ${tipo === 'nova'?'Novas':'Usadas'} em ${p.peca} (${p.modelo})`, 'Logística');
+        } catch(e) { console.error(e); app.showToast("Erro de conexão", "error"); }
     },
 
     async deletePeca(id) {
-        if(confirm("Deseja EXCLUIR definitivamente esta peça da Planilha?")) {
-            const p = app.allPecas.find(x => String(x.id) === String(id));
-            
-            // Otimista
-            app.allPecas = app.allPecas.filter(x => String(x.id) !== String(id));
-            app.renderEstoquePage();
-            app.updateDashboardStats();
-
+        if(confirm("Deseja EXCLUIR definitivamente esta peça do sistema?")) {
+            const p = app.allPecas.find(x => x.id === id);
             try {
-                await fetch(GOOGLE_SHEETS_API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'delete', id: id })
-                });
+                await deleteDoc(doc(db, "estoque", id));
                 app.showToast("Peça excluída do estoque.");
                 if(p) app.addLog(`🗑️ Excluiu peça do estoque: ${p.peca} (${p.modelo})`, 'Incidente');
-            } catch(e) { 
-                console.error(e); 
-                app.showToast("Erro.", "error"); 
-                app.fetchEstoqueSheet(); // Traz de volta se falhou
-            }
+            } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
         }
     },
 
@@ -2522,8 +2507,8 @@ const app = {
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
         if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
+        if (app.pecasUnsub) { app.pecasUnsub(); app.pecasUnsub = null; }
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
-        if (app.estoquePollInterval) { clearInterval(app.estoquePollInterval); app.estoquePollInterval = null; }
         if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
         app.stopAlarmEngine();
         signOut(auth); 
