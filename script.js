@@ -779,7 +779,7 @@ const app = {
             const doneStyles = isDone ? 'opacity-60 grayscale' : '';
             const doneBadge = isDone ? `<span class="text-[10px] font-black bg-green-500/20 text-green-700 px-2 py-0.5 rounded-full mb-2 inline-block border border-green-500/30">✅ CONCLUÍDO</span>` : '';
 
-            // Badge visual de Repetição com whitespace-nowrap
+            // Badge visual de Repetição
             let repeatIcon = '';
             if (r.repeat && r.repeat !== 'none') {
                 const repText = r.repeat === '5m' ? '5 min' : r.repeat === '10m' ? '10 min' : r.repeat === '30m' ? '30 min' : r.repeat === '1h' ? '1 hora' : '1 dia';
@@ -788,7 +788,7 @@ const app = {
 
             if(r.type === 'Nota') {
                 notesHtml += `
-                    <div class="bg-yellow-200 text-yellow-900 p-4 pb-12 rounded-lg shadow-md relative group transition-all border border-yellow-300 ${doneStyles}">
+                    <div class="bg-yellow-200 text-yellow-900 p-4 pb-0 rounded-lg shadow-md relative group transition-all border border-yellow-300 flex flex-col min-h-[140px] ${doneStyles}">
                         <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl">push_pin</span>
                         
                         <div class="flex items-center gap-2 mb-2 mt-2">
@@ -796,14 +796,14 @@ const app = {
                             <h4 class="font-bold text-sm leading-tight flex-1 truncate ${isDone ? 'line-through' : ''}">${r.title}</h4>
                         </div>
                         ${doneBadge}
-                        <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
+                        <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap mb-4">${r.desc || ''}</p>
                         
-                        <div class="absolute bottom-0 left-0 w-full p-2 border-t border-yellow-400/30 flex justify-between items-center bg-yellow-300/30 rounded-b-lg">
-                            <div class="text-[10px] font-bold opacity-80 flex items-center flex-wrap gap-1">
+                        <div class="mt-auto -mx-4 p-2 px-3 border-t border-yellow-400/30 flex justify-between items-end gap-2 bg-yellow-300/30 rounded-b-lg">
+                            <div class="text-[10px] font-bold opacity-80 flex flex-col gap-1 items-start">
                                 <span class="flex items-center gap-1 whitespace-nowrap"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
                                 ${repeatIcon}
                             </div>
-                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pb-0.5">
                                 <button onclick="app.openReminderForm('${r.id}')" class="p-1 hover:bg-yellow-400/50 rounded text-yellow-800" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                                 <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="${isDone ? 'Reabrir' : 'Concluir/Avançar'}"><span class="material-symbols-outlined text-[16px]">${isDone ? 'replay' : 'check'}</span></button>
                                 <button onclick="app.deleteReminder('${r.id}')" class="p-1 hover:bg-red-500/30 rounded text-red-700" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
