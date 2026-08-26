@@ -16,7 +16,7 @@ const db = getFirestore(fb);
 const auth = getAuth(fb);
 
 // 👇 COLE SUA URL DO GOOGLE APPS SCRIPT AQUI DENTRO DAS ASPAS 👇
-const GOOGLE_SHEETS_API_URL = "SUA_URL_DO_APP_SCRIPT_VEM_AQUI";
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/a/macros/omie.com.br/s/AKfycbwwVGsuETHgy_IUAiUEdxWkUHxuwk88uImMeDsGa21upz55Fh2yTaqtoOazeZqciiN3/exec";
 
 
 const app = {
