@@ -762,47 +762,112 @@
             </section>
 
             <!-- ========================================== -->
-            <!-- TELA 7: ESTOQUE DE PEÇAS -->
+            <!-- TELA 7: ESTOQUE E COMPRAS DE PEÇAS -->
             <!-- ========================================== -->
             <section id="page-estoque" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
                 <div class="max-w-container-max mx-auto pb-24">
                     <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
                         <div>
-                            <h2 class="font-headline-lg font-bold text-on-surface tracking-tight">📦 Gestão de Peças</h2>
-                            <p class="font-body-sm text-on-surface-variant mt-xs">Controle de insumos, carcaças e periféricos</p>
+                            <h2 class="font-headline-lg font-bold text-on-surface tracking-tight">📦 Gestão de Peças e Compras</h2>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Controle de insumos, carcaças e solicitações de compra</p>
                         </div>
                         <div class="flex gap-2">
-                            <!-- NOVO: Botão Exportar CSV -->
                             <button onclick="app.exportarEstoqueCSV()" class="bg-[#2c2c2e] text-[#f5f5f7] border border-outline-variant/30 px-md py-sm rounded-full flex items-center gap-xs hover:bg-[#3a3a3c] transition-colors shadow-sm font-bold text-sm">
-                                <span class="material-symbols-outlined text-[18px]">download</span> Exportar Planilha
+                                <span class="material-symbols-outlined text-[18px]">download</span> Exportar Estoque
                             </button>
-                            <!-- Botão Nova Peça -->
                             <button onclick="app.openPecaForm()" class="bg-[#0a84ff] text-white px-md py-sm rounded-full flex items-center gap-xs hover:bg-[#409cff] transition-colors shadow-[0_2px_8px_rgba(10,132,255,0.25)] active:scale-95 font-bold text-sm">
-                                <span class="material-symbols-outlined text-[18px]">add</span> Nova Peça
+                                <span class="material-symbols-outlined text-[18px]">add</span> Novo Registro
                             </button>
                         </div>
                     </div>
 
-                    <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex items-center shadow-sm relative">
-                        <span class="material-symbols-outlined text-outline absolute left-6 pointer-events-none">search</span>
-                        <input type="text" id="estoque-search-inp" onkeyup="app.renderEstoquePage()" placeholder="Pesquise por nome, modelo ou Topcover..." class="w-full bg-[#1c1c1e] border border-outline-variant/30 text-on-surface rounded-xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#0a84ff] focus:border-[#0a84ff] outline-none transition-all placeholder-outline/50">
+                    <!-- ======================================= -->
+                    <!-- PARTE 1: ESTOQUE FÍSICO -->
+                    <!-- ======================================= -->
+                    <div class="mb-2">
+                        <h3 class="font-title-md font-bold text-on-surface mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-tertiary">inventory</span> Estoque Físico
+                        </h3>
+                        <div class="bg-surface-container-low border border-outline-variant/50 rounded-lg p-md mb-4 flex items-center shadow-sm relative">
+                            <span class="material-symbols-outlined text-outline absolute left-6 pointer-events-none">search</span>
+                            <input type="text" id="estoque-search-inp" onkeyup="app.renderEstoquePage()" placeholder="Pesquise por nome, modelo ou Topcover no estoque..." class="w-full bg-[#1c1c1e] border border-outline-variant/30 text-on-surface rounded-xl py-2 pl-12 pr-4 focus:ring-1 focus:ring-[#0a84ff] focus:border-[#0a84ff] outline-none transition-all placeholder-outline/50 text-sm">
+                        </div>
+                        <div class="bg-[#1c1c1e] border border-outline-variant/30 rounded-xl overflow-hidden shadow-md">
+                            <div class="overflow-x-auto max-h-[400px]">
+                                <table class="w-full text-left border-collapse relative">
+                                    <thead class="bg-[#2c2c2e] text-[#86868b] text-[11px] uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                        <tr>
+                                            <th class="p-3 font-bold border-b border-white/5 pl-4">Peça / Modelo</th>
+                                            <th class="p-3 font-bold border-b border-white/5 text-center">Quantidades</th>
+                                            <th class="p-3 font-bold border-b border-white/5">Status</th>
+                                            <th class="p-3 font-bold border-b border-white/5 text-right pr-4">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="estoque-tbody" class="text-sm"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="bg-[#1c1c1e] border border-outline-variant/30 rounded-xl overflow-hidden shadow-2xl">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-[#2c2c2e] text-[#86868b] text-[11px] uppercase tracking-wider">
-                                    <tr>
-                                        <th class="p-4 font-bold border-b border-white/5">Peça / Modelo</th>
-                                        <th class="p-4 font-bold border-b border-white/5 text-center">Quantidades</th>
-                                        <th class="p-4 font-bold border-b border-white/5">Status</th>
-                                        <th class="p-4 font-bold border-b border-white/5 text-right">Ações de Estoque</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="estoque-tbody" class="text-sm">
-                                    <!-- Renderizado via JS -->
-                                </tbody>
-                            </table>
+                    <!-- Divisor Elegante -->
+                    <div class="flex items-center gap-4 my-10 opacity-50">
+                        <div class="h-px bg-outline-variant flex-1"></div>
+                        <span class="material-symbols-outlined text-outline-variant text-lg">local_shipping</span>
+                        <div class="h-px bg-outline-variant flex-1"></div>
+                    </div>
+
+                    <!-- ======================================= -->
+                    <!-- PARTE 2: PEDIDOS DE COMPRA -->
+                    <!-- ======================================= -->
+                    <div>
+                        <div class="flex justify-between items-end mb-4">
+                            <h3 class="font-title-md font-bold text-on-surface flex items-center gap-2">
+                                <span class="material-symbols-outlined text-orange-400">shopping_cart</span> Pedidos de Compra
+                            </h3>
+                            <button onclick="app.exportarPedidosCSV()" class="bg-[#2c2c2e] text-[#f5f5f7] border border-outline-variant/30 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-[#3a3a3c] transition-colors text-xs font-bold">
+                                <span class="material-symbols-outlined text-[14px]">download</span> Planilha de Pedidos
+                            </button>
+                        </div>
+                        
+                        <!-- Filtros de Pedidos -->
+                        <div class="bg-surface-container-low border border-outline-variant/50 rounded-lg p-3 mb-4 flex flex-wrap gap-4 items-center shadow-sm">
+                            <div class="flex flex-col gap-1 w-full sm:w-auto flex-1 max-w-[200px]">
+                                <label class="text-[10px] font-bold text-on-surface-variant uppercase">Mês do Pedido</label>
+                                <select id="pedido-filter-mes" onchange="app.renderPedidosList()" class="w-full bg-[#1c1c1e] border border-outline-variant/30 text-on-surface rounded-lg py-1.5 px-3 text-xs focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                                    <option value="Todos">Todos os Meses</option>
+                                    <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
+                                    <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
+                                    <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
+                                    <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col gap-1 w-full sm:w-auto flex-1 min-w-[200px]">
+                                <label class="text-[10px] font-bold text-on-surface-variant uppercase">Buscar Peça (Pedido)</label>
+                                <input type="text" id="pedido-filter-peca" onkeyup="app.renderPedidosList()" placeholder="Ex: Tela, Bateria..." class="w-full bg-[#1c1c1e] border border-outline-variant/30 text-on-surface rounded-lg py-1.5 px-3 text-xs focus:ring-1 focus:ring-primary outline-none placeholder-outline/50">
+                            </div>
+                            <div class="flex items-end h-full pt-4">
+                                <button onclick="app.clearPedidosFilters()" class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 bg-primary-container/10 px-3 py-1.5 rounded-lg">
+                                    <span class="material-symbols-outlined text-[14px]">clear_all</span> Limpar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabela de Pedidos -->
+                        <div class="bg-[#1c1c1e] border border-outline-variant/30 rounded-xl overflow-hidden shadow-md">
+                            <div class="overflow-x-auto max-h-[500px]">
+                                <table class="w-full text-left border-collapse relative">
+                                    <thead class="bg-[#2c2c2e] text-[#86868b] text-[11px] uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                        <tr>
+                                            <th class="p-3 font-bold border-b border-white/5 pl-4">Mês</th>
+                                            <th class="p-3 font-bold border-b border-white/5">Peça Solicitada</th>
+                                            <th class="p-3 font-bold border-b border-white/5 text-center">QTD</th>
+                                            <th class="p-3 font-bold border-b border-white/5">Status</th>
+                                            <th class="p-3 font-bold border-b border-white/5 text-right pr-4">Gerenciar Pedido</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pedidos-tbody" class="text-sm"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -840,8 +905,8 @@
                 </button>
             </div>
 
-        </div> <!-- FIM MAIN WORKSPACE -->
-    </div> <!-- FIM APP LAYOUT -->
+        </div> 
+    </div> 
 
     <!-- ========================================================================= -->
     <!-- MODAIS GLOBAIS (FORA DE QUALQUER TELA) -->
@@ -1114,16 +1179,30 @@
         </div>
     </div>
 
-    <!-- Modal Form Peças -->
+    <!-- Modal Form Peças / Compras -->
     <div id="peca-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closePecaForm()"></div>
         <div class="relative bg-[#1c1c1e] border border-outline-variant/50 w-full max-w-md rounded-[18px] shadow-[0_20px_40px_rgba(0,0,0,0.6)] p-6 md:p-8">
-            <h3 class="text-lg font-bold text-on-surface mb-6">Cadastrar Novo Item</h3>
+            <h3 class="text-lg font-bold text-on-surface mb-4">Registro de Peça</h3>
             <input type="hidden" id="peca-id">
+            
+            <!-- Seletor de Tipo de Registro -->
+            <div class="flex bg-surface-container-high rounded-lg p-1 mb-6 border border-outline-variant/30">
+                <label class="flex-1 text-center cursor-pointer relative">
+                    <input type="radio" name="peca-tipo-form" value="estoque" checked class="peer sr-only" onchange="app.togglePecaFormType()">
+                    <div class="py-2 text-xs font-bold text-on-surface-variant rounded-md peer-checked:bg-[#0a84ff] peer-checked:text-white transition-all shadow-sm">Para Estoque</div>
+                </label>
+                <label class="flex-1 text-center cursor-pointer relative">
+                    <input type="radio" name="peca-tipo-form" value="compra" class="peer sr-only" onchange="app.togglePecaFormType()">
+                    <div class="py-2 text-xs font-bold text-on-surface-variant rounded-md peer-checked:bg-orange-500 peer-checked:text-white transition-all shadow-sm">Para Compra (Pedido)</div>
+                </label>
+            </div>
+
             <div class="space-y-4">
+                <!-- Campos Comuns -->
                 <div>
                     <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Nome da Peça</label>
-                    <input type="text" id="peca-nome" list="datalist-pecas" placeholder="Ex: Teclado, Bateria..." class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors">
+                    <input type="text" id="peca-nome" list="datalist-pecas" placeholder="Ex: Teclado, Bateria..." class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors font-bold">
                     <datalist id="datalist-pecas">
                         <option value="Bateria"></option><option value="Teclado"></option><option value="Tela"></option>
                         <option value="Topcover"></option><option value="Carcaça Base"></option><option value="Moldura"></option>
@@ -1139,7 +1218,9 @@
                         <option value="OptiPlex 3090"></option><option value="Vostro"></option><option value="Geral"></option>
                     </datalist>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+
+                <!-- Campos Exclusivos de Estoque -->
+                <div id="form-group-estoque" class="grid grid-cols-2 gap-4 transition-all">
                     <div>
                         <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">QTD Novas</label>
                         <input type="number" id="peca-novas" value="0" min="0" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors text-center font-bold">
@@ -1149,6 +1230,27 @@
                         <input type="number" id="peca-reuso" value="0" min="0" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors text-center font-bold">
                     </div>
                 </div>
+
+                <!-- Campos Exclusivos de Compra (Oculto por padrão) -->
+                <div id="form-group-compra" class="grid grid-cols-2 gap-4 hidden transition-all">
+                    <div>
+                        <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Quantidade</label>
+                        <input type="number" id="peca-qtd-compra" value="1" min="1" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-orange-500 outline-none transition-colors text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Mês do Pedido</label>
+                        <select id="peca-mes" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-orange-500 outline-none transition-colors cursor-pointer text-sm">
+                            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option>
+                            <option value="Março">Março</option><option value="Abril">Abril</option>
+                            <option value="Maio">Maio</option><option value="Junho">Junho</option>
+                            <option value="Julho">Julho</option><option value="Agosto">Agosto</option>
+                            <option value="Setembro">Setembro</option><option value="Outubro">Outubro</option>
+                            <option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Campo de Observação Compartilhado -->
                 <div>
                     <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Observação / Parte (Topcover)</label>
                     <input type="text" id="peca-obs" list="datalist-obs" placeholder="-" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors">
@@ -1158,9 +1260,10 @@
                     </datalist>
                 </div>
             </div>
+            
             <div class="flex justify-end gap-3 mt-6">
                 <button onclick="app.closePecaForm()" class="px-5 py-2.5 rounded-full font-medium text-[#86868b] hover:bg-[#3a3a3c] hover:text-white transition-colors text-sm">Cancelar</button>
-                <button onclick="app.savePecaForm()" class="px-5 py-2.5 bg-[#0a84ff] text-white font-medium rounded-full hover:bg-[#409cff] transition-colors shadow-sm text-sm">Salvar no Estoque</button>
+                <button id="btn-save-peca" onclick="app.savePecaForm()" class="px-5 py-2.5 bg-[#0a84ff] text-white font-medium rounded-full hover:bg-[#409cff] transition-colors shadow-sm text-sm">Salvar Registro</button>
             </div>
         </div>
     </div>
