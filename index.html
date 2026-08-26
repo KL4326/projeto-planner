@@ -771,9 +771,16 @@
                             <h2 class="font-headline-lg font-bold text-on-surface tracking-tight">📦 Gestão de Peças</h2>
                             <p class="font-body-sm text-on-surface-variant mt-xs">Controle de insumos, carcaças e periféricos</p>
                         </div>
-                        <button onclick="app.openPecaForm()" class="bg-[#0a84ff] text-white font-code-data px-md py-sm rounded-full flex items-center gap-xs hover:bg-[#409cff] transition-colors shadow-[0_2px_8px_rgba(10,132,255,0.25)] active:scale-95 font-bold">
-                            <span class="material-symbols-outlined text-[18px]">add</span> Nova Peça
-                        </button>
+                        <div class="flex gap-2">
+                            <!-- NOVO: Botão Exportar CSV -->
+                            <button onclick="app.exportarEstoqueCSV()" class="bg-[#2c2c2e] text-[#f5f5f7] border border-outline-variant/30 px-md py-sm rounded-full flex items-center gap-xs hover:bg-[#3a3a3c] transition-colors shadow-sm font-bold text-sm">
+                                <span class="material-symbols-outlined text-[18px]">download</span> Exportar Planilha
+                            </button>
+                            <!-- Botão Nova Peça -->
+                            <button onclick="app.openPecaForm()" class="bg-[#0a84ff] text-white px-md py-sm rounded-full flex items-center gap-xs hover:bg-[#409cff] transition-colors shadow-[0_2px_8px_rgba(10,132,255,0.25)] active:scale-95 font-bold text-sm">
+                                <span class="material-symbols-outlined text-[18px]">add</span> Nova Peça
+                            </button>
+                        </div>
                     </div>
 
                     <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex items-center shadow-sm relative">
