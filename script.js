@@ -1662,7 +1662,9 @@ const app = {
                     }
                     
                     let displayDate = item.dateStr ? (item.dateStr.includes('-') ? item.dateStr.split('-').reverse().join('/') : item.dateStr) : '';
-                    let navClick = item.isTask ? `app.navigate('tarefas'); app.openTaskDetails('${d.id}')` : `app.navigate('lembretes'); app.openReminderForm('${d.id}')`;
+                    let navClick = item.isTask 
+                        ? `app.navigate('tarefas'); setTimeout(() => { app.openTaskDetails('${d.id}'); }, 150);` 
+                        : `app.navigate('lembretes'); setTimeout(() => { app.openReminderForm('${d.id}'); }, 150);`;
                     let borderClass = isAtrasada ? (item.isTask ? 'border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-yellow-500/50 shadow-[0_0_8px_rgba(234,179,8,0.2)]') : 'border-outline-variant/30';
                     let textClass = isAtrasada ? (item.isTask ? 'text-red-400' : 'text-yellow-400') + ' font-bold' : 'text-on-surface-variant';
 
