@@ -1099,15 +1099,10 @@
                     <label class="block text-sm font-bold text-on-surface-variant mb-1">Descrição</label>
                     <textarea id="rem-desc" rows="3" placeholder="Informações adicionais..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none"></textarea>
                 </div>
-                
-                <!-- Nova Seleção Múltipla de Operadores -->
                 <div>
                     <label class="block text-sm font-bold text-on-surface-variant mb-2">Para quem é este lembrete?</label>
-                    <div id="rem-assignee-list" class="bg-[#232323] border border-outline-variant rounded-lg p-3 max-h-32 overflow-y-auto space-y-1">
-                        <!-- Injetado via JS -->
-                    </div>
+                    <div id="rem-assignee-list" class="bg-[#232323] border border-outline-variant rounded-lg p-3 max-h-32 overflow-y-auto space-y-1"></div>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Data</label>
@@ -1123,12 +1118,27 @@
                         </div>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-on-surface-variant mb-1">Tipo de Lembrete</label>
-                    <select id="rem-type" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
-                        <option value="Nota">Estilo Nota (Post-it visível na aba)</option>
-                        <option value="Alerta">Estilo Alerta (Ocupará a tela toda na hora exata)</option>
-                    </select>
+                
+                <!-- Tipo e Repetição lado a lado -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Tipo de Lembrete</label>
+                        <select id="rem-type" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                            <option value="Nota">Estilo Nota (Post-it)</option>
+                            <option value="Alerta">Estilo Alerta (Tela Cheia)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-on-surface-variant mb-1">Repetição</label>
+                        <select id="rem-repeat" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
+                            <option value="none">Apenas uma vez</option>
+                            <option value="5m">A cada 5 minutos</option>
+                            <option value="10m">A cada 10 minutos</option>
+                            <option value="30m">A cada 30 minutos</option>
+                            <option value="1h">A cada 1 hora</option>
+                            <option value="1d">Todos os dias</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-8">
