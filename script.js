@@ -570,6 +570,7 @@ const app = {
             document.getElementById('rem-date').value = r.date || "";
             document.getElementById('rem-time').value = r.time || "";
             document.getElementById('rem-type').value = r.type || "Nota";
+            document.getElementById('rem-repeat').value = r.repeat || "none";
             
             let assigns = r.assignees || (r.author ? [r.author] : []);
             document.querySelectorAll('input[name="rem-assignees"]').forEach(cb => {
@@ -583,6 +584,7 @@ const app = {
             document.getElementById('rem-date').value = app.getTodayStr();
             document.getElementById('rem-time').value = new Date().toTimeString().slice(0,5);
             document.getElementById('rem-type').value = "Nota";
+            document.getElementById('rem-repeat').value = "none";
             
             document.querySelectorAll('input[name="rem-assignees"]').forEach(cb => cb.checked = false);
             const myCb = document.querySelector(`input[name="rem-assignees"][value="${auth.currentUser.uid}"]`);
@@ -595,6 +597,27 @@ const app = {
         document.getElementById('reminder-form-modal').classList.add('hidden');
     },
 
+    // Função matemática que avança a data baseada no Loop configurado
+    advanceRepeatingReminder(r) {
+        let dateObj = new Date(`${r.date}T${r.time}`);
+        const now = new Date();
+        let advancedOnce = false;
+        
+        while (dateObj <= now || !advancedOnce) {
+            if (r.repeat === '5m') dateObj.setMinutes(dateObj.getMinutes() + 5);
+            else if (r.repeat === '10m') dateObj.setMinutes(dateObj.getMinutes() + 10);
+            else if (r.repeat === '30m') dateObj.setMinutes(dateObj.getMinutes() + 30);
+            else if (r.repeat === '1h') dateObj.setHours(dateObj.getHours() + 1);
+            else if (r.repeat === '1d') dateObj.setDate(dateObj.getDate() + 1);
+            else break;
+            advancedOnce = true;
+        }
+
+        const newDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+        const newTime = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+        return { newDate, newTime };
+    },
+
     async saveReminderForm() {
         const id = document.getElementById('rem-id').value;
         const title = document.getElementById('rem-title').value;
@@ -602,17 +625,18 @@ const app = {
         const date = document.getElementById('rem-date').value;
         const time = document.getElementById('rem-time').value;
         const type = document.getElementById('rem-type').value;
+        const repeat = document.getElementById('rem-repeat').value;
         
         let assigneesList = Array.from(document.querySelectorAll('input[name="rem-assignees"]:checked')).map(cb => cb.value);
-        if(assigneesList.length === 0) assigneesList.push(auth.currentUser.uid); // Default: si mesmo se esquecer
+        if(assigneesList.length === 0) assigneesList.push(auth.currentUser.uid); 
 
         if(!title) return app.showToast("O título é obrigatório.", "error");
 
         const remData = {
-            title, desc, date, time, type,
+            title, desc, date, time, type, repeat,
             status: 'Em aberto',
-            author: auth.currentUser.uid, // O criador
-            assignees: assigneesList, // Lista de pessoas
+            author: auth.currentUser.uid, 
+            assignees: assigneesList, 
             ts_manual: Date.now()
         };
 
@@ -644,6 +668,16 @@ const app = {
     async completeReminder(id) {
         try {
             const r = app.allReminders.find(x => x.id === id);
+            
+            // Se for repetitivo e estiver em aberto, apenas AVANÇA a data
+            if (r.status === 'Em aberto' && r.repeat && r.repeat !== 'none') {
+                const next = app.advanceRepeatingReminder(r);
+                await updateDoc(doc(db, "lembretes", id), { date: next.newDate, time: next.newTime });
+                app.showToast(`Avançado para as ${next.newTime}`, "info");
+                app.addLog(`🔄 Lembrete/alerta recorrente "${r.title}" avançou para ${next.newTime}`, 'Logística');
+                return;
+            }
+
             const newStatus = r.status === 'Concluído' ? 'Em aberto' : 'Concluído';
             await updateDoc(doc(db, "lembretes", id), { status: newStatus });
             app.showToast(newStatus === 'Concluído' ? "Concluído!" : "Reaberto!");
@@ -660,11 +694,19 @@ const app = {
         const id = document.getElementById('alert-rem-id').value;
         if(id) {
             const r = app.allReminders.find(x => x.id === id);
-            await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
+            
+            if (r && r.repeat && r.repeat !== 'none') {
+                const next = app.advanceRepeatingReminder(r);
+                await updateDoc(doc(db, "lembretes", id), { date: next.newDate, time: next.newTime });
+                app.addLog(`🔄 Alerta recorrente "${r.title}" avançou para as ${next.newTime}`, 'Logística');
+            } else {
+                await updateDoc(doc(db, "lembretes", id), { status: 'Concluído' });
+                if(r) app.addLog(`✅ Concluiu o alerta: ${r.title}`, 'Logística');
+            }
+            
             app.activeAlertId = null; 
             app.stopAlarmEngine();
             document.getElementById('reminder-alert-overlay').classList.add('hidden');
-            if(r) app.addLog(`✅ Concluiu o alerta: ${r.title}`, 'Logística');
         }
     },
 
@@ -737,6 +779,13 @@ const app = {
             const doneStyles = isDone ? 'opacity-60 grayscale' : '';
             const doneBadge = isDone ? `<span class="text-[10px] font-black bg-green-500/20 text-green-700 px-2 py-0.5 rounded-full mb-2 inline-block border border-green-500/30">✅ CONCLUÍDO</span>` : '';
 
+            // Badge visual de Repetição
+            let repeatIcon = '';
+            if (r.repeat && r.repeat !== 'none') {
+                const repText = r.repeat === '5m' ? '5 min' : r.repeat === '10m' ? '10 min' : r.repeat === '30m' ? '30 min' : r.repeat === '1h' ? '1 hora' : '1 dia';
+                repeatIcon = `<span class="ml-2 text-[9px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-0.5 w-max" title="Repetir"><span class="material-symbols-outlined text-[10px]">repeat</span> ${repText}</span>`;
+            }
+
             if(r.type === 'Nota') {
                 notesHtml += `
                     <div class="bg-yellow-200 text-yellow-900 p-4 pb-12 rounded-lg shadow-md relative group transition-all border border-yellow-300 ${doneStyles}">
@@ -750,10 +799,10 @@ const app = {
                         <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
                         
                         <div class="absolute bottom-0 left-0 w-full p-2 border-t border-yellow-400/30 flex justify-between items-center bg-yellow-300/30 rounded-b-lg">
-                            <span class="text-[10px] font-bold opacity-80 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
+                            <span class="text-[10px] font-bold opacity-80 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr} ${repeatIcon}</span>
                             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onclick="app.openReminderForm('${r.id}')" class="p-1 hover:bg-yellow-400/50 rounded text-yellow-800" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
-                                <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="Marcar/Desmarcar"><span class="material-symbols-outlined text-[16px]">${isDone ? 'replay' : 'check'}</span></button>
+                                <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="${isDone ? 'Reabrir' : 'Concluir/Avançar'}"><span class="material-symbols-outlined text-[16px]">${isDone ? 'replay' : 'check'}</span></button>
                                 <button onclick="app.deleteReminder('${r.id}')" class="p-1 hover:bg-red-500/30 rounded text-red-700" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
                             </div>
                         </div>
@@ -771,11 +820,11 @@ const app = {
                                 ${avatarHtml}
                             </div>
                             <h4 class="font-bold text-base text-on-surface truncate ${isDone ? 'line-through text-on-surface-variant' : ''}">${r.title}</h4>
-                            <span class="text-xs text-on-surface-variant font-code-data mt-1 block"><span class="material-symbols-outlined text-[14px] align-middle">schedule</span> Dispara em: ${dStr} às <span class="font-bold text-on-surface">${tStr}</span></span>
+                            <span class="text-xs text-on-surface-variant font-code-data mt-1 flex items-center"><span class="material-symbols-outlined text-[14px] align-middle mr-1">schedule</span> Dispara em: ${dStr} às <span class="font-bold text-on-surface mx-1">${tStr}</span> ${repeatIcon}</span>
                         </div>
                         <div class="flex gap-1 border-l border-outline-variant/30 pl-3 shrink-0 flex-wrap justify-end max-w-[90px] sm:max-w-none">
                             <button onclick="app.openReminderForm('${r.id}')" class="p-1.5 hover:bg-surface-variant rounded-lg text-on-surface-variant hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                            <button onclick="app.completeReminder('${r.id}')" class="p-1.5 ${isDone ? 'hover:bg-yellow-500/20 text-yellow-500' : 'hover:bg-green-500/20 text-green-500'} rounded-lg transition-colors" title="Marcar/Desmarcar"><span class="material-symbols-outlined text-[18px]">${isDone ? 'replay' : 'check'}</span></button>
+                            <button onclick="app.completeReminder('${r.id}')" class="p-1.5 ${isDone ? 'hover:bg-yellow-500/20 text-yellow-500' : 'hover:bg-green-500/20 text-green-500'} rounded-lg transition-colors" title="${isDone ? 'Reabrir' : 'Concluir/Avançar'}"><span class="material-symbols-outlined text-[18px]">${isDone ? 'replay' : 'check'}</span></button>
                             <button onclick="app.deleteReminder('${r.id}')" class="p-1.5 hover:bg-error-container/20 rounded-lg text-on-surface-variant hover:text-error transition-colors" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                         </div>
                     </div>
@@ -783,7 +832,7 @@ const app = {
             }
         });
 
-        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa.</p>';
+        notesList.innerHTML = notesHtml || '<p class="text-xs text-on-surface-variant/50 italic col-span-2 p-4 text-center border border-dashed border-outline-variant rounded-xl">Sua mesa está limpa. Nenhuma nota.</p>';
         alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alerta listado.</p>';
     },
 
@@ -2089,7 +2138,7 @@ const app = {
             const assignList = document.getElementById('task-assignee-list');
             if(assignList) {
                 assignList.innerHTML = Object.values(app.userMap).map(u => `
-                    <label class="flex items-center gap-2 cursor-pointer hover:text-primary">
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-primary p-1">
                         <input type="checkbox" name="assignees" value="${u.uid}" class="rounded bg-surface border-outline-variant text-primary">
                         <span class="text-sm">${u.nome}</span>
                     </label>
@@ -2114,6 +2163,7 @@ const app = {
                 remOpSelect.value = currentRemOp || 'Todos';
             }
             
+            // Injeta o HTML dos responsáveis do Lembrete
             const remAssignList = document.getElementById('rem-assignee-list');
             if(remAssignList) {
                 remAssignList.innerHTML = Object.values(app.userMap).map(u => `
