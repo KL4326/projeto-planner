@@ -683,7 +683,6 @@
             <!-- ========================================== -->
             <section id="page-configuracoes" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
                 <div class="max-w-container-max mx-auto pb-24">
-                    <!-- Cabeçalho -->
                     <div class="mb-lg">
                         <h2 class="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface tracking-tight">Configurações</h2>
                         <p class="font-body-sm text-on-surface-variant mt-xs">Ajustes da conta, segurança e interface do sistema</p>
@@ -691,9 +690,8 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl">
                         
-                        <!-- Coluna 1: Perfil e Interface -->
+                        <!-- Coluna 1 -->
                         <div class="space-y-8">
-                            <!-- Card de Perfil -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
                                 <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
                                     <span class="material-symbols-outlined text-primary">person</span> Perfil do Operador
@@ -723,7 +721,6 @@
                                 </div>
                             </div>
 
-                            <!-- Card de Interface -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
                                 <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
                                     <span class="material-symbols-outlined text-tertiary">palette</span> Interface
@@ -740,9 +737,8 @@
                             </div>
                         </div>
 
-                        <!-- Coluna 2: Segurança, Equipe e Sobre -->
+                        <!-- Coluna 2 -->
                         <div class="space-y-8">
-                            <!-- Card de Segurança -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
                                 <h3 class="font-title-md font-bold text-on-surface mb-6 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
                                     <span class="material-symbols-outlined text-error">lock</span> Segurança
@@ -762,32 +758,32 @@
                                 </div>
                             </div>
 
-                            <!-- NOVO: Card da Equipe -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm">
                                 <h3 class="font-title-md font-bold text-on-surface mb-4 flex items-center gap-2 border-b border-outline-variant/30 pb-2">
                                     <span class="material-symbols-outlined text-secondary">groups</span> Equipe Cadastrada
                                 </h3>
-                                <div id="conf-users-list" class="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1 chat-scroll">
-                                    <!-- Lista de usuários injetada via JS -->
-                                </div>
+                                <div id="conf-users-list" class="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1 chat-scroll"></div>
                             </div>
 
-                            <!-- Card Info -->
                             <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center text-center py-10 opacity-70">
                                 <div class="w-16 h-16 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(33,150,243,0.3)]">
-                                    <span class="material-symbols-outlined text-[32px] font-variation-settings: 'FILL' 1;">deployed_code</span>
+                                    <span class="material-symbols-outlined text-[32px]">deployed_code</span>
                                 </div>
                                 <h4 class="font-bold text-on-surface text-lg">CARA DO T.I</h4>
                                 <p class="text-xs font-code-data text-on-surface-variant mt-1">Workspace Logística - v1.0.0</p>
                                 <p class="text-[10px] text-on-surface-variant mt-4 max-w-xs">Plataforma desenvolvida sob medida para operações de TI.</p>
                             </div>
                         </div>
-            
-            <!-- Floating Chat Widget -->
+
+                    </div>
+                </div>
+            </section> <!-- AQUI FECHOU A CONFIGURAÇÃO CORRETAMENTE -->
+
+            <!-- ========================================== -->
+            <!-- CHAT FLUTUANTE (VISÍVEL GLOBALMENTE) -->
+            <!-- ========================================== -->
             <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
                 <div id="global-chat-panel" class="hidden bg-level-2 w-[320px] rounded-xl border border-outline-variant/50 overflow-hidden shadow-[0_12px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm bg-[#333333]/95 flex flex-col transition-all duration-300 transform origin-bottom-right pointer-events-auto">
-                    
-                    <!-- Cabeçalho Dinâmico do Chat -->
                     <div class="h-12 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-high">
                         <div class="flex items-center gap-2">
                             <button id="chat-back-btn" onclick="app.closeChatView()" class="hidden text-on-surface-variant hover:text-primary mr-1"><span class="material-symbols-outlined text-[18px]">arrow_back</span></button>
@@ -796,17 +792,9 @@
                         </div>
                         <button onclick="app.toggleChatPanel()" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
                     </div>
-
-                    <!-- TELA 1: Lista de Contatos -->
-                    <div id="chat-user-list-view" class="h-[280px] p-2 flex flex-col gap-1 overflow-y-auto chat-scroll bg-surface/50">
-                        <!-- Usuários renderizados via JS -->
-                    </div>
-
-                    <!-- TELA 2: Conversa Aberta (Oculto por padrão) -->
+                    <div id="chat-user-list-view" class="h-[280px] p-2 flex flex-col gap-1 overflow-y-auto chat-scroll bg-surface/50"></div>
                     <div id="chat-messages-view" class="hidden flex-col h-[280px]">
-                        <div id="chat-messages-container" class="flex-1 p-3 flex flex-col gap-3 overflow-y-auto chat-scroll bg-surface/50">
-                            <!-- Mensagens via JS -->
-                        </div>
+                        <div id="chat-messages-container" class="flex-1 p-3 flex flex-col gap-3 overflow-y-auto chat-scroll bg-surface/50"></div>
                         <div class="p-2 border-t border-outline-variant/30 bg-surface-container-high">
                             <div class="flex items-center gap-2 bg-surface rounded-lg border border-outline-variant/50 px-2 py-1 focus-within:border-primary transition-colors">
                                 <input type="text" id="chat-message-inp" placeholder="Mensagem..." class="bg-transparent border-none outline-none text-[13px] font-body-sm text-on-surface w-full focus:ring-0 py-1" onkeypress="if(event.key === 'Enter') app.sendChatMessage()">
@@ -819,14 +807,17 @@
                 </div>
                 
                 <button onclick="app.toggleChatPanel()" class="w-14 h-14 rounded-full bg-primary-brand text-white shadow-[0_4px_12px_rgba(33,150,243,0.4)] flex items-center justify-center hover:bg-[#1976D2] hover:scale-105 transition-all duration-200 pointer-events-auto border-2 border-surface">
-                    <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+                    <span class="material-symbols-outlined text-[28px]">chat_bubble</span>
                 </button>
             </div>
-            
-        </div>
-    </div>
 
-    <!-- MODAIS GLOBAIS -->
+        </div> <!-- FIM MAIN WORKSPACE -->
+    </div> <!-- FIM APP LAYOUT -->
+
+    <!-- ========================================================================= -->
+    <!-- MODAIS GLOBAIS (FORA DE QUALQUER TELA) -->
+    <!-- ========================================================================= -->
+
     <!-- Modal Diário -->
     <div id="modal-log-form" class="fixed inset-0 bg-[#000000cc] backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
         <div class="bg-surface-container-low border border-outline-variant rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
@@ -846,7 +837,7 @@
                 </div>
                 <div>
                     <label class="font-label-caps text-on-surface-variant">Ocorrência</label>
-                    <textarea id="log-text-inp" rows="4" placeholder="Descreva os detalhes da passagem de turno ou recado..." class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"></textarea>
+                    <textarea id="log-text-inp" rows="4" placeholder="Descreva os detalhes..." class="w-full mt-1 bg-[#232323] border border-outline-variant rounded-lg py-2 px-3 text-body-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"></textarea>
                 </div>
             </div>
             <div class="p-4 bg-surface-container border-t border-outline-variant flex justify-end gap-3">
@@ -857,7 +848,6 @@
     </div>
 
     <!-- Modais Armários -->
-    <!-- Modal Equipamentos -->
     <div id="locker-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeLocker()"></div>
         <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl p-6 md:p-8">
@@ -868,7 +858,6 @@
                 </div>
                 <button onclick="app.closeLocker()" class="p-2 bg-surface-container text-on-surface-variant rounded-full hover:text-primary"><span class="material-symbols-outlined">close</span></button>
             </div>
-            
             <div class="mb-6">
                 <div class="flex justify-between items-center text-xs font-bold uppercase text-on-surface-variant mb-2">
                     <span>Ocupação Total</span>
@@ -878,7 +867,6 @@
                     <div id="modal-progress" class="h-full bg-primary rounded-full transition-all" style="width: 0%"></div>
                 </div>
             </div>
-
             <div id="modal-item-list" class="space-y-3"></div> 
         </div>
     </div>
@@ -923,7 +911,6 @@
                 <input type="text" id="nb-sn" placeholder="Nº de Série (S/N)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
                 <input type="text" id="nb-model" placeholder="Modelo (Ex: Latitude 3420)" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
                 <input type="text" id="nb-desc" placeholder="Descrição/Obs" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
-                
                 <select id="nb-status" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary outline-none">
                     <option value="Disponível|bg-tertiary-container/20 text-tertiary">Disponível</option>
                     <option value="Laboratório|bg-amber-400/10 text-amber-400">Laboratório</option>
@@ -958,12 +945,10 @@
         </div>
     </div>
 
-    <!-- Modal Detalhes da Tarefa (Com Chat) -->
+    <!-- Modal Detalhes da Tarefa -->
     <div id="task-details-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeTaskDetails()"></div>
         <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-4xl h-[80vh] rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden">
-            
-            <!-- Lado Esquerdo: Info da Tarefa -->
             <div class="w-full md:w-1/2 h-full flex flex-col border-r border-outline-variant/30 bg-surface-container-low p-6 overflow-y-auto">
                 <div class="flex justify-between items-start mb-4">
                     <span id="det-status" class="px-2 py-1 rounded text-[10px] font-black uppercase text-center tracking-wider">Status</span>
@@ -978,35 +963,21 @@
                     <h4 class="text-xs font-bold text-on-surface-variant uppercase mb-2">Descrição</h4>
                     <p id="det-desc" class="text-sm text-on-surface whitespace-pre-wrap leading-relaxed opacity-90">Descrição aqui...</p>
                 </div>
-
-                <!-- NOVA SEÇÃO: SUBTAREFAS (Cole abaixo da div acima) -->
                 <div class="mt-6 border-t border-outline-variant/30 pt-6">
                     <h4 class="text-xs font-bold text-on-surface-variant uppercase mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">checklist</span> Subtarefas</h4>
-                    
                     <div class="flex items-center gap-2 mb-4">
                         <input type="text" id="new-subtask-inp" placeholder="Adicionar nova subtarefa..." class="bg-[#232323] border border-outline-variant/50 rounded-lg px-3 py-2 text-sm text-on-surface w-full focus:border-primary outline-none transition-colors" onkeypress="if(event.key === 'Enter') app.addSubtask()">
                         <button onclick="app.addSubtask()" class="bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary p-2 rounded-lg border border-outline-variant/50 transition-colors"><span class="material-symbols-outlined text-[20px]">add</span></button>
                     </div>
-                    
-                    <div id="subtasks-list" class="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
-                        <!-- Subtarefas renderizadas via JS -->
-                    </div>
+                    <div id="subtasks-list" class="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1"></div>
                 </div>
             </div>
-
-            <!-- Lado Direito: Chat de Comentários -->
             <div class="w-full md:w-1/2 h-full flex flex-col bg-surface">
                 <div class="h-14 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container shrink-0">
                     <h3 class="font-title-md font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">forum</span> Atualizações</h3>
                     <button onclick="app.closeTaskDetails()" class="hidden md:block text-on-surface-variant hover:text-error"><span class="material-symbols-outlined">close</span></button>
                 </div>
-                
-                <!-- Área de Mensagens -->
-                <div id="task-comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll">
-                    <!-- Comentários via JS -->
-                </div>
-
-                <!-- Input do Chat -->
+                <div id="task-comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll"></div>
                 <div class="p-3 border-t border-outline-variant/30 bg-surface-container-low">
                     <div class="flex items-center gap-2 bg-[#232323] rounded-lg border border-outline-variant/50 px-3 py-2 focus-within:border-primary transition-colors">
                         <input type="text" id="task-comment-inp" placeholder="Adicionar comentário..." class="bg-transparent border-none outline-none text-sm text-on-surface w-full focus:ring-0" onkeypress="if(event.key === 'Enter') app.addTaskComment()">
@@ -1028,11 +999,11 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-bold text-on-surface-variant mb-1">Título</label>
-                    <input type="text" id="task-title" placeholder="Ex: Verificar rede do Mezanino" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-bold">
+                    <input type="text" id="task-title" placeholder="Ex: Verificar rede" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none font-bold">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-on-surface-variant mb-1">Descrição</label>
-                    <textarea id="task-desc" rows="3" placeholder="Detalhes do chamado ou manutenção..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none"></textarea>
+                    <textarea id="task-desc" rows="3" placeholder="Detalhes..." class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -1060,9 +1031,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-on-surface-variant mb-2">Responsáveis</label>
-                        <div id="task-assignee-list" class="bg-[#232323] border border-outline-variant rounded-lg p-3 max-h-32 overflow-y-auto space-y-1">
-                            <!-- Injetado via JS -->
-                        </div>
+                        <div id="task-assignee-list" class="bg-[#232323] border border-outline-variant rounded-lg p-3 max-h-32 overflow-y-auto space-y-1"></div>
                     </div>
                 </div>
             </div>
@@ -1073,35 +1042,25 @@
         </div>
     </div>
 
-    <!-- Modal Detalhes da Subtarefa (Com Chat) -->
+    <!-- Modal Detalhes da Subtarefa -->
     <div id="subtask-details-modal" class="fixed inset-0 z-[10005] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeSubtaskDetails()"></div>
         <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-3xl h-[70vh] rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden">
-            
-            <!-- Lado Esquerdo: Info da Subtarefa -->
             <div class="w-full md:w-1/2 h-full flex flex-col border-r border-outline-variant/30 bg-surface-container-low p-6 overflow-y-auto">
                 <div class="flex justify-between items-start mb-4">
                     <button onclick="app.closeSubtaskDetails()" class="text-on-surface-variant hover:text-on-surface flex items-center gap-1 text-sm font-bold bg-surface-container px-3 py-1.5 rounded-lg transition-colors"><span class="material-symbols-outlined text-[16px]">arrow_back</span> Voltar à Tarefa</button>
                 </div>
                 <h3 class="text-[10px] font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Subtarefa (Item)</h3>
-                <h2 id="subdet-title" class="font-title-md text-xl font-bold text-on-surface mb-6">Título da subtarefa</h2>
-
-                <!-- Dentro do subtask-details-modal, abaixo do h2 id="subdet-title" -->
-                <button onclick="app.editSubtask()" class="text-xs text-primary font-bold flex items-center gap-1 mb-6 hover:underline">
-                    <span class="material-symbols-outlined text-[16px]">edit</span> Editar título
-                </button>
-                
+                <h2 id="subdet-title" class="font-title-md text-xl font-bold text-on-surface mb-6">Título</h2>
+                <button onclick="app.editSubtask()" class="text-xs text-primary font-bold flex items-center gap-1 mb-6 hover:underline"><span class="material-symbols-outlined text-[16px]">edit</span> Editar título</button>
                 <div class="flex items-center gap-3 mb-6 bg-surface p-4 rounded-xl border border-outline-variant/30 cursor-pointer hover:border-primary/50 transition-colors" onclick="document.getElementById('subdet-checkbox').click()">
                     <input type="checkbox" id="subdet-checkbox" class="w-5 h-5 rounded bg-[#232323] border-outline-variant text-primary focus:ring-primary pointer-events-none" onchange="app.toggleCurrentSubtask(this.checked)">
                     <label class="text-sm font-bold text-on-surface pointer-events-none">Marcar item como concluído</label>
                 </div>
-
                 <div class="mt-auto pt-4 border-t border-outline-variant/30 flex justify-end">
                     <button onclick="app.deleteSubtask()" class="text-error hover:bg-error-container/20 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span> Excluir Subtarefa</button>
                 </div>
             </div>
-
-            <!-- Lado Direito: Chat da Subtarefa -->
             <div class="w-full md:w-1/2 h-full flex flex-col bg-surface">
                 <div class="h-14 px-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container shrink-0">
                     <h3 class="font-title-md font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-tertiary">forum</span> Chat do Item</h3>
@@ -1109,14 +1068,15 @@
                 <div id="subtask-comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll"></div>
                 <div class="p-3 border-t border-outline-variant/30 bg-surface-container-low">
                     <div class="flex items-center gap-2 bg-[#232323] rounded-lg border border-outline-variant/50 px-3 py-2 focus-within:border-primary transition-colors">
-                        <input type="text" id="subtask-comment-inp" placeholder="Comentar neste item..." class="bg-transparent border-none outline-none text-sm text-on-surface w-full focus:ring-0" onkeypress="if(event.key === 'Enter') app.addSubtaskComment()">
+                        <input type="text" id="subtask-comment-inp" placeholder="Comentar..." class="bg-transparent border-none outline-none text-sm text-on-surface w-full focus:ring-0" onkeypress="if(event.key === 'Enter') app.addSubtaskComment()">
                         <button onclick="app.addSubtaskComment()" class="text-tertiary hover:text-tertiary-fixed shrink-0 flex items-center justify-center p-1.5 rounded hover:bg-tertiary-container/10 transition-colors"><span class="material-symbols-outlined">send</span></button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- Modal Form Lembrete -->
+
+    <!-- Modal Form Lembrete -->
     <div id="reminder-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closeReminderForm()"></div>
         <div class="relative bg-surface-container-low border border-outline-variant w-full max-w-md rounded-xl shadow-2xl p-6 md:p-8">
@@ -1133,9 +1093,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-on-surface-variant mb-1">Para quem é este lembrete?</label>
-                    <select id="rem-operator" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer">
-                        <!-- Injetado via JS -->
-                    </select>
+                    <select id="rem-operator" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none cursor-pointer"></select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -1146,7 +1104,6 @@
                         <label class="block text-sm font-bold text-on-surface-variant mb-1">Hora exata</label>
                         <div class="flex gap-2">
                             <input type="time" id="rem-time" class="w-full bg-[#232323] border border-outline-variant text-on-surface rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary outline-none dark:[color-scheme:dark]">
-                            <!-- O Botão que fecha a caixa de seleção -->
                             <button type="button" onclick="document.getElementById('rem-time').blur()" class="px-3 bg-surface-container border border-outline-variant/50 hover:bg-primary-container hover:border-primary-container text-on-surface-variant hover:text-white rounded-lg transition-colors flex items-center justify-center shadow-sm" title="Confirmar Hora">
                                 <span class="material-symbols-outlined text-[20px]">check</span>
                             </button>
