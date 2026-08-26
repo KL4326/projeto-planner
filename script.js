@@ -597,7 +597,6 @@ const app = {
         document.getElementById('reminder-form-modal').classList.add('hidden');
     },
 
-    // Função matemática que avança a data baseada no Loop configurado
     advanceRepeatingReminder(r) {
         let dateObj = new Date(`${r.date}T${r.time}`);
         const now = new Date();
@@ -669,7 +668,6 @@ const app = {
         try {
             const r = app.allReminders.find(x => x.id === id);
             
-            // Se for repetitivo e estiver em aberto, apenas AVANÇA a data
             if (r.status === 'Em aberto' && r.repeat && r.repeat !== 'none') {
                 const next = app.advanceRepeatingReminder(r);
                 await updateDoc(doc(db, "lembretes", id), { date: next.newDate, time: next.newTime });
@@ -779,7 +777,6 @@ const app = {
             const doneStyles = isDone ? 'opacity-60 grayscale' : '';
             const doneBadge = isDone ? `<span class="text-[10px] font-black bg-green-500/20 text-green-700 px-2 py-0.5 rounded-full mb-2 inline-block border border-green-500/30">✅ CONCLUÍDO</span>` : '';
 
-            // Badge visual de Repetição
             let repeatIcon = '';
             if (r.repeat && r.repeat !== 'none') {
                 const repText = r.repeat === '5m' ? '5 min' : r.repeat === '10m' ? '10 min' : r.repeat === '30m' ? '30 min' : r.repeat === '1h' ? '1 hora' : '1 dia';
@@ -791,7 +788,6 @@ const app = {
                     <div class="bg-yellow-200 text-yellow-900 rounded-lg shadow-md relative group transition-all border border-yellow-300 flex flex-col min-h-[140px] ${doneStyles}">
                         <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl z-10">push_pin</span>
                         
-                        <!-- Corpo do Post-it -->
                         <div class="p-4 flex-1 flex flex-col">
                             <div class="flex items-center gap-2 mb-2 mt-2">
                                 ${avatarHtml}
@@ -801,7 +797,6 @@ const app = {
                             <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
                         </div>
                         
-                        <!-- Rodapé (agora sem margens negativas que bugam o layout) -->
                         <div class="p-2 px-3 border-t border-yellow-400/30 flex justify-between items-end gap-2 bg-yellow-300/30 rounded-b-lg">
                             <div class="text-[10px] font-bold opacity-80 flex flex-col gap-1 items-start min-w-0">
                                 <span class="flex items-center gap-1 whitespace-nowrap"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
@@ -851,7 +846,6 @@ const app = {
         alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alerta listado.</p>';
     },
 
-  
     /* =======================================
        CALCULADORA OPERACIONAL
     ======================================= */
@@ -1375,6 +1369,16 @@ const app = {
         list.innerHTML = `<div class="flex items-center justify-between mb-4"><h3 class="font-bold text-base md:text-lg text-on-surface">Itens no Armário (${equips.length}/15)</h3></div>`;
 
         equips.forEach((nb, index) => {
+            let osBadge = '';
+            if(nb.os) {
+                let osIcon = 'desktop_windows';
+                if(nb.os === 'Linux') osIcon = 'terminal';
+                if(nb.os === 'MacOS') osIcon = 'laptop_mac';
+                if(nb.os === 'Sem S.O.') osIcon = 'do_not_disturb';
+                
+                osBadge = `<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant/30 text-[9px] font-bold text-on-surface-variant uppercase flex items-center gap-1 w-max mt-1"><span class="material-symbols-outlined text-[12px]">${osIcon}</span> ${nb.os}</span>`;
+            }
+
             list.insertAdjacentHTML('beforeend', `
                 <div class="bg-surface-container rounded-xl p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 border border-outline-variant/50 hover:border-primary/50 transition-all group">
                     <div class="flex items-center gap-4 w-full">
@@ -1387,7 +1391,10 @@ const app = {
                                 <span class="px-2 py-1 md:px-3 md:py-1 rounded-md ${nb.statusClass} text-[9px] md:text-[10px] font-black uppercase whitespace-nowrap border border-current opacity-80">${nb.statusText}</span>
                             </div>
                             <p class="text-[11px] text-on-surface-variant font-code-data mb-1.5 opacity-80">${nb.tag || 'S/TAG'} | ${nb.sn || 'S/SN'}</p>
-                            <p class="text-sm font-bold text-on-surface-variant">${nb.model}</p>
+                            <div class="flex items-center gap-2 mb-1">
+                                <p class="text-sm font-bold text-on-surface-variant">${nb.model}</p>
+                                ${osBadge}
+                            </div>
                             <p class="text-xs text-outline">${nb.desc || 'Nenhuma observação'}</p>
                         </div>
                     </div>
@@ -1415,6 +1422,7 @@ const app = {
             document.getElementById('nb-sn').value = nb.sn || "";
             document.getElementById('nb-model').value = nb.model || "";
             document.getElementById('nb-desc').value = nb.desc || "";
+            document.getElementById('nb-os').value = nb.os || "Windows";
             document.getElementById('nb-status').value = nb.statusText + "|" + nb.statusClass;
         } else {
             document.getElementById('nb-ic').value = "";
@@ -1422,6 +1430,7 @@ const app = {
             document.getElementById('nb-sn').value = "";
             document.getElementById('nb-model').value = "";
             document.getElementById('nb-desc').value = "";
+            document.getElementById('nb-os').value = "Windows";
             document.getElementById('nb-status').value = "Disponível|bg-tertiary-container/20 text-tertiary";
         }
         document.getElementById('notebook-form-modal').classList.remove('hidden');
@@ -1436,6 +1445,7 @@ const app = {
         const tag = document.getElementById('nb-tag').value;
         const sn = document.getElementById('nb-sn').value;
         const model = document.getElementById('nb-model').value;
+        const os = document.getElementById('nb-os').value;
         const desc = document.getElementById('nb-desc').value;
         const statusVal = document.getElementById('nb-status').value.split('|');
 
@@ -1446,6 +1456,7 @@ const app = {
 
         const notebookData = {
             ic: ic, tag: tag, sn: sn, model: model, desc: desc,
+            os: os,
             statusText: statusVal[0], statusClass: statusVal[1]
         };
 
@@ -2179,7 +2190,6 @@ const app = {
                 remOpSelect.value = currentRemOp || 'Todos';
             }
             
-            // Injeta o HTML dos responsáveis do Lembrete
             const remAssignList = document.getElementById('rem-assignee-list');
             if(remAssignList) {
                 remAssignList.innerHTML = Object.values(app.userMap).map(u => `
