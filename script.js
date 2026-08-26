@@ -511,7 +511,8 @@ const app = {
         if(!currentUid) return;
 
         const alertToShow = app.allReminders.find(r => {
-            if(r.type === 'Alerta' && r.status !== 'Concluído' && r.author === currentUid && r.date && r.time) {
+            let assigns = r.assignees || (r.author ? [r.author] : []);
+            if(r.type === 'Alerta' && r.status !== 'Concluído' && assigns.includes(currentUid) && r.date && r.time) {
                 const rDate = new Date(`${r.date}T${r.time}`);
                 return now >= rDate;
             }
@@ -559,11 +560,6 @@ const app = {
     },
 
     openReminderForm(id = null) {
-        const opSelect = document.getElementById('rem-operator');
-        if(opSelect) {
-            opSelect.innerHTML = Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
-        }
-
         if (id) {
             const r = app.allReminders.find(x => x.id === id);
             if(!r) return;
@@ -574,7 +570,11 @@ const app = {
             document.getElementById('rem-date').value = r.date || "";
             document.getElementById('rem-time').value = r.time || "";
             document.getElementById('rem-type').value = r.type || "Nota";
-            if(opSelect) opSelect.value = r.author || auth.currentUser.uid;
+            
+            let assigns = r.assignees || (r.author ? [r.author] : []);
+            document.querySelectorAll('input[name="rem-assignees"]').forEach(cb => {
+                cb.checked = assigns.includes(cb.value);
+            });
         } else {
             document.getElementById('reminder-form-title').innerText = "Novo Lembrete";
             document.getElementById('rem-id').value = "";
@@ -583,7 +583,10 @@ const app = {
             document.getElementById('rem-date').value = app.getTodayStr();
             document.getElementById('rem-time').value = new Date().toTimeString().slice(0,5);
             document.getElementById('rem-type').value = "Nota";
-            if(opSelect) opSelect.value = auth.currentUser.uid;
+            
+            document.querySelectorAll('input[name="rem-assignees"]').forEach(cb => cb.checked = false);
+            const myCb = document.querySelector(`input[name="rem-assignees"][value="${auth.currentUser.uid}"]`);
+            if(myCb) myCb.checked = true;
         }
         document.getElementById('reminder-form-modal').classList.remove('hidden');
     },
@@ -599,14 +602,17 @@ const app = {
         const date = document.getElementById('rem-date').value;
         const time = document.getElementById('rem-time').value;
         const type = document.getElementById('rem-type').value;
-        const authorId = document.getElementById('rem-operator').value;
+        
+        let assigneesList = Array.from(document.querySelectorAll('input[name="rem-assignees"]:checked')).map(cb => cb.value);
+        if(assigneesList.length === 0) assigneesList.push(auth.currentUser.uid); // Default: si mesmo se esquecer
 
         if(!title) return app.showToast("O título é obrigatório.", "error");
 
         const remData = {
             title, desc, date, time, type,
             status: 'Em aberto',
-            author: authorId,
+            author: auth.currentUser.uid, // O criador
+            assignees: assigneesList, // Lista de pessoas
             ts_manual: Date.now()
         };
 
@@ -698,7 +704,7 @@ const app = {
             myRems = myRems.filter(r => r.status === app.reminderFilterStatus);
         }
         if (app.reminderFilterOperator !== 'Todos') {
-            myRems = myRems.filter(r => r.author === app.reminderFilterOperator);
+            myRems = myRems.filter(r => (r.assignees && r.assignees.includes(app.reminderFilterOperator)) || r.author === app.reminderFilterOperator);
         }
         if (app.reminderFilterDate) {
             myRems = myRems.filter(r => r.date === app.reminderFilterDate);
@@ -717,10 +723,15 @@ const app = {
             const dStr = r.date ? r.date.split('-').reverse().join('/') : '--/--/----';
             const tStr = r.time ? r.time : '--:--';
             
-            const u = app.getUserData(r.author);
-            const avatarHtml = u.foto 
-                ? `<img src="${u.foto}" class="w-5 h-5 rounded-full object-cover shadow-sm border border-black/20" title="${u.nome}">` 
-                : `<div class="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-[8px] font-bold text-black" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
+            let assigneesToRender = r.assignees || (r.author ? [r.author] : []);
+            let avatarHtml = '<div class="flex -space-x-2">';
+            assigneesToRender.forEach(uid => {
+                const u = app.getUserData(uid);
+                avatarHtml += u.foto 
+                    ? `<img src="${u.foto}" class="w-6 h-6 rounded-full object-cover shadow-sm border-2 border-[#232323]" title="${u.nome}">` 
+                    : `<div class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-[9px] font-bold text-on-surface border-2 border-[#232323]" title="${u.nome}">${u.nome.substring(0,2).toUpperCase()}</div>`;
+            });
+            avatarHtml += '</div>';
 
             const isDone = r.status === 'Concluído';
             const doneStyles = isDone ? 'opacity-60 grayscale' : '';
@@ -1650,7 +1661,10 @@ const app = {
                 combinedList.push({ isTask: true, data: t, dateStr: taskDateStr, isAtrasada: isAtrasada });
             });
 
-            let myOverdueNotes = app.allReminders.filter(r => r.type === 'Nota' && r.status !== 'Concluído' && r.author === currentUid && r.date);
+            let myOverdueNotes = app.allReminders.filter(r => {
+                let assigns = r.assignees || (r.author ? [r.author] : []);
+                return r.type === 'Nota' && r.status !== 'Concluído' && assigns.includes(currentUid) && r.date;
+            });
             myOverdueNotes.forEach(r => {
                 const rDateTime = new Date(`${r.date}T${r.time || '23:59'}`);
                 if (rDateTime < new Date()) {
@@ -2098,6 +2112,16 @@ const app = {
                 remOpSelect.innerHTML = '<option value="Todos">Todos</option>' +
                     Object.values(app.userMap).map(u => `<option value="${u.uid}">${u.nome}</option>`).join('');
                 remOpSelect.value = currentRemOp || 'Todos';
+            }
+            
+            const remAssignList = document.getElementById('rem-assignee-list');
+            if(remAssignList) {
+                remAssignList.innerHTML = Object.values(app.userMap).map(u => `
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-primary p-1">
+                        <input type="checkbox" name="rem-assignees" value="${u.uid}" class="rounded bg-surface border-outline-variant text-primary">
+                        <span class="text-sm">${u.nome}</span>
+                    </label>
+                `).join('');
             }
 
             const confList = document.getElementById('conf-users-list');
