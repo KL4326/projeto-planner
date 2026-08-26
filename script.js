@@ -788,22 +788,26 @@ const app = {
 
             if(r.type === 'Nota') {
                 notesHtml += `
-                    <div class="bg-yellow-200 text-yellow-900 p-4 pb-0 rounded-lg shadow-md relative group transition-all border border-yellow-300 flex flex-col min-h-[140px] ${doneStyles}">
-                        <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl">push_pin</span>
+                    <div class="bg-yellow-200 text-yellow-900 rounded-lg shadow-md relative group transition-all border border-yellow-300 flex flex-col min-h-[140px] ${doneStyles}">
+                        <span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-red-500 drop-shadow-md text-3xl z-10">push_pin</span>
                         
-                        <div class="flex items-center gap-2 mb-2 mt-2">
-                            ${avatarHtml}
-                            <h4 class="font-bold text-sm leading-tight flex-1 truncate ${isDone ? 'line-through' : ''}">${r.title}</h4>
+                        <!-- Corpo do Post-it -->
+                        <div class="p-4 flex-1 flex flex-col">
+                            <div class="flex items-center gap-2 mb-2 mt-2">
+                                ${avatarHtml}
+                                <h4 class="font-bold text-sm leading-tight flex-1 truncate ${isDone ? 'line-through' : ''}">${r.title}</h4>
+                            </div>
+                            ${doneBadge}
+                            <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap">${r.desc || ''}</p>
                         </div>
-                        ${doneBadge}
-                        <p class="text-[13px] opacity-90 leading-relaxed whitespace-pre-wrap mb-4">${r.desc || ''}</p>
                         
-                        <div class="mt-auto -mx-4 p-2 px-3 border-t border-yellow-400/30 flex justify-between items-end gap-2 bg-yellow-300/30 rounded-b-lg">
-                            <div class="text-[10px] font-bold opacity-80 flex flex-col gap-1 items-start">
+                        <!-- Rodapé (agora sem margens negativas que bugam o layout) -->
+                        <div class="p-2 px-3 border-t border-yellow-400/30 flex justify-between items-end gap-2 bg-yellow-300/30 rounded-b-lg">
+                            <div class="text-[10px] font-bold opacity-80 flex flex-col gap-1 items-start min-w-0">
                                 <span class="flex items-center gap-1 whitespace-nowrap"><span class="material-symbols-outlined text-[12px]">schedule</span> ${dStr} às ${tStr}</span>
                                 ${repeatIcon}
                             </div>
-                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pb-0.5">
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 <button onclick="app.openReminderForm('${r.id}')" class="p-1 hover:bg-yellow-400/50 rounded text-yellow-800" title="Editar"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                                 <button onclick="app.completeReminder('${r.id}')" class="p-1 hover:bg-green-500/30 rounded text-green-700" title="${isDone ? 'Reabrir' : 'Concluir/Avançar'}"><span class="material-symbols-outlined text-[16px]">${isDone ? 'replay' : 'check'}</span></button>
                                 <button onclick="app.deleteReminder('${r.id}')" class="p-1 hover:bg-red-500/30 rounded text-red-700" title="Excluir"><span class="material-symbols-outlined text-[16px]">delete</span></button>
@@ -824,7 +828,6 @@ const app = {
                             </div>
                             <h4 class="font-bold text-base text-on-surface truncate ${isDone ? 'line-through text-on-surface-variant' : ''}">${r.title}</h4>
                             
-                            <!-- Nova estruturação de texto inquebrável -->
                             <div class="text-xs text-on-surface-variant font-code-data mt-1 flex items-center flex-wrap gap-2">
                                 <span class="flex items-center gap-1 whitespace-nowrap">
                                     <span class="material-symbols-outlined text-[14px]">schedule</span> 
@@ -848,6 +851,7 @@ const app = {
         alertsList.innerHTML = alertsHtml || '<p class="text-xs text-on-surface-variant/50 italic p-4 text-center border border-dashed border-outline-variant rounded-xl">Nenhum alerta listado.</p>';
     },
 
+  
     /* =======================================
        CALCULADORA OPERACIONAL
     ======================================= */
