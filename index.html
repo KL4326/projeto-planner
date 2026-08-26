@@ -494,7 +494,7 @@
                         </button>
                     </div>
 
-                    <!-- Barra de Filtros (Multi-select) -->
+                    <!-- Barra de Filtros -->
                     <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex flex-wrap gap-md items-center shadow-sm">
                         <!-- Status -->
                         <div class="relative flex flex-col gap-1 filter-dropdown-container">
@@ -544,6 +544,13 @@
                                 <span class="material-symbols-outlined text-on-surface-variant text-[16px] mr-1">calendar_today</span>
                                 <input type="date" id="task-filter-date" onchange="app.updateTaskFilters()" class="bg-transparent border-none text-body-sm text-on-surface p-1 focus:ring-0 outline-none w-32 dark:[color-scheme:dark] cursor-pointer">
                             </div>
+                        </div>
+
+                        <!-- Botão Limpar Filtros -->
+                        <div class="flex-1 flex justify-end">
+                            <button onclick="app.clearTaskFilters()" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">clear_all</span> Limpar
+                            </button>
                         </div>
                     </div>
 
