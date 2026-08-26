@@ -22,6 +22,7 @@ const app = {
     allLockers: [],
     allReminders: [], 
     allPecas: [], 
+    allPedidos: [], // NOVO: Controle de Pedidos de Compra
     
     logFilter: 'Todos',
     logDateFilter: '',
@@ -37,6 +38,9 @@ const app = {
     taskFilterPriority: [],
     taskFilterAssignee: [],
     taskFilterDate: '',
+
+    pedidoFilterMes: 'Todos',
+    pedidoFilterPeca: '',
 
     currentTaskId: null,
     commentsUnsub: null,
@@ -59,7 +63,8 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
     remindersUnsub: null, 
-    pecasUnsub: null,
+    pecasUnsub: null, 
+    pedidosUnsub: null, // NOVO
     alertCheckInterval: null, 
     
     audioCtx: null,
@@ -176,7 +181,10 @@ const app = {
         if(pageId === 'calculadora') { this.updateCalcDisplay(); }
         if(pageId === 'lembretes') { this.renderRemindersPage(); }
         if(pageId === 'configuracoes') { this.renderConfigPage(); }
-        if(pageId === 'estoque') { this.renderEstoquePage(); }
+        if(pageId === 'estoque') { 
+            this.renderEstoquePage(); 
+            this.renderPedidosList();
+        }
         
         window.scrollTo(0,0);
     },
@@ -251,7 +259,8 @@ const app = {
                 app.listenToNotifications();
                 app.listenToLockers();
                 app.listenToReminders(); 
-                app.listenToEstoque(); // Inicia escuta em tempo real do Firebase!
+                app.listenToEstoque(); // NOVO FIREBASE
+                app.listenToPedidos(); // NOVO FIREBASE
                 
                 app.navigate('dashboard'); 
             } else { 
@@ -279,15 +288,12 @@ const app = {
     },
 
     /* =======================================
-       SISTEMA DE ESTOQUE (PEÇAS) - 100% FIREBASE
+       SISTEMA DE ESTOQUE E PEDIDOS - 100% FIREBASE
     ======================================= */
     listenToEstoque() {
         if(app.pecasUnsub) return;
-        
-        // Escuta as peças direto no nosso Firebase
         app.pecasUnsub = onSnapshot(collection(db, "estoque"), snap => {
             app.allPecas = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.peca.localeCompare(b.peca));
-            
             app.updateDashboardStats();
             if(document.getElementById('page-estoque').classList.contains('active')) {
                 app.renderEstoquePage();
@@ -295,11 +301,19 @@ const app = {
         });
     },
 
+    listenToPedidos() {
+        if(app.pedidosUnsub) return;
+        app.pedidosUnsub = onSnapshot(collection(db, "pedidos"), snap => {
+            app.allPedidos = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (b.ts || 0) - (a.ts || 0));
+            if(document.getElementById('page-estoque').classList.contains('active')) {
+                app.renderPedidosList();
+            }
+        });
+    },
+
     exportarEstoqueCSV() {
-        // Gera arquivo CSV para a equipe de compras
-        let csv = "\uFEFF"; // BOM para caracteres acentuados no Excel
+        let csv = "\uFEFF"; 
         csv += "Peça;Modelo;Novas;Reuso;Total;Observação\n";
-        
         app.allPecas.forEach(p => {
             const novas = parseInt(p.qtdNovas) || 0;
             const reuso = parseInt(p.qtdReuso) || 0;
@@ -310,14 +324,39 @@ const app = {
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Estoque_Pecas_${app.getTodayStr()}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = `Estoque_Fisico_${app.getTodayStr()}.csv`;
         link.click();
-        document.body.removeChild(link);
-        app.showToast("Planilha CSV baixada!", "success");
+        app.showToast("Estoque exportado!", "success");
+    },
+
+    exportarPedidosCSV() {
+        let csv = "\uFEFF"; 
+        csv += "Mês;Peça;Modelo;Quantidade;Status;Observação\n";
+        
+        let filtered = app.allPedidos;
+        if(app.pedidoFilterMes !== 'Todos') filtered = filtered.filter(p => p.mes === app.pedidoFilterMes);
+        if(app.pedidoFilterPeca) {
+            const s = app.pedidoFilterPeca.toLowerCase();
+            filtered = filtered.filter(p => p.peca.toLowerCase().includes(s) || p.modelo.toLowerCase().includes(s));
+        }
+
+        filtered.forEach(p => {
+            csv += `${p.mes};${p.peca};${p.modelo};${p.qtd};${p.status};${p.observacao}\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Pedidos_Compras_${app.getTodayStr()}.csv`;
+        link.click();
+        app.showToast("Pedidos exportados!", "success");
+    },
+
+    clearPedidosFilters() {
+        document.getElementById('pedido-filter-mes').value = 'Todos';
+        document.getElementById('pedido-filter-peca').value = '';
+        app.renderPedidosList();
     },
 
     renderEstoquePage() {
@@ -386,7 +425,10 @@ const app = {
                                 <button onclick="app.updatePecaQtd('${p.id}', 5)" class="w-7 h-7 flex items-center justify-center bg-[rgba(10,132,255,0.2)] hover:bg-[rgba(10,132,255,0.35)] text-[#64d2ff] rounded-md transition-colors text-xs font-bold" title="+5">+5</button>
                             </div>
                             
-                            <button onclick="app.deletePeca('${p.id}')" class="ml-2 w-8 h-8 flex items-center justify-center bg-[rgba(255,69,58,0.15)] hover:bg-[rgba(255,69,58,0.3)] text-[#ff453a] rounded-lg transition-colors" title="Excluir Peça">
+                            <button onclick="app.openPecaForm('${p.id}', 'estoque')" class="ml-2 w-8 h-8 flex items-center justify-center bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#86868b] hover:text-white rounded-lg transition-colors" title="Editar Peça">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <button onclick="app.deletePeca('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-[rgba(255,69,58,0.15)] hover:bg-[rgba(255,69,58,0.3)] text-[#ff453a] rounded-lg transition-colors" title="Excluir Peça">
                                 <span class="material-symbols-outlined text-[16px]">delete</span>
                             </button>
                         </div>
@@ -402,15 +444,137 @@ const app = {
         }
     },
 
-    openPecaForm() {
-        document.getElementById('peca-id').value = '';
-        document.getElementById('peca-nome').value = '';
-        document.getElementById('peca-modelo').value = '';
-        document.getElementById('peca-novas').value = '0';
-        document.getElementById('peca-reuso').value = '0';
-        document.getElementById('peca-obs').value = '-';
+    renderPedidosList() {
+        const tbody = document.getElementById('pedidos-tbody');
+        if(!tbody) return;
+
+        app.pedidoFilterMes = document.getElementById('pedido-filter-mes').value;
+        app.pedidoFilterPeca = document.getElementById('pedido-filter-peca').value.toLowerCase();
+
+        let filtered = app.allPedidos;
+
+        if (app.pedidoFilterMes !== 'Todos') {
+            filtered = filtered.filter(p => p.mes === app.pedidoFilterMes);
+        }
+        if (app.pedidoFilterPeca) {
+            filtered = filtered.filter(p => 
+                p.peca.toLowerCase().includes(app.pedidoFilterPeca) || 
+                p.modelo.toLowerCase().includes(app.pedidoFilterPeca) || 
+                (p.observacao && p.observacao.toLowerCase().includes(app.pedidoFilterPeca))
+            );
+        }
+
+        let html = '';
+        filtered.forEach(p => {
+            const isReceived = p.status === 'Recebido';
+            const rowClass = isReceived ? 'opacity-50 bg-green-900/5' : 'hover:bg-white/5';
+            const badgeClass = isReceived ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-400';
+            const btnRecColor = isReceived ? 'text-green-500 bg-green-500/20 hover:bg-green-500/30' : 'text-outline-variant hover:text-green-500 hover:bg-green-500/10';
+
+            html += `
+                <tr class="transition-colors border-b border-white/5 group ${rowClass}">
+                    <td class="p-4 align-middle">
+                        <span class="px-2 py-1 rounded bg-[#2c2c2e] text-[#86868b] text-[10px] font-bold uppercase tracking-wider border border-white/10">${p.mes}</span>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <strong class="text-[#f5f5f7] font-bold text-sm block ${isReceived ? 'line-through' : ''}">${p.peca.toUpperCase()}</strong>
+                        <span class="text-[#86868b] text-xs">Mod: ${p.modelo}</span>
+                        ${p.observacao && p.observacao !== '-' ? `<span class="block text-[11px] text-[#ff9f0a] font-medium mt-1">Obs: ${p.observacao}</span>` : ''}
+                    </td>
+                    <td class="p-4 align-middle text-center">
+                        <strong class="text-[#f5f5f7] text-sm">${p.qtd} UN</strong>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${badgeClass}">${p.status}</span>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="app.togglePedidoStatus('${p.id}')" class="h-8 px-3 flex items-center justify-center rounded-lg transition-colors font-bold text-xs gap-1 ${btnRecColor}" title="Marcar como Recebido">
+                                <span class="material-symbols-outlined text-[16px]">${isReceived ? 'undo' : 'check_circle'}</span> ${isReceived ? 'Desfazer' : 'Recebido'}
+                            </button>
+                            <button onclick="app.openPecaForm('${p.id}', 'compra')" class="w-8 h-8 flex items-center justify-center bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#86868b] hover:text-white rounded-lg transition-colors" title="Editar Pedido">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <button onclick="app.deletePedido('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-[rgba(255,69,58,0.15)] hover:bg-[rgba(255,69,58,0.3)] text-[#ff453a] rounded-lg transition-colors" title="Excluir Pedido">
+                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        if(filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-[#86868b] text-sm">Nenhum pedido de compra encontrado.</td></tr>';
+        } else {
+            tbody.innerHTML = html;
+        }
+    },
+
+    togglePecaFormType() {
+        const type = document.querySelector('input[name="peca-tipo-form"]:checked').value;
+        const btn = document.getElementById('btn-save-peca');
+        
+        if (type === 'estoque') {
+            document.getElementById('form-group-estoque').classList.remove('hidden');
+            document.getElementById('form-group-compra').classList.add('hidden');
+            btn.classList.replace('bg-orange-500', 'bg-[#0a84ff]');
+            btn.classList.replace('hover:bg-orange-400', 'hover:bg-[#409cff]');
+            btn.innerText = "Salvar no Estoque";
+        } else {
+            document.getElementById('form-group-estoque').classList.add('hidden');
+            document.getElementById('form-group-compra').classList.remove('hidden');
+            btn.classList.replace('bg-[#0a84ff]', 'bg-orange-500');
+            btn.classList.replace('hover:bg-[#409cff]', 'hover:bg-orange-400');
+            btn.innerText = "Salvar Pedido de Compra";
+            
+            // Auto-preenche o mês atual se estiver vazio/padrão
+            const mesSelect = document.getElementById('peca-mes');
+            const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            mesSelect.value = meses[new Date().getMonth()];
+        }
+    },
+
+    openPecaForm(id = null, forceType = null) {
         document.getElementById('peca-form-modal').classList.remove('hidden');
         document.getElementById('peca-form-modal').classList.add('flex');
+        
+        if (id) {
+            const isEstoque = forceType === 'estoque';
+            const item = isEstoque ? app.allPecas.find(x => x.id === id) : app.allPedidos.find(x => x.id === id);
+            if(!item) return;
+
+            document.getElementById('peca-id').value = item.id;
+            document.getElementById('peca-nome').value = item.peca;
+            document.getElementById('peca-modelo').value = item.modelo;
+            document.getElementById('peca-obs').value = item.observacao || '-';
+            
+            if (isEstoque) {
+                document.querySelector('input[name="peca-tipo-form"][value="estoque"]').checked = true;
+                document.getElementById('peca-novas').value = item.qtdNovas;
+                document.getElementById('peca-reuso').value = item.qtdReuso;
+            } else {
+                document.querySelector('input[name="peca-tipo-form"][value="compra"]').checked = true;
+                document.getElementById('peca-qtd-compra').value = item.qtd;
+                document.getElementById('peca-mes').value = item.mes;
+            }
+        } else {
+            document.getElementById('peca-id').value = '';
+            document.getElementById('peca-nome').value = '';
+            document.getElementById('peca-modelo').value = '';
+            document.getElementById('peca-novas').value = '0';
+            document.getElementById('peca-reuso').value = '0';
+            document.getElementById('peca-qtd-compra').value = '1';
+            document.getElementById('peca-obs').value = '-';
+            
+            if(forceType) {
+                document.querySelector(`input[name="peca-tipo-form"][value="${forceType}"]`).checked = true;
+            } else {
+                document.querySelector('input[name="peca-tipo-form"][value="estoque"]').checked = true;
+            }
+        }
+        
+        app.togglePecaFormType(); // Ajusta os campos na tela
     },
 
     closePecaForm() {
@@ -419,25 +583,41 @@ const app = {
     },
 
     async savePecaForm() {
+        const id = document.getElementById('peca-id').value;
+        const tipoForm = document.querySelector('input[name="peca-tipo-form"]:checked').value; // 'estoque' ou 'compra'
+        
         const peca = document.getElementById('peca-nome').value.trim();
         const modelo = document.getElementById('peca-modelo').value.trim();
-        const novas = parseInt(document.getElementById('peca-novas').value) || 0;
-        const reuso = parseInt(document.getElementById('peca-reuso').value) || 0;
         const obs = document.getElementById('peca-obs').value.trim() || '-';
 
         if(!peca || !modelo) return app.showToast("Informe a peça e o modelo.", "error");
 
         try {
-            await addDoc(collection(db, "estoque"), {
-                peca: peca,
-                modelo: modelo,
-                qtdNovas: novas,
-                qtdReuso: reuso,
-                observacao: obs,
-                ts: Date.now()
-            });
-            app.showToast("Peça cadastrada com sucesso!");
-            app.addLog(`➕ Adicionou ${novas+reuso}x ${peca} (${modelo}) no Estoque`, 'Logística');
+            if (tipoForm === 'estoque') {
+                const novas = parseInt(document.getElementById('peca-novas').value) || 0;
+                const reuso = parseInt(document.getElementById('peca-reuso').value) || 0;
+                
+                if (id) {
+                    await updateDoc(doc(db, "estoque", id), { peca, modelo, qtdNovas: novas, qtdReuso: reuso, observacao: obs });
+                    app.showToast("Peça do estoque atualizada!");
+                } else {
+                    await addDoc(collection(db, "estoque"), { peca, modelo, qtdNovas: novas, qtdReuso: reuso, observacao: obs, ts: Date.now() });
+                    app.showToast("Peça adicionada ao estoque!");
+                    app.addLog(`➕ Adicionou ${novas+reuso}x ${peca} (${modelo}) no Estoque`, 'Logística');
+                }
+            } else {
+                const qtd = parseInt(document.getElementById('peca-qtd-compra').value) || 1;
+                const mes = document.getElementById('peca-mes').value;
+                
+                if (id) {
+                    await updateDoc(doc(db, "pedidos", id), { peca, modelo, qtd, mes, observacao: obs });
+                    app.showToast("Pedido atualizado!");
+                } else {
+                    await addDoc(collection(db, "pedidos"), { peca, modelo, qtd, mes, observacao: obs, status: 'Pendente', ts: Date.now() });
+                    app.showToast("Pedido de compra registrado!");
+                    app.addLog(`🛒 Novo pedido: ${qtd}x ${peca} (${modelo}) para ${mes}`, 'Logística');
+                }
+            }
             app.closePecaForm();
         } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
     },
@@ -464,23 +644,53 @@ const app = {
         }
 
         try {
-            await updateDoc(doc(db, "estoque", id), {
-                qtdNovas: valNovas,
-                qtdReuso: valReuso
-            });
-            
+            await updateDoc(doc(db, "estoque", id), { qtdNovas: valNovas, qtdReuso: valReuso });
             const sinal = alteracao > 0 ? "+" : "";
             app.addLog(`📦 Estoque: ${sinal}${alteracao} ${tipo === 'nova'?'Novas':'Usadas'} em ${p.peca} (${p.modelo})`, 'Logística');
-        } catch(e) { console.error(e); app.showToast("Erro de conexão", "error"); }
+        } catch(e) { console.error(e); app.showToast("Erro ao bater estoque", "error"); }
     },
 
     async deletePeca(id) {
-        if(confirm("Deseja EXCLUIR definitivamente esta peça do sistema?")) {
+        if(confirm("Deseja EXCLUIR definitivamente esta peça do Estoque?")) {
             const p = app.allPecas.find(x => x.id === id);
             try {
                 await deleteDoc(doc(db, "estoque", id));
                 app.showToast("Peça excluída do estoque.");
                 if(p) app.addLog(`🗑️ Excluiu peça do estoque: ${p.peca} (${p.modelo})`, 'Incidente');
+            } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
+        }
+    },
+
+    async togglePedidoStatus(id) {
+        const p = app.allPedidos.find(x => x.id === id);
+        if(!p) return;
+        
+        const novoStatus = p.status === 'Recebido' ? 'Pendente' : 'Recebido';
+        try {
+            await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+            if (novoStatus === 'Recebido') {
+                app.addLog(`✅ Pedido Recebido: ${p.qtd}x ${p.peca} (${p.modelo})`, 'Logística');
+                
+                // Pergunta amigável se a pessoa quer jogar a peça pro Estoque automaticamente
+                if(confirm(`Pedido de ${p.qtd}x ${p.peca} recebido!\nDeseja dar entrada automática na tabela de Estoque?`)) {
+                    await addDoc(collection(db, "estoque"), {
+                        peca: p.peca, modelo: p.modelo, qtdNovas: p.qtd, qtdReuso: 0, observacao: p.observacao || '-', ts: Date.now()
+                    });
+                    app.showToast("Peça transferida para o Estoque!");
+                } else {
+                    app.showToast("Pedido marcado como Recebido.");
+                }
+            } else {
+                app.showToast("Pedido voltou para Pendente.");
+            }
+        } catch(e) { console.error(e); }
+    },
+
+    async deletePedido(id) {
+        if(confirm("Deseja CANCELAR/EXCLUIR este Pedido de Compra?")) {
+            try {
+                await deleteDoc(doc(db, "pedidos", id));
+                app.showToast("Pedido excluído.");
             } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
         }
     },
@@ -1248,7 +1458,7 @@ const app = {
 
         const isLogManual = (log) => {
             if (log.isManual) return true;
-            const isAction = log.text && log.text.match(/^[➕✏️🗑️🔄✅⭕📎📦]/);
+            const isAction = log.text && log.text.match(/^[➕✏️🗑️🔄✅⭕📎📦🛒]/);
             return !isAction;
         };
 
@@ -1301,7 +1511,7 @@ const app = {
             const reallyManual = isLogManual(dt);
 
             if(!reallyManual) {
-                const isAction = dt.text.match(/^[➕✏️🗑️🔄✅⭕📎📦]/);
+                const isAction = dt.text.match(/^[➕✏️🗑️🔄✅⭕📎📦🛒]/);
                 if(isAction) {
                     const icon = isAction[0];
                     if(icon === '➕') { title = 'Nova Demanda'; category = 'Logística'; }
@@ -1309,6 +1519,7 @@ const app = {
                     else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incidente'; }
                     else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logística'; }
                     else if(icon === '📦') { title = 'Movimentação de Estoque'; category = 'Logística'; }
+                    else if(icon === '🛒') { title = 'Pedido de Compra'; category = 'Logística'; }
                     else { title = 'Ação de Sistema'; }
                 }
             }
@@ -2508,6 +2719,7 @@ const app = {
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
         if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
         if (app.pecasUnsub) { app.pecasUnsub(); app.pecasUnsub = null; }
+        if (app.pedidosUnsub) { app.pedidosUnsub(); app.pedidosUnsub = null; }
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
         app.stopAlarmEngine();
