@@ -229,6 +229,12 @@
                     </button>
                 </li>
                 <li>
+                    <button onclick="app.navigate('estoque')" id="nav-btn-estoque" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined shrink-0">inventory_2</span>
+                        <span class="font-body-sm leading-tight">Estoque de Peças</span>
+                    </button>
+                </li>
+                <li>
                     <button onclick="app.navigate('tarefas')" id="nav-btn-tarefas" class="nav-btn text-left w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high hover:text-primary transition-colors">
                         <span class="material-symbols-outlined shrink-0">checklist</span>
                         <span class="font-body-sm leading-tight">Tarefas</span>
@@ -305,120 +311,88 @@
                     <!-- GRADE PRINCIPAL (12 Colunas) -->
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                        <!-- 1. Acessos Rápidos -->
-                        <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-4 overflow-hidden shadow-sm border border-outline-variant/20">
+                        <!-- 1. Acessos Rápidos (Span 3) -->
+                        <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-3 overflow-hidden shadow-sm border border-outline-variant/20">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
-                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary-fixed-dim">link</span>Acessos Rápidos</h3>
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary-fixed-dim">link</span>Acessos</h3>
                             </div>
                             <div class="p-6 flex-1 flex flex-col gap-4 justify-center">
-                                <a href="https://omie.desk.ms" target="_blank" class="glass-panel p-4 rounded-xl flex items-center gap-4 hover:border-primary hover:-translate-y-1 transition-all group shadow-sm">
-                                    <div class="w-12 h-12 shrink-0 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <span class="material-symbols-outlined text-2xl">support_agent</span>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="font-bold text-sm text-on-surface group-hover:text-primary transition-colors truncate">Desk Manager</h4>
-                                        <p class="text-[11px] text-on-surface-variant font-code-data truncate">omie.desk.ms</p>
-                                    </div>
-                                    <span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity shrink-0">open_in_new</span>
+                                <a href="https://omie.desk.ms" target="_blank" class="glass-panel p-3 rounded-xl flex items-center gap-3 hover:border-primary transition-all group shadow-sm">
+                                    <div class="w-10 h-10 shrink-0 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-110 transition-transform"><span class="material-symbols-outlined text-xl">support_agent</span></div>
+                                    <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-on-surface group-hover:text-primary truncate">Desk Manager</h4></div>
                                 </a>
-                                
-                                <a href="https://omie.desk.ms/?CMDB#ICs" target="_blank" class="glass-panel p-4 rounded-xl flex items-center gap-4 hover:border-tertiary hover:-translate-y-1 transition-all group shadow-sm">
-                                    <div class="w-12 h-12 shrink-0 rounded-xl bg-tertiary-container text-on-tertiary-container flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <span class="material-symbols-outlined text-2xl">dns</span>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="font-bold text-sm text-on-surface group-hover:text-tertiary transition-colors truncate">CMDB</h4>
-                                        <p class="text-[11px] text-on-surface-variant font-code-data opacity-80 truncate">omie.desk.ms/?CMDB#ICs</p>
-                                    </div>
-                                    <span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity shrink-0">open_in_new</span>
+                                <a href="https://omie.desk.ms/?CMDB#ICs" target="_blank" class="glass-panel p-3 rounded-xl flex items-center gap-3 hover:border-tertiary transition-all group shadow-sm">
+                                    <div class="w-10 h-10 shrink-0 rounded-lg bg-tertiary-container text-on-tertiary-container flex items-center justify-center group-hover:scale-110 transition-transform"><span class="material-symbols-outlined text-xl">dns</span></div>
+                                    <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-on-surface group-hover:text-tertiary truncate">CMDB</h4></div>
                                 </a>
-                                
-                                <a href="https://dashboard.am.remote.management" target="_blank" class="glass-panel p-4 rounded-xl flex items-center gap-4 hover:border-secondary hover:-translate-y-1 transition-all group shadow-sm">
-                                    <div class="w-12 h-12 shrink-0 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <span class="material-symbols-outlined text-2xl">router</span>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="font-bold text-sm text-on-surface group-hover:text-secondary transition-colors truncate">RMM</h4>
-                                        <p class="text-[11px] text-on-surface-variant font-code-data opacity-80 truncate">dashboard.am.remote.management</p>
-                                    </div>
-                                    <span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity shrink-0">open_in_new</span>
+                                <a href="https://dashboard.am.remote.management" target="_blank" class="glass-panel p-3 rounded-xl flex items-center gap-3 hover:border-secondary transition-all group shadow-sm">
+                                    <div class="w-10 h-10 shrink-0 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center group-hover:scale-110 transition-transform"><span class="material-symbols-outlined text-xl">router</span></div>
+                                    <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-on-surface group-hover:text-secondary truncate">RMM</h4></div>
                                 </a>
                             </div>
                         </div>
 
-                        <!-- 2. Visão Armários CMDB -->
-                        <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-8 overflow-hidden shadow-sm border border-outline-variant/20">
+                        <!-- 2. Visão Armários CMDB (Span 5) -->
+                        <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-5 overflow-hidden shadow-sm border border-outline-variant/20">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
-                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Inventário (CMDB)</h3>
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-secondary-fixed-dim">lock_open</span>Inventário (Equipamentos)</h3>
                             </div>
-                            <div class="p-6 flex-1 flex flex-col xl:flex-row items-center justify-center gap-8 relative">
-                                <div class="relative w-44 h-44 shrink-0 rounded-full flex items-center justify-center">
-                                    <div id="dash-chart-bg" class="absolute inset-0 rounded-full overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.4)]" style="background: conic-gradient(#353535 0% 100%); transition: background 1s ease;"></div>
-                                    <div class="relative z-10 w-32 h-32 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
-                                        <span id="dash-tot-equips" class="font-display-lg text-[38px] leading-none font-bold text-on-surface">0</span>
-                                        <span class="font-label-caps text-[10px] text-on-surface-variant mt-1">TOTAL</span>
+                            <div class="p-6 flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 relative">
+                                <div class="relative w-36 h-36 shrink-0 rounded-full flex items-center justify-center">
+                                    <div id="dash-chart-bg" class="absolute inset-0 rounded-full shadow-md" style="background: conic-gradient(#353535 0% 100%); transition: background 1s ease;"></div>
+                                    <div class="relative z-10 w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
+                                        <span id="dash-tot-equips" class="font-display-lg text-2xl font-bold text-on-surface">0</span>
+                                        <span class="font-label-caps text-[9px] text-on-surface-variant mt-1">TOTAL</span>
                                     </div>
                                 </div>
-                                <div class="w-full xl:w-auto flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 font-code-data text-[12px]">
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #14b8a6;"></span><span class="truncate">Disponível</span></span>
-                                        <span id="dash-stat-disp" class="font-bold shrink-0 ml-2" style="color: #14b8a6">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #fbbf24;"></span><span class="truncate">Laboratório</span></span>
-                                        <span id="dash-stat-lab1" class="font-bold shrink-0 ml-2" style="color: #fbbf24">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #f97316;"></span><span class="truncate">Laboratório 2</span></span>
-                                        <span id="dash-stat-lab2" class="font-bold shrink-0 ml-2" style="color: #f97316">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #3b82f6;"></span><span class="truncate">Para venda</span></span>
-                                        <span id="dash-stat-venda" class="font-bold shrink-0 ml-2" style="color: #3b82f6">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #ef4444;"></span><span class="truncate">Descarte</span></span>
-                                        <span id="dash-stat-desc" class="font-bold shrink-0 ml-2" style="color: #ef4444">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #c084fc;"></span><span class="truncate">Garantia</span></span>
-                                        <span id="dash-stat-gar" class="font-bold shrink-0 ml-2" style="color: #c084fc">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #2dd4bf;"></span><span class="truncate">Uso interno</span></span>
-                                        <span id="dash-stat-uso" class="font-bold shrink-0 ml-2" style="color: #2dd4bf">0</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-2.5 rounded bg-[#232323] border border-outline-variant/30">
-                                        <span class="text-on-surface flex items-center gap-2 min-w-0"><span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: #9ca3af;"></span><span class="truncate">Repatrimoniar</span></span>
-                                        <span id="dash-stat-rep" class="font-bold shrink-0 ml-2" style="color: #9ca3af">0</span>
-                                    </div>
+                                <div class="flex-1 grid grid-cols-2 gap-x-2 gap-y-2 font-code-data text-[10px] w-full">
+                                    <div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: #14b8a6;"></span>Disp.</span><span id="dash-stat-disp" class="font-bold" style="color: #14b8a6">0</span></div>
+                                    <div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: #fbbf24;"></span>Lab. 1</span><span id="dash-stat-lab1" class="font-bold" style="color: #fbbf24">0</span></div>
+                                    <div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: #f97316;"></span>Lab. 2</span><span id="dash-stat-lab2" class="font-bold" style="color: #f97316">0</span></div>
+                                    <div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: #3b82f6;"></span>Venda</span><span id="dash-stat-venda" class="font-bold" style="color: #3b82f6">0</span></div>
+                                    <div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: #ef4444;"></span>Desc.</span><span id="dash-stat-desc" class="font-bold" style="color: #ef4444">0</span></div>
+                                    <div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: #c084fc;"></span>Gar.</span><span id="dash-stat-gar" class="font-bold" style="color: #c084fc">0</span></div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 3. Diário de Bordo -->
+                        <!-- 3. Visão Estoque de Peças (Span 4) -->
+                        <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-4 overflow-hidden shadow-sm border border-outline-variant/20">
+                            <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
+                                <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-amber-400">inventory_2</span>Estoque (Peças)</h3>
+                            </div>
+                            <div class="p-6 flex-1 flex flex-col items-center justify-center gap-4 relative">
+                                <div class="relative w-36 h-36 shrink-0 rounded-full flex items-center justify-center">
+                                    <div id="dash-pecas-chart-bg" class="absolute inset-0 rounded-full shadow-md" style="background: conic-gradient(#353535 0% 100%); transition: background 1s ease;"></div>
+                                    <div class="relative z-10 w-24 h-24 rounded-full bg-level-1 flex flex-col items-center justify-center shadow-inner">
+                                        <span id="dash-tot-pecas" class="font-display-lg text-2xl font-bold text-on-surface">0</span>
+                                        <span class="font-label-caps text-[9px] text-on-surface-variant mt-1">TOTAL</span>
+                                    </div>
+                                </div>
+                                <div id="dash-pecas-legenda" class="w-full grid grid-cols-2 gap-1 text-[9px] font-code-data uppercase max-h-[80px] overflow-y-auto pr-1">
+                                    <!-- Legenda via JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Diário de Bordo -->
                         <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-7 overflow-hidden shadow-sm border border-outline-variant/20">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-tertiary-fixed-dim">rss_feed</span>Diário de Bordo (Feed)</h3>
                                 <span class="text-[10px] font-bold px-2 py-1 bg-surface-container rounded text-on-surface-variant">AO VIVO</span>
                             </div>
-                            <ul id="dashboard-log-list" class="flex-1 overflow-y-auto min-h-[300px] max-h-[400px]">
-                                <!-- Renderizado via JS -->
-                            </ul>
+                            <ul id="dashboard-log-list" class="flex-1 overflow-y-auto min-h-[300px] max-h-[400px]"></ul>
                         </div>
 
-                        <!-- 4. Minhas Pendências -->
+                        <!-- 5. Minhas Pendências -->
                         <div class="bg-level-1 rounded-xl flex flex-col lg:col-span-5 overflow-hidden shadow-sm border border-outline-variant/20">
                             <div class="h-14 px-6 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
                                 <h3 class="font-title-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-error">assignment_late</span>Minhas Pendências</h3>
                             </div>
                             <div class="p-4 flex-1 overflow-y-auto min-h-[300px] max-h-[400px]">
-                                <ul id="my-tasks-list" class="space-y-3">
-                                    <!-- Renderizado via JS -->
-                                </ul>
+                                <ul id="my-tasks-list" class="space-y-3"></ul>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </section>
@@ -785,7 +759,47 @@
 
                     </div>
                 </div>
-            </section> <!-- AQUI FECHOU A CONFIGURAÇÃO CORRETAMENTE -->
+            </section>
+
+            <!-- ========================================== -->
+            <!-- TELA 7: ESTOQUE DE PEÇAS -->
+            <!-- ========================================== -->
+            <section id="page-estoque" class="page-section hidden flex-1 overflow-y-auto bg-level-0 p-md lg:p-lg">
+                <div class="max-w-container-max mx-auto pb-24">
+                    <div class="mb-lg flex flex-col sm:flex-row sm:items-end justify-between gap-md">
+                        <div>
+                            <h2 class="font-headline-lg font-bold text-on-surface tracking-tight">📦 Gestão de Peças</h2>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Controle de insumos, carcaças e periféricos</p>
+                        </div>
+                        <button onclick="app.openPecaForm()" class="bg-[#0a84ff] text-white font-code-data px-md py-sm rounded-full flex items-center gap-xs hover:bg-[#409cff] transition-colors shadow-[0_2px_8px_rgba(10,132,255,0.25)] active:scale-95 font-bold">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Nova Peça
+                        </button>
+                    </div>
+
+                    <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md mb-lg flex items-center shadow-sm relative">
+                        <span class="material-symbols-outlined text-outline absolute left-6 pointer-events-none">search</span>
+                        <input type="text" id="estoque-search-inp" onkeyup="app.renderEstoquePage()" placeholder="Pesquise por nome, modelo ou Topcover..." class="w-full bg-[#1c1c1e] border border-outline-variant/30 text-on-surface rounded-xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#0a84ff] focus:border-[#0a84ff] outline-none transition-all placeholder-outline/50">
+                    </div>
+
+                    <div class="bg-[#1c1c1e] border border-outline-variant/30 rounded-xl overflow-hidden shadow-2xl">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-[#2c2c2e] text-[#86868b] text-[11px] uppercase tracking-wider">
+                                    <tr>
+                                        <th class="p-4 font-bold border-b border-white/5">Peça / Modelo</th>
+                                        <th class="p-4 font-bold border-b border-white/5 text-center">Quantidades</th>
+                                        <th class="p-4 font-bold border-b border-white/5">Status</th>
+                                        <th class="p-4 font-bold border-b border-white/5 text-right">Ações de Estoque</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="estoque-tbody" class="text-sm">
+                                    <!-- Renderizado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- ========================================== -->
             <!-- CHAT FLUTUANTE (VISÍVEL GLOBALMENTE) -->
@@ -1089,6 +1103,57 @@
                         <button onclick="app.addSubtaskComment()" class="text-tertiary hover:text-tertiary-fixed shrink-0 flex items-center justify-center p-1.5 rounded hover:bg-tertiary-container/10 transition-colors"><span class="material-symbols-outlined">send</span></button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form Peças -->
+    <div id="peca-form-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[#000000cc] backdrop-blur-sm" onclick="app.closePecaForm()"></div>
+        <div class="relative bg-[#1c1c1e] border border-outline-variant/50 w-full max-w-md rounded-[18px] shadow-[0_20px_40px_rgba(0,0,0,0.6)] p-6 md:p-8">
+            <h3 class="text-lg font-bold text-on-surface mb-6">Cadastrar Novo Item</h3>
+            <input type="hidden" id="peca-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Nome da Peça</label>
+                    <input type="text" id="peca-nome" list="datalist-pecas" placeholder="Ex: Teclado, Bateria..." class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors">
+                    <datalist id="datalist-pecas">
+                        <option value="Bateria"></option><option value="Teclado"></option><option value="Tela"></option>
+                        <option value="Topcover"></option><option value="Carcaça Base"></option><option value="Moldura"></option>
+                        <option value="SSD"></option><option value="Memória RAM"></option><option value="Placa Mãe"></option>
+                        <option value="Cooler"></option><option value="Cabo Flat"></option>
+                    </datalist>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Modelo do Equipamento</label>
+                    <input type="text" id="peca-modelo" list="datalist-modelos" placeholder="Ex: Latitude 3420..." class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors">
+                    <datalist id="datalist-modelos">
+                        <option value="Latitude 3420"></option><option value="Latitude 5420"></option><option value="Latitude 3400"></option>
+                        <option value="OptiPlex 3090"></option><option value="Vostro"></option><option value="Geral"></option>
+                    </datalist>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">QTD Novas</label>
+                        <input type="number" id="peca-novas" value="0" min="0" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">QTD Reuso</label>
+                        <input type="number" id="peca-reuso" value="0" min="0" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors text-center font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-[#86868b] uppercase mb-1.5">Observação / Parte (Topcover)</label>
+                    <input type="text" id="peca-obs" list="datalist-obs" placeholder="-" class="w-full bg-[#2c2c2e] border border-outline-variant/30 text-on-surface rounded-lg px-3 py-2.5 focus:border-[#0a84ff] outline-none transition-colors">
+                    <datalist id="datalist-obs">
+                        <option value="-"></option><option value="TAMPA"></option><option value="MOLDURA"></option>
+                        <option value="DOBRADIÇA"></option><option value="WEBCAM"></option><option value="LCD"></option>
+                    </datalist>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="app.closePecaForm()" class="px-5 py-2.5 rounded-full font-medium text-[#86868b] hover:bg-[#3a3a3c] hover:text-white transition-colors text-sm">Cancelar</button>
+                <button onclick="app.savePecaForm()" class="px-5 py-2.5 bg-[#0a84ff] text-white font-medium rounded-full hover:bg-[#409cff] transition-colors shadow-sm text-sm">Salvar no Estoque</button>
             </div>
         </div>
     </div>
