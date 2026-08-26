@@ -21,6 +21,7 @@ const app = {
     allLogs: [],
     allLockers: [],
     allReminders: [], 
+    allPecas: [], // NOVO: Controle de Estoque
     
     logFilter: 'Todos',
     logDateFilter: '',
@@ -58,6 +59,7 @@ const app = {
     globalUsersUnsub: null,
     lockersUnsub: null,
     remindersUnsub: null, 
+    pecasUnsub: null, // NOVO
     alertCheckInterval: null, 
     
     audioCtx: null,
@@ -174,6 +176,7 @@ const app = {
         if(pageId === 'calculadora') { this.updateCalcDisplay(); }
         if(pageId === 'lembretes') { this.renderRemindersPage(); }
         if(pageId === 'configuracoes') { this.renderConfigPage(); }
+        if(pageId === 'estoque') { this.renderEstoquePage(); }
         
         window.scrollTo(0,0);
     },
@@ -248,6 +251,7 @@ const app = {
                 app.listenToNotifications();
                 app.listenToLockers();
                 app.listenToReminders(); 
+                app.listenToEstoque(); // NOVO
                 
                 app.navigate('dashboard'); 
             } else { 
@@ -273,6 +277,186 @@ const app = {
         const cg = document.getElementById('sidebar-cargo');
         if(cg) cg.innerText = cargoDb || 'Membro da Equipe';
     },
+
+    /* =======================================
+       SISTEMA DE ESTOQUE (PEÇAS)
+    ======================================= */
+    listenToEstoque() {
+        if(app.pecasUnsub) return;
+        app.pecasUnsub = onSnapshot(collection(db, "estoque"), snap => {
+            app.allPecas = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.peca.localeCompare(b.peca));
+            
+            app.updateDashboardStats(); // Atualiza painéis do Dash
+            if(document.getElementById('page-estoque').classList.contains('active')) {
+                app.renderEstoquePage();
+            }
+        });
+    },
+
+    renderEstoquePage() {
+        const tbody = document.getElementById('estoque-tbody');
+        if(!tbody) return;
+        
+        const searchVal = document.getElementById('estoque-search-inp').value.toLowerCase();
+        let filtered = app.allPecas;
+
+        if (searchVal) {
+            filtered = filtered.filter(p => 
+                p.peca.toLowerCase().includes(searchVal) || 
+                p.modelo.toLowerCase().includes(searchVal) || 
+                (p.observacao && p.observacao.toLowerCase().includes(searchVal))
+            );
+        }
+
+        let html = '';
+        filtered.forEach(p => {
+            const novas = parseInt(p.qtdNovas) || 0;
+            const reuso = parseInt(p.qtdReuso) || 0;
+            const total = novas + reuso;
+            
+            const isEsgotado = total === 0;
+            const badgeClass = isEsgotado ? 'bg-[rgba(255,69,58,0.15)] text-[#ff453a]' : 'bg-[rgba(48,209,88,0.15)] text-[#30d158]';
+            const badgeText = isEsgotado ? 'Esgotado' : 'Em Estoque';
+            
+            let nomeExibicao = p.peca.toUpperCase();
+            if (nomeExibicao === "TOPCOVER" && p.observacao && p.observacao !== "-") {
+                nomeExibicao = `${p.observacao.toUpperCase()} <span class="text-[10px] bg-[rgba(10,132,255,0.15)] text-[#64d2ff] px-2 py-0.5 rounded ml-2">TOPCOVER</span>`;
+            }
+
+            let obsHtml = '';
+            if (p.peca.toUpperCase() !== "TOPCOVER" && p.observacao && p.observacao !== "-") {
+                obsHtml = `<span class="block text-[11px] text-[#ff9f0a] font-medium mt-1">Obs: ${p.observacao}</span>`;
+            }
+
+            html += `
+                <tr class="hover:bg-white/5 transition-colors border-b border-white/5 group">
+                    <td class="p-4 align-middle">
+                        <strong class="text-[#f5f5f7] font-bold text-sm block">${nomeExibicao}</strong>
+                        <span class="text-[#86868b] text-xs">Mod: ${p.modelo}</span>
+                        ${obsHtml}
+                    </td>
+                    <td class="p-4 align-middle text-center">
+                        <div class="flex items-center justify-center gap-4 text-[#86868b] text-xs">
+                            <span>Novas: <strong class="text-[#64d2ff] text-sm ml-1">${novas}</strong></span>
+                            <span>Reuso: <strong class="text-[#64d2ff] text-sm ml-1">${reuso}</strong></span>
+                        </div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <span class="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide ${badgeClass}">${badgeText}</span>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="flex items-center justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                            <select id="tipo-${p.id}" class="bg-[#2c2c2e] text-[#f5f5f7] border border-white/10 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#0a84ff]">
+                                <option value="nova">Nova</option>
+                                <option value="reuso">Usada</option>
+                            </select>
+                            
+                            <div class="flex items-center gap-1 bg-[#1c1c1e] p-1 rounded-lg border border-white/5">
+                                <button onclick="app.updatePecaQtd('${p.id}', -5)" class="w-7 h-7 flex items-center justify-center bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#f5f5f7] rounded-md transition-colors text-xs font-bold" title="-5">-5</button>
+                                <button onclick="app.updatePecaQtd('${p.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#f5f5f7] rounded-md transition-colors text-xs font-bold" title="-1">-1</button>
+                                <span class="w-8 text-center text-[#f5f5f7] font-bold text-sm mx-1">${total}</span>
+                                <button onclick="app.updatePecaQtd('${p.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-[rgba(10,132,255,0.2)] hover:bg-[rgba(10,132,255,0.35)] text-[#64d2ff] rounded-md transition-colors text-xs font-bold" title="+1">+1</button>
+                                <button onclick="app.updatePecaQtd('${p.id}', 5)" class="w-7 h-7 flex items-center justify-center bg-[rgba(10,132,255,0.2)] hover:bg-[rgba(10,132,255,0.35)] text-[#64d2ff] rounded-md transition-colors text-xs font-bold" title="+5">+5</button>
+                            </div>
+                            
+                            <button onclick="app.deletePeca('${p.id}')" class="ml-2 w-8 h-8 flex items-center justify-center bg-[rgba(255,69,58,0.15)] hover:bg-[rgba(255,69,58,0.3)] text-[#ff453a] rounded-lg transition-colors" title="Excluir Peça">
+                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        if(filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-[#86868b] text-sm">Nenhuma peça encontrada no estoque.</td></tr>';
+        } else {
+            tbody.innerHTML = html;
+        }
+    },
+
+    openPecaForm(id = null) {
+        document.getElementById('peca-id').value = '';
+        document.getElementById('peca-nome').value = '';
+        document.getElementById('peca-modelo').value = '';
+        document.getElementById('peca-novas').value = '0';
+        document.getElementById('peca-reuso').value = '0';
+        document.getElementById('peca-obs').value = '-';
+        document.getElementById('peca-form-modal').classList.remove('hidden');
+        document.getElementById('peca-form-modal').classList.add('flex');
+    },
+
+    closePecaForm() {
+        document.getElementById('peca-form-modal').classList.remove('flex');
+        document.getElementById('peca-form-modal').classList.add('hidden');
+    },
+
+    async savePecaForm() {
+        const peca = document.getElementById('peca-nome').value.trim();
+        const modelo = document.getElementById('peca-modelo').value.trim();
+        const novas = parseInt(document.getElementById('peca-novas').value) || 0;
+        const reuso = parseInt(document.getElementById('peca-reuso').value) || 0;
+        const obs = document.getElementById('peca-obs').value.trim() || '-';
+
+        if(!peca || !modelo) return app.showToast("Informe a peça e o modelo.", "error");
+
+        try {
+            await addDoc(collection(db, "estoque"), {
+                peca: peca,
+                modelo: modelo,
+                qtdNovas: novas,
+                qtdReuso: reuso,
+                observacao: obs,
+                ts: Date.now()
+            });
+            app.showToast("Peça cadastrada!");
+            app.addLog(`➕ Adicionou ${novas+reuso}x ${peca} (${modelo}) no Estoque`, 'Logística');
+            app.closePecaForm();
+        } catch(e) { console.error(e); app.showToast("Erro ao salvar", "error"); }
+    },
+
+    async updatePecaQtd(id, alteracao) {
+        const tipoBox = document.getElementById(`tipo-${id}`);
+        if(!tipoBox) return;
+        const tipo = tipoBox.value; // 'nova' ou 'reuso'
+
+        const p = app.allPecas.find(x => x.id === id);
+        if(!p) return;
+
+        let valNovas = parseInt(p.qtdNovas) || 0;
+        let valReuso = parseInt(p.qtdReuso) || 0;
+
+        if (tipo === 'nova') {
+            valNovas += alteracao;
+            if(valNovas < 0) valNovas = 0;
+        } else {
+            valReuso += alteracao;
+            if(valReuso < 0) valReuso = 0;
+        }
+
+        try {
+            await updateDoc(doc(db, "estoque", id), {
+                qtdNovas: valNovas,
+                qtdReuso: valReuso
+            });
+            
+            // Log de movimento
+            const sinal = alteracao > 0 ? "+" : "";
+            app.addLog(`📦 Estoque: ${sinal}${alteracao} ${tipo === 'nova'?'Novas':'Usadas'} em ${p.peca} (${p.modelo})`, 'Logística');
+        } catch(e) { console.error(e); }
+    },
+
+    async deletePeca(id) {
+        if(confirm("Deseja EXCLUIR definitivamente esta peça do sistema?")) {
+            try {
+                const p = app.allPecas.find(x => x.id === id);
+                await deleteDoc(doc(db, "estoque", id));
+                app.showToast("Peça excluída do estoque.");
+                if(p) app.addLog(`🗑️ Excluiu peça do estoque: ${p.peca} (${p.modelo})`, 'Incidente');
+            } catch(e) { console.error(e); app.showToast("Erro.", "error"); }
+        }
+    },
+
 
     /* =======================================
        SISTEMA DE CHAT DIRETO (DM)
@@ -1036,7 +1220,7 @@ const app = {
 
         const isLogManual = (log) => {
             if (log.isManual) return true;
-            const isAction = log.text && log.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
+            const isAction = log.text && log.text.match(/^[➕✏️🗑️🔄✅⭕📎📦]/);
             return !isAction;
         };
 
@@ -1089,13 +1273,14 @@ const app = {
             const reallyManual = isLogManual(dt);
 
             if(!reallyManual) {
-                const isAction = dt.text.match(/^[➕✏️🗑️🔄✅⭕📎]/);
+                const isAction = dt.text.match(/^[➕✏️🗑️🔄✅⭕📎📦]/);
                 if(isAction) {
                     const icon = isAction[0];
                     if(icon === '➕') { title = 'Nova Demanda'; category = 'Logística'; }
                     else if(icon === '✏️' || icon === '🔄') { title = 'Atualização no Sistema'; category = 'Manutenção'; }
                     else if(icon === '🗑️') { title = 'Exclusão Registrada'; category = 'Incidente'; }
                     else if(icon === '✅') { title = 'Tarefa Concluída'; category = 'Logística'; }
+                    else if(icon === '📦') { title = 'Movimentação de Estoque'; category = 'Logística'; }
                     else { title = 'Ação de Sistema'; }
                 }
             }
@@ -1164,61 +1349,113 @@ const app = {
     },
 
     updateDashboardStats() {
-        let total = 0;
-        const counts = {
+        // Estatísticas dos Armários
+        let totalEq = 0;
+        const countsEq = {
             'Disponível': 0, 'Laboratório': 0, 'Laboratório 2': 0, 'Para venda': 0,
             'Descarte': 0, 'Garantia': 0, 'Uso interno': 0, 'Repatrimoniar': 0
         };
         
         app.allLockers.forEach(locker => {
             if(locker.equipamentos) {
-                total += locker.equipamentos.length;
+                totalEq += locker.equipamentos.length;
                 locker.equipamentos.forEach(e => {
                     const st = e.statusText;
-                    if(counts[st] !== undefined) counts[st]++;
+                    if(countsEq[st] !== undefined) countsEq[st]++;
                 });
             }
         });
         
-        const elTot = document.getElementById('dash-tot-equips');
-        if(elTot) elTot.innerText = total;
+        const elTotEq = document.getElementById('dash-tot-equips');
+        if(elTotEq) elTotEq.innerText = totalEq;
 
-        const updateDom = (id, count) => {
+        const updateDomEq = (id, count) => {
             const el = document.getElementById(id);
             if(el) el.innerText = count;
         };
 
-        updateDom('dash-stat-disp', counts['Disponível']);
-        updateDom('dash-stat-lab1', counts['Laboratório']);
-        updateDom('dash-stat-lab2', counts['Laboratório 2']);
-        updateDom('dash-stat-venda', counts['Para venda']);
-        updateDom('dash-stat-desc', counts['Descarte']);
-        updateDom('dash-stat-gar', counts['Garantia']);
-        updateDom('dash-stat-uso', counts['Uso interno']);
-        updateDom('dash-stat-rep', counts['Repatrimoniar']);
+        updateDomEq('dash-stat-disp', countsEq['Disponível']);
+        updateDomEq('dash-stat-lab1', countsEq['Laboratório']);
+        updateDomEq('dash-stat-lab2', countsEq['Laboratório 2']);
+        updateDomEq('dash-stat-venda', countsEq['Para venda']);
+        updateDomEq('dash-stat-desc', countsEq['Descarte']);
+        updateDomEq('dash-stat-gar', countsEq['Garantia']);
+        updateDomEq('dash-stat-uso', countsEq['Uso interno']);
+        updateDomEq('dash-stat-rep', countsEq['Repatrimoniar']);
         
-        const chart = document.getElementById('dash-chart-bg');
-        if(chart) {
-            if(total === 0) {
-                chart.style.background = `conic-gradient(#353535 0% 100%)`;
+        const chartEq = document.getElementById('dash-chart-bg');
+        if(chartEq) {
+            if(totalEq === 0) {
+                chartEq.style.background = `conic-gradient(#353535 0% 100%)`;
             } else {
-                const colors = {
+                const colorsEq = {
                     'Disponível': '#14b8a6', 'Laboratório': '#fbbf24', 'Laboratório 2': '#f97316', 
                     'Para venda': '#3b82f6', 'Descarte': '#ef4444', 'Garantia': '#c084fc', 
                     'Uso interno': '#2dd4bf', 'Repatrimoniar': '#9ca3af'
                 };
                 let gradientStr = [];
                 let currentDeg = 0;
-                for (const [key, count] of Object.entries(counts)) {
+                for (const [key, count] of Object.entries(countsEq)) {
                     if (count > 0) {
-                        const deg = (count / total) * 360;
+                        const deg = (count / totalEq) * 360;
                         const start = currentDeg;
                         const end = currentDeg + deg;
-                        gradientStr.push(`${colors[key]} ${start}deg ${end}deg`);
+                        gradientStr.push(`${colorsEq[key]} ${start}deg ${end}deg`);
                         currentDeg = end;
                     }
                 }
-                chart.style.background = `conic-gradient(${gradientStr.join(', ')})`;
+                chartEq.style.background = `conic-gradient(${gradientStr.join(', ')})`;
+            }
+        }
+
+        // Estatísticas de Peças (Estoque)
+        let totalPecas = 0;
+        const pecasMap = {}; // Agrupa os totais pelo Nome da Peça
+
+        app.allPecas.forEach(p => {
+            const sum = (parseInt(p.qtdNovas) || 0) + (parseInt(p.qtdReuso) || 0);
+            if (sum > 0) {
+                totalPecas += sum;
+                const nome = p.peca.toUpperCase();
+                pecasMap[nome] = (pecasMap[nome] || 0) + sum;
+            }
+        });
+
+        const elTotPecas = document.getElementById('dash-tot-pecas');
+        if (elTotPecas) elTotPecas.innerText = totalPecas;
+
+        const chartPecas = document.getElementById('dash-pecas-chart-bg');
+        const legendPecas = document.getElementById('dash-pecas-legenda');
+
+        if (chartPecas && legendPecas) {
+            if (totalPecas === 0) {
+                chartPecas.style.background = `conic-gradient(#353535 0% 100%)`;
+                legendPecas.innerHTML = '<span class="col-span-2 text-center text-[10px] text-on-surface-variant">Estoque Vazio</span>';
+            } else {
+                // Cores dinâmicas e agradáveis para peças
+                const palette = ['#0a84ff', '#30d158', '#ff9f0a', '#ff453a', '#bf5af2', '#64d2ff', '#ffd60a', '#ff375f', '#32ade6'];
+                let gradientStr = [];
+                let currentDeg = 0;
+                let colorIdx = 0;
+                let legendHtml = '';
+
+                // Ordena do maior pro menor
+                const sortedPecas = Object.entries(pecasMap).sort((a,b) => b[1] - a[1]);
+
+                sortedPecas.forEach(([nome, count]) => {
+                    const color = palette[colorIdx % palette.length];
+                    const deg = (count / totalPecas) * 360;
+                    const start = currentDeg;
+                    const end = currentDeg + deg;
+                    gradientStr.push(`${color} ${start}deg ${end}deg`);
+                    currentDeg = end;
+
+                    legendHtml += `<div class="flex justify-between items-center p-1.5 rounded bg-[#232323] border border-outline-variant/30"><span class="flex items-center gap-1.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${color};"></span><span class="truncate">${nome}</span></span><span class="font-bold" style="color: ${color}">${count}</span></div>`;
+                    colorIdx++;
+                });
+
+                chartPecas.style.background = `conic-gradient(${gradientStr.join(', ')})`;
+                legendPecas.innerHTML = legendHtml;
             }
         }
     },
@@ -2245,6 +2482,7 @@ const app = {
         if (app.globalUsersUnsub) { app.globalUsersUnsub(); app.globalUsersUnsub = null; }
         if (app.lockersUnsub) { app.lockersUnsub(); app.lockersUnsub = null; }
         if (app.remindersUnsub) { app.remindersUnsub(); app.remindersUnsub = null; }
+        if (app.pecasUnsub) { app.pecasUnsub(); app.pecasUnsub = null; }
         if (app.chatUnsub) { app.chatUnsub(); app.chatUnsub = null; }
         if (app.alertCheckInterval) { clearInterval(app.alertCheckInterval); app.alertCheckInterval = null; }
         app.stopAlarmEngine();
